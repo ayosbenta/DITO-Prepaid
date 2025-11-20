@@ -1,14 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize the Gemini API client
-// IMPORTANT: In a real production app, API calls should often be proxied through a backend
-// to protect the API key. For this demo, we use the process.env.API_KEY directly.
-
-// Safely retrieve the API key to avoid runtime errors in environments where process is not defined
-const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
-
-const ai = new GoogleGenAI({ apiKey: apiKey || '' });
-
 const SYSTEM_INSTRUCTION = `
 You are the DITO Home AI Assistant. You help customers with the DITO Home WoWFi Pro product.
 Key Product Info:
@@ -29,8 +20,16 @@ export const generateChatResponse = async (
   message: string
 ): Promise<string> => {
   try {
-    // Map our simple history format to the SDK's format if needed, 
-    // but for a simple chat turn, we can just use the chat session.
+    // Safely access process.env inside the function scope to prevent
+    // module initialization crashes in environments where process is undefined.
+    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+
+    if (!apiKey) {
+      console.warn("Gemini API Key is missing. Chat functionality will not work.");
+      return "I'm currently offline due to a configuration issue (Missing API Key). Please contact support.";
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
     
     const model = 'gemini-2.5-flash'; 
     
