@@ -31,12 +31,12 @@ const HomePage: React.FC = () => {
               </div>
               
               <h1 className="text-5xl lg:text-7xl font-extrabold text-gray-900 leading-tight tracking-tight">
-                Unlimited <span className="text-primary">5G WiFi</span><br />at Home
+                Unlimited <span className="text-primary">4G/5G WiFi</span><br />at Home
               </h1>
               
               <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
                 Experience the future of home internet with the DITO Home WoWFi Pro. 
-                Ultra-fast 5G speeds for streaming, gaming, and working.
+                Ultra-fast 4G/5G speeds for streaming, gaming, and working.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -95,7 +95,7 @@ const HomePage: React.FC = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Zap, title: 'Fast 5G Speeds', desc: 'Ultra-low latency for gaming and streaming up to 500Mbps.' },
+              { icon: Zap, title: 'Fast 4G/5G Speeds', desc: 'Ultra-low latency for gaming and streaming up to 500Mbps.' },
               { icon: CreditCard, title: 'No Hidden Fees', desc: 'Transparent pricing. What you see is exactly what you pay.' },
               { icon: Wifi, title: 'Reliable Connectivity', desc: 'Consistent signal strength covering every corner of your home.' },
               { icon: Shield, title: 'Secure Network', desc: 'Enterprise-grade security features to keep your family safe.' },

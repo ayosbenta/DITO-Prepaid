@@ -98,7 +98,7 @@ export const Footer: React.FC = () => {
                <Wifi size={24} /> DITO Home
             </div>
             <p className="text-gray-500 text-sm leading-relaxed">
-              Empowering Filipino households with next-gen 5G connectivity. Fast, affordable, and reliable.
+              Empowering Filipino households with next-gen 4G/5G connectivity. Fast, affordable, and reliable.
             </p>
           </div>
           <div>

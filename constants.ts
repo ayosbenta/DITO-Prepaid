@@ -3,8 +3,8 @@ import { Product, Order } from './types';
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
   name: 'DITO Home WoWFi Pro',
-  subtitle: 'Unlimited 5G Home WiFi',
-  description: 'Experience the future of home internet with ultra-fast 5G speeds up to 100Mbps. Perfect for streaming, gaming, and working from home. No data caps, just pure speed.',
+  subtitle: 'Unlimited 4G/5G Home WiFi',
+  description: 'Experience the future of home internet with ultra-fast 4G/5G speeds up to 100Mbps. Perfect for streaming, gaming, and working from home. No data caps, just pure speed.',
   price: 1990,
   category: 'Modems',
   image: 'https://picsum.photos/seed/routerblue/600/600',
@@ -35,9 +35,9 @@ export const HERO_PRODUCT: Product = {
 export const RELATED_PRODUCTS: Product[] = [
   {
     id: 'dito-flash-5g',
-    name: 'DITO Flash 5G Pocket',
+    name: 'DITO Flash 4G/5G Pocket',
     subtitle: 'Portable High-Speed Internet',
-    description: 'Take 5G wherever you go. Compact, powerful, and ready for travel.',
+    description: 'Take 4G/5G wherever you go. Compact, powerful, and ready for travel.',
     price: 990,
     category: 'Pocket WiFi',
     image: 'https://picsum.photos/seed/pocketwifi/400/400',
@@ -49,7 +49,7 @@ export const RELATED_PRODUCTS: Product[] = [
   },
   {
     id: 'dito-sim-starter',
-    name: 'DITO 5G SIM Starter',
+    name: 'DITO 4G/5G SIM Starter',
     subtitle: 'SIM Only Pack',
     description: 'Upgrade your current phone to the DITO network.',
     price: 49,
@@ -59,7 +59,7 @@ export const RELATED_PRODUCTS: Product[] = [
     specs: { 'Data': '3GB Included', 'Calls': 'Unlimited DITO-to-DITO' },
     rating: 4.9,
     reviews: 3000,
-    features: ['Triple Cut SIM', '5G Ready']
+    features: ['Triple Cut SIM', '4G/5G Ready']
   }
 ];
 

@@ -12,7 +12,7 @@ const AIChatBot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'model', text: 'Hi! 👋 I\'m your DITO AI Assistant. Ask me anything about our 5G Home WiFi!' }
+    { id: '1', role: 'model', text: 'Hi! 👋 I\'m your DITO AI Assistant. Ask me anything about our 4G/5G Home WiFi!' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

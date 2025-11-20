@@ -117,7 +117,7 @@ const ProductDetailPage: React.FC = () => {
                </div>
                <div className="flex flex-col items-center gap-2">
                  <Wifi className="text-gray-900" size={20} />
-                 <span>5G Enabled</span>
+                 <span>4G/5G Enabled</span>
                </div>
             </div>
           </div>
