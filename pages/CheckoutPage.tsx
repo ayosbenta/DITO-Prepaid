@@ -1,14 +1,20 @@
 import React, { useContext, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
-import { PaymentMethod } from '../types';
+import { StoreContext } from '../contexts/StoreContext';
+import { PaymentMethod, Order } from '../types';
 import { CheckCircle, CreditCard, Truck, ChevronRight, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/UI';
 
 const CheckoutPage: React.FC = () => {
   const { items, cartTotal, clearCart } = useContext(CartContext);
+  const { addOrder } = useContext(StoreContext);
   const [step, setStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.COD);
+  
+  // Form State
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
 
   if (items.length === 0 && step !== 3) {
     return (
@@ -26,6 +32,17 @@ const CheckoutPage: React.FC = () => {
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const newOrder: Order = {
+      id: `#ORD-${Math.floor(Math.random() * 10000)}`,
+      customer: `${firstName} ${lastName}`,
+      date: new Date().toISOString().split('T')[0],
+      total: cartTotal,
+      status: 'Pending',
+      items: items.reduce((acc, item) => acc + item.quantity, 0)
+    };
+
+    addOrder(newOrder);
     clearCart();
     setStep(3);
     window.scrollTo(0,0);
@@ -64,7 +81,7 @@ const CheckoutPage: React.FC = () => {
               <CheckCircle size={48} className="text-green-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-            <p className="text-gray-500 mb-8">Thank you for your purchase. Your order #ORD-3920 has been placed successfully.</p>
+            <p className="text-gray-500 mb-8">Thank you for your purchase. Your order has been placed successfully.</p>
             <Link to="/">
               <Button fullWidth className="py-4">Return Home</Button>
             </Link>
@@ -83,11 +100,23 @@ const CheckoutPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-6">
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">First Name</label>
-                      <input required type="text" className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" />
+                      <input 
+                        required 
+                        type="text" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                      />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Last Name</label>
-                      <input required type="text" className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" />
+                      <input 
+                        required 
+                        type="text" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                      />
                     </div>
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Street Address</label>

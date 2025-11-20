@@ -1,17 +1,28 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, CheckCircle2 } from 'lucide-react';
-import { HERO_PRODUCT, RELATED_PRODUCTS } from '../constants';
+import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus } from 'lucide-react';
+import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart, setIsCartOpen } = useContext(CartContext);
+  const { products } = useContext(StoreContext);
   const [quantity, setQuantity] = useState(1);
   
-  const product = id === HERO_PRODUCT.id ? HERO_PRODUCT : RELATED_PRODUCTS.find(p => p.id === id) || HERO_PRODUCT;
-  const [activeImage, setActiveImage] = useState(product.image);
+  const product = products.find(p => p.id === id);
+  const [activeImage, setActiveImage] = useState<string>('');
+
+  useEffect(() => {
+    if (product) {
+      setActiveImage(product.image);
+    }
+  }, [product]);
+
+  if (!product) {
+    return <div className="pt-40 text-center">Product not found</div>;
+  }
 
   const handleAddToCart = () => {
     for(let i=0; i<quantity; i++) addToCart(product);
@@ -137,9 +148,9 @@ const ProductDetailPage: React.FC = () => {
                      <Wifi size={20} className="text-primary" /> Connectivity
                    </h3>
                    <ul className="space-y-4">
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">Network</span> <span className="font-medium text-gray-900">5G NR / 4G LTE</span></li>
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">WiFi Standard</span> <span className="font-medium text-gray-900">WiFi 6 (802.11ax)</span></li>
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">Max Speed</span> <span className="font-medium text-gray-900">Up to 500 Mbps</span></li>
+                      {product.specs && Object.entries(product.specs).slice(0, 3).map(([key, value]) => (
+                         <li key={key} className="flex justify-between text-sm"><span className="text-gray-500">{key}</span> <span className="font-medium text-gray-900">{value}</span></li>
+                      ))}
                    </ul>
                 </div>
                 <div className="p-8 space-y-6">
@@ -147,9 +158,9 @@ const ProductDetailPage: React.FC = () => {
                      <Info size={20} className="text-primary" /> Hardware
                    </h3>
                    <ul className="space-y-4">
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">Device Limit</span> <span className="font-medium text-gray-900">32 Devices</span></li>
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">Ports</span> <span className="font-medium text-gray-900">1x LAN, 1x WAN</span></li>
-                      <li className="flex justify-between text-sm"><span className="text-gray-500">SIM Type</span> <span className="font-medium text-gray-900">Nano SIM</span></li>
+                      {product.specs && Object.entries(product.specs).slice(3).map(([key, value]) => (
+                         <li key={key} className="flex justify-between text-sm"><span className="text-gray-500">{key}</span> <span className="font-medium text-gray-900">{value}</span></li>
+                      ))}
                    </ul>
                 </div>
              </div>

@@ -4,6 +4,7 @@ import { CartItem, Product } from './types';
 import { Navbar, Footer, CartDrawer } from './components/Layout';
 import AIChatBot from './components/AIChatBot';
 import { CartContext } from './contexts/CartContext';
+import { StoreProvider } from './contexts/StoreContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -50,45 +51,47 @@ const App: React.FC = () => {
   const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ 
-      items: cartItems, 
-      addToCart, 
-      removeFromCart, 
-      updateQuantity, 
-      cartTotal, 
-      itemCount, 
-      clearCart,
-      isCartOpen,
-      setIsCartOpen 
-    }}>
-      <Router>
-        <ScrollToTop />
-        <div className="min-h-screen flex flex-col font-sans text-gray-900">
-          <Routes>
-            {/* Admin Route - No Navbar/Footer for cleaner dash */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            
-            {/* Public Routes */}
-            <Route path="*" element={
-              <>
-                <Navbar />
-                <main className="flex-grow">
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/catalog" element={<CatalogPage />} />
-                    <Route path="/product/:id" element={<ProductDetailPage />} />
-                    <Route path="/checkout" element={<CheckoutPage />} />
-                  </Routes>
-                </main>
-                <Footer />
-                <CartDrawer />
-                <AIChatBot />
-              </>
-            } />
-          </Routes>
-        </div>
-      </Router>
-    </CartContext.Provider>
+    <StoreProvider>
+      <CartContext.Provider value={{ 
+        items: cartItems, 
+        addToCart, 
+        removeFromCart, 
+        updateQuantity, 
+        cartTotal, 
+        itemCount, 
+        clearCart,
+        isCartOpen,
+        setIsCartOpen 
+      }}>
+        <Router>
+          <ScrollToTop />
+          <div className="min-h-screen flex flex-col font-sans text-gray-900">
+            <Routes>
+              {/* Admin Route - No Navbar/Footer for cleaner dash */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              
+              {/* Public Routes */}
+              <Route path="*" element={
+                <>
+                  <Navbar />
+                  <main className="flex-grow">
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/catalog" element={<CatalogPage />} />
+                      <Route path="/product/:id" element={<ProductDetailPage />} />
+                      <Route path="/checkout" element={<CheckoutPage />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                  <CartDrawer />
+                  <AIChatBot />
+                </>
+              } />
+            </Routes>
+          </div>
+        </Router>
+      </CartContext.Provider>
+    </StoreProvider>
   );
 };
 

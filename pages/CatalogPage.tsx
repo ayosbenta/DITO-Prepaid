@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { Search, Filter, SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { HERO_PRODUCT, RELATED_PRODUCTS } from '../constants';
+import React, { useState, useContext } from 'react';
+import { Search, Filter } from 'lucide-react';
+import { StoreContext } from '../contexts/StoreContext';
 import { ProductCard } from '../components/UI';
 
 const CatalogPage: React.FC = () => {
+  const { products } = useContext(StoreContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
-  const allProducts = [HERO_PRODUCT, ...RELATED_PRODUCTS];
   const categories = ['All', 'Modems', 'Pocket WiFi', 'SIM Cards'];
 
-  const filteredProducts = allProducts.filter(p => {
+  const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
     return matchesSearch && matchesCategory;

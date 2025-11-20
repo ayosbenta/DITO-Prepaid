@@ -1,18 +1,25 @@
-
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check } from 'lucide-react';
-import { HERO_PRODUCT } from '../constants';
+import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
 
 const HomePage: React.FC = () => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);
+  const { products } = useContext(StoreContext);
+
+  // Dynamic Hero Product (Fallback to first product if specific ID missing)
+  const heroProduct = products.find(p => p.id === 'dito-wowfi-pro') || products[0];
 
   const handleShopNow = () => {
-    addToCart(HERO_PRODUCT);
-    setIsCartOpen(true);
+    if (heroProduct) {
+      addToCart(heroProduct);
+      setIsCartOpen(true);
+    }
   };
+
+  if (!heroProduct) return <div>Loading...</div>;
 
   return (
     <div className="overflow-hidden bg-white font-sans">
@@ -46,7 +53,7 @@ const HomePage: React.FC = () => {
                 <Button variant="primary" className="px-12 py-4 text-lg shadow-xl shadow-red-600/20 rounded-full w-full sm:w-auto transition-transform hover:-translate-y-1" onClick={handleShopNow}>
                    Shop Now
                 </Button>
-                <Link to={`/product/${HERO_PRODUCT.id}`} className="w-full sm:w-auto">
+                <Link to={`/product/${heroProduct.id}`} className="w-full sm:w-auto">
                    <Button variant="outline" className="px-12 py-4 text-lg w-full rounded-full border-2 border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-white transition-all">
                      Learn More
                    </Button>
@@ -76,7 +83,7 @@ const HomePage: React.FC = () => {
                    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-white to-transparent opacity-100"></div>
                    
                    <img 
-                     src={HERO_PRODUCT.image} 
+                     src={heroProduct.image} 
                      alt="DITO Home WoWFi Pro" 
                      className="relative z-10 w-[110%] h-auto object-contain transform group-hover:scale-105 transition-transform duration-700 ease-out drop-shadow-xl"
                    />
@@ -88,7 +95,7 @@ const HomePage: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Start Today</p>
-                        <p className="text-2xl font-black text-gray-900">₱1,990</p>
+                        <p className="text-2xl font-black text-gray-900">₱{heroProduct.price.toLocaleString()}</p>
                       </div>
                    </div>
                 </div>
