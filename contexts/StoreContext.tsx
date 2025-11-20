@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings } from '../types';
+import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 import { SheetsService } from '../services/sheetsService';
 
@@ -9,6 +9,7 @@ interface StoreContextType {
   orders: Order[];
   customers: User[];
   affiliates: Affiliate[];
+  payouts: PayoutRequest[];
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
   // Product Actions
@@ -25,6 +26,9 @@ interface StoreContextType {
   registerAffiliate: (affiliate: Affiliate) => void;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => void;
   trackAffiliateClick: (id: string) => void;
+  // Payout Actions
+  requestPayout: (req: Omit<PayoutRequest, 'id' | 'status' | 'dateRequested'>) => void;
+  updatePayoutStatus: (id: string, status: PayoutRequest['status']) => void;
   // Settings Actions
   updateSettings: (settings: LandingPageSettings) => void;
   updatePaymentSettings: (settings: PaymentSettings) => void;
@@ -44,6 +48,7 @@ export const StoreContext = createContext<StoreContextType>({
   orders: [],
   customers: [],
   affiliates: [],
+  payouts: [],
   settings: DEFAULT_SETTINGS,
   paymentSettings: DEFAULT_PAYMENT_SETTINGS,
   addProduct: () => {},
@@ -56,6 +61,8 @@ export const StoreContext = createContext<StoreContextType>({
   registerAffiliate: () => {},
   updateAffiliate: () => {},
   trackAffiliateClick: () => {},
+  requestPayout: () => {},
+  updatePayoutStatus: () => {},
   updateSettings: () => {},
   updatePaymentSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
@@ -69,6 +76,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   
@@ -85,6 +93,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setOrders(data.orders || []);
       setCustomers(data.customers || []);
       setAffiliates(data.affiliates || []);
+      setPayouts(data.payouts || []);
       if (data.settings) setSettings(data.settings);
       if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
     }
@@ -123,6 +132,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const triggerAffiliateSync = (newAffiliates: Affiliate[]) => {
     setIsSyncing(true);
     SheetsService.syncAffiliates(newAffiliates).finally(() => setIsSyncing(false));
+  };
+
+  const triggerPayoutSync = (newPayouts: PayoutRequest[]) => {
+    setIsSyncing(true);
+    SheetsService.syncPayouts(newPayouts).finally(() => setIsSyncing(false));
   };
 
   // --- Logic: Auto-Credit Affiliate Commission ---
@@ -257,11 +271,61 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const newAffiliates = prev.map(a => a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a);
       
       // Trigger background sync to save the click
-      // We don't set isSyncing to true here to avoid blocking UI updates for just a click track
       SheetsService.syncAffiliates(newAffiliates).catch(err => console.error("Failed to sync click", err));
       
       return newAffiliates;
     });
+  };
+
+  // Payout Logic
+  const requestPayout = (req: Omit<PayoutRequest, 'id' | 'status' | 'dateRequested'>) => {
+    // 1. Create the request object
+    const newRequest: PayoutRequest = {
+      ...req,
+      id: `PAY-${Date.now()}`,
+      status: 'Pending',
+      dateRequested: new Date().toISOString()
+    };
+    const newPayouts = [newRequest, ...payouts];
+    setPayouts(newPayouts);
+
+    // 2. Deduct from Affiliate Wallet immediately
+    const newAffiliates = affiliates.map(aff => {
+      if (aff.id === req.affiliateId) {
+        return { ...aff, walletBalance: aff.walletBalance - req.amount };
+      }
+      return aff;
+    });
+    setAffiliates(newAffiliates);
+
+    // 3. Sync both
+    triggerPayoutSync(newPayouts);
+    triggerAffiliateSync(newAffiliates);
+  };
+
+  const updatePayoutStatus = (id: string, status: PayoutRequest['status']) => {
+    const targetPayout = payouts.find(p => p.id === id);
+    if (!targetPayout) return;
+
+    // 1. Update Payout Status
+    const newPayouts = payouts.map(p => 
+      p.id === id ? { ...p, status, dateProcessed: new Date().toISOString() } : p
+    );
+    setPayouts(newPayouts);
+
+    // 2. If Rejected, refund the wallet
+    if (status === 'Rejected') {
+      const newAffiliates = affiliates.map(aff => {
+        if (aff.id === targetPayout.affiliateId) {
+          return { ...aff, walletBalance: aff.walletBalance + targetPayout.amount };
+        }
+        return aff;
+      });
+      setAffiliates(newAffiliates);
+      triggerAffiliateSync(newAffiliates);
+    }
+
+    triggerPayoutSync(newPayouts);
   };
 
   // Settings Update
@@ -292,6 +356,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       orders,
       customers,
       affiliates,
+      payouts,
       settings,
       paymentSettings,
       addProduct,
@@ -304,6 +369,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       registerAffiliate,
       updateAffiliate,
       trackAffiliateClick,
+      requestPayout,
+      updatePayoutStatus,
       updateSettings,
       updatePaymentSettings,
       stats,

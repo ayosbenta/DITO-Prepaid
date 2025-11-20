@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -20,11 +20,11 @@ const AdminDashboard: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { 
-    products, orders, customers, affiliates, stats, settings, paymentSettings,
+    products, orders, customers, affiliates, stats, settings, paymentSettings, payouts,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
     deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading,
-    updateAffiliate
+    updateAffiliate, updatePayoutStatus
   } = useContext(StoreContext);
 
   // Local state for Forms/Modals
@@ -65,6 +65,7 @@ const AdminDashboard: React.FC = () => {
     { icon: ShoppingBag, label: 'Orders' },
     { icon: CreditCard, label: 'Payment Gateway' },
     { icon: Briefcase, label: 'Affiliates' },
+    { icon: DollarSign, label: 'Payouts' },
     { icon: Users, label: 'Customers' },
     { icon: Settings, label: 'Settings' },
   ];
@@ -227,6 +228,71 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Payouts':
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
+              <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
+            </div>
+            <div className="overflow-x-auto">
+               <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 font-medium">
+                    <tr>
+                      <th className="p-4">Request ID</th>
+                      <th className="p-4">Affiliate</th>
+                      <th className="p-4">Amount</th>
+                      <th className="p-4">Method / Details</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                     {payouts.map(p => (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                           <td className="p-4 font-mono text-gray-500 text-xs">{p.id}</td>
+                           <td className="p-4">
+                              <p className="font-bold text-gray-900">{p.affiliateName}</p>
+                              <p className="text-xs text-gray-400">ID: {p.affiliateId}</p>
+                           </td>
+                           <td className="p-4 font-bold text-primary">₱{p.amount.toLocaleString()}</td>
+                           <td className="p-4 text-xs">
+                              <p className="font-bold text-gray-700">{p.method}</p>
+                              <p className="text-gray-500">{p.accountNumber} ({p.accountName})</p>
+                           </td>
+                           <td className="p-4">
+                             <Badge color={p.status === 'Approved' ? 'green' : p.status === 'Rejected' ? 'red' : 'yellow'}>
+                               {p.status}
+                             </Badge>
+                           </td>
+                           <td className="p-4 flex justify-end gap-2">
+                              {p.status === 'Pending' && (
+                                <>
+                                  <Button 
+                                    onClick={() => updatePayoutStatus(p.id, 'Approved')} 
+                                    className="bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1 text-xs rounded-lg"
+                                  >
+                                     Approve
+                                  </Button>
+                                  <Button 
+                                    onClick={() => updatePayoutStatus(p.id, 'Rejected')} 
+                                    className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 text-xs rounded-lg"
+                                  >
+                                     Reject
+                                  </Button>
+                                </>
+                              )}
+                              {p.status === 'Approved' && <span className="text-xs text-gray-400">Processed</span>}
+                              {p.status === 'Rejected' && <span className="text-xs text-gray-400">Refunded</span>}
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+          </div>
+        );
+
       case 'Payment Gateway':
         return (
           <div className="max-w-4xl mx-auto space-y-8 pb-20">

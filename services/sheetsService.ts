@@ -1,5 +1,5 @@
 
-import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings } from '../types';
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
 // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
@@ -15,6 +15,7 @@ interface DashboardData {
   orders: Order[];
   customers: User[];
   affiliates: Affiliate[];
+  payouts: PayoutRequest[];
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
 }
@@ -95,7 +96,21 @@ export const SheetsService = {
         lifetimeEarnings: Number(a.lifetimeEarnings || 0)
       }));
 
-      // 5. Parse Settings (Merged Landing & Payment)
+      // 5. Parse Payouts
+      const payouts: PayoutRequest[] = (data.Payouts || []).map((p: any) => ({
+        id: String(p.id),
+        affiliateId: String(p.affiliateId),
+        affiliateName: String(p.affiliateName),
+        amount: Number(p.amount),
+        method: p.method || 'GCash',
+        accountName: String(p.accountName),
+        accountNumber: String(p.accountNumber),
+        status: p.status || 'Pending',
+        dateRequested: p.dateRequested || new Date().toISOString(),
+        dateProcessed: p.dateProcessed
+      }));
+
+      // 6. Parse Settings (Merged Landing & Payment)
       const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS };
       
       if (data.Settings && Array.isArray(data.Settings)) {
@@ -127,6 +142,7 @@ export const SheetsService = {
         orders, 
         customers, 
         affiliates, 
+        payouts,
         settings: landingSettings as LandingPageSettings, 
         paymentSettings: payment as PaymentSettings 
       };
@@ -139,6 +155,7 @@ export const SheetsService = {
         orders: RECENT_ORDERS,
         customers: [],
         affiliates: [],
+        payouts: [],
         settings: DEFAULT_SETTINGS,
         paymentSettings: DEFAULT_PAYMENT_SETTINGS
       };
@@ -179,5 +196,9 @@ export const SheetsService = {
 
   syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
     return SheetsService.sendData('SYNC_AFFILIATES', affiliates);
+  },
+
+  syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => {
+    return SheetsService.sendData('SYNC_PAYOUTS', payouts);
   }
 };

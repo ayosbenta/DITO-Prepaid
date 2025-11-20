@@ -51,6 +51,19 @@ export interface Order {
   proofOfPayment?: string; // Base64 string or URL of the receipt
 }
 
+export interface PayoutRequest {
+  id: string;
+  affiliateId: string;
+  affiliateName: string;
+  amount: number;
+  method: 'GCash' | 'Bank Transfer';
+  accountName: string;
+  accountNumber: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  dateRequested: string;
+  dateProcessed?: string;
+}
+
 export interface LandingPageSettings {
   hero: {
     titlePrefix: string;
