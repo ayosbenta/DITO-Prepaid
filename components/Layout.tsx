@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { CartItem } from '../types';
+import { Button } from './UI';
 
 export const Navbar: React.FC = () => {
   const { itemCount, setIsCartOpen } = useContext(CartContext);
@@ -20,40 +21,40 @@ export const Navbar: React.FC = () => {
     { name: 'Home', path: '/' },
     { name: 'Products', path: '/catalog' },
     { name: 'Support', path: '#' },
-    { name: 'Admin', path: '/admin' },
   ];
 
   return (
-    <nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+    <nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2 text-primary font-bold text-2xl tracking-tight">
-          <div className="bg-primary text-white p-1.5 rounded-lg">
-            <Wifi size={24} strokeWidth={3} />
+        <Link to="/" className="flex items-center gap-2 text-primary font-black text-2xl tracking-tighter hover:scale-105 transition-transform">
+          <div className="bg-primary text-white p-1.5 rounded-lg shadow-lg shadow-red-600/20">
+            <Wifi size={20} strokeWidth={3} />
           </div>
           DITO Home
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-8 bg-white/50 px-6 py-2 rounded-full backdrop-blur-sm border border-gray-100/50">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               to={link.path} 
-              className={`text-sm font-medium hover:text-primary transition-colors ${location.pathname === link.path ? 'text-primary' : 'text-gray-600'}`}
+              className={`text-sm font-medium transition-colors ${location.pathname === link.path ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
             >
               {link.name}
             </Link>
           ))}
+          <Link to="/admin" className="text-sm font-medium text-gray-400 hover:text-gray-600">Admin</Link>
         </div>
 
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="relative p-2.5 bg-white hover:bg-gray-100 rounded-full transition-colors border border-gray-100 shadow-sm group"
           >
-            <ShoppingCart size={22} className="text-gray-700" />
+            <ShoppingCart size={20} className="text-gray-700 group-hover:text-primary transition-colors" />
             {itemCount > 0 && (
-              <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                 {itemCount}
               </span>
             )}
@@ -69,17 +70,18 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t absolute w-full px-4 py-4 flex flex-col gap-4 shadow-lg">
+        <div className="md:hidden bg-white border-t absolute w-full px-4 py-4 flex flex-col gap-4 shadow-xl animate-fade-in-up">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               to={link.path} 
-              className="text-gray-700 font-medium py-2"
+              className="text-gray-900 font-bold text-lg py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {link.name}
             </Link>
           ))}
+          <Link to="/admin" className="text-gray-500 py-2">Admin</Link>
         </div>
       )}
     </nav>
@@ -92,7 +94,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-primary font-bold text-xl">
+            <div className="flex items-center gap-2 text-primary font-black text-xl tracking-tighter">
                <Wifi size={24} /> DITO Home
             </div>
             <p className="text-gray-500 text-sm leading-relaxed">
@@ -100,33 +102,31 @@ export const Footer: React.FC = () => {
             </p>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-4">Quick Links</h4>
+            <h4 className="font-bold text-gray-900 mb-4">Shop</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link to="/" className="hover:text-primary">Home</Link></li>
-              <li><Link to="/catalog" className="hover:text-primary">Products</Link></li>
-              <li><Link to="#" className="hover:text-primary">Coverage Map</Link></li>
-              <li><Link to="#" className="hover:text-primary">Help Center</Link></li>
+              <li><Link to="/catalog" className="hover:text-primary">All Products</Link></li>
+              <li><Link to="#" className="hover:text-primary">Best Sellers</Link></li>
+              <li><Link to="#" className="hover:text-primary">New Arrivals</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold text-gray-900 mb-4">Support</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li>FAQ</li>
-              <li>Troubleshooting</li>
-              <li>Contact Us</li>
-              <li>Terms of Service</li>
+              <li>Help Center</li>
+              <li>Track Order</li>
+              <li>Returns & Warranty</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-4">Stay Connected</h4>
+            <h4 className="font-bold text-gray-900 mb-4">Follow Us</h4>
             <div className="flex gap-4 mb-6">
-              <a href="#" className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"><Facebook size={18} /></a>
-              <a href="#" className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-400 hover:bg-blue-100 transition-colors"><Twitter size={18} /></a>
-              <a href="#" className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 hover:bg-pink-100 transition-colors"><Instagram size={18} /></a>
+              <a href="#" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-primary hover:text-white transition-all"><Facebook size={18} /></a>
+              <a href="#" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-primary hover:text-white transition-all"><Twitter size={18} /></a>
+              <a href="#" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-primary hover:text-white transition-all"><Instagram size={18} /></a>
             </div>
           </div>
         </div>
-        <div className="border-t pt-8 text-center text-sm text-gray-400">
+        <div className="border-t pt-8 text-center text-xs text-gray-400">
           &copy; {new Date().getFullYear()} DITO Telecommunity. All rights reserved.
         </div>
       </div>
@@ -143,66 +143,66 @@ export const CartDrawer: React.FC = () => {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity" 
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity" 
         onClick={() => setIsCartOpen(false)}
       />
       
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 flex flex-col">
-        <div className="p-5 border-b flex justify-between items-center bg-gray-50">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <ShoppingCart size={20} /> Your Cart
+      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 flex flex-col animate-fade-in-left">
+        <div className="p-6 border-b flex justify-between items-center bg-white">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            Your Cart <span className="text-sm font-normal text-gray-500">({items.length} items)</span>
           </h2>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <X size={20} className="text-gray-500" />
+          <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900">
+            <X size={24} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {items.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
-              <ShoppingCart size={48} className="mb-4 opacity-20" />
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                 <ShoppingCart size={32} className="opacity-20" />
+              </div>
               <p>Your cart is empty.</p>
-              <button 
-                onClick={() => setIsCartOpen(false)}
-                className="mt-4 text-primary font-medium hover:underline"
-              >
-                Start Shopping
-              </button>
+              <Button variant="outline" onClick={() => setIsCartOpen(false)}>Start Shopping</Button>
             </div>
           ) : (
             items.map((item: CartItem) => (
-              <div key={item.id} className="flex gap-4 animate-fade-in">
-                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              <div key={item.id} className="flex gap-4 group">
+                <div className="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 p-2">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
                 </div>
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
-                    <h3 className="font-medium text-gray-900 line-clamp-1">{item.name}</h3>
-                    <p className="text-sm text-gray-500">₱{item.price.toLocaleString()}</p>
+                    <div className="flex justify-between items-start">
+                       <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
+                       <button 
+                        onClick={() => removeFromCart(item.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500">Modem</p>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center border border-gray-200 rounded-lg bg-white h-8">
                       <button 
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="p-1 hover:bg-gray-200 rounded-l-lg"
+                        className="w-8 h-full hover:bg-gray-50 rounded-l-lg flex items-center justify-center text-gray-500"
                       >
                         <Minus size={14} />
                       </button>
                       <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
                       <button 
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="p-1 hover:bg-gray-200 rounded-r-lg"
+                        className="w-8 h-full hover:bg-gray-50 rounded-r-lg flex items-center justify-center text-gray-500"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <p className="font-bold text-gray-900">₱{(item.price * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -212,16 +212,24 @@ export const CartDrawer: React.FC = () => {
 
         {items.length > 0 && (
           <div className="p-6 border-t bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="text-xl font-bold text-gray-900">₱{cartTotal.toLocaleString()}</span>
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between items-center text-gray-500 text-sm">
+                <span>Subtotal</span>
+                <span>₱{cartTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-gray-500 text-sm">
+                <span>Shipping</span>
+                <span className="text-green-600 font-medium">Free</span>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                <span className="font-bold text-gray-900 text-lg">Total</span>
+                <span className="font-bold text-primary text-2xl">₱{cartTotal.toLocaleString()}</span>
+              </div>
             </div>
-            <Link 
-              to="/checkout"
-              onClick={() => setIsCartOpen(false)}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 rounded-xl font-bold hover:bg-blue-800 transition-transform active:scale-95 shadow-lg shadow-blue-900/20"
-            >
-              Checkout <ArrowRight size={18} />
+            <Link to="/checkout" onClick={() => setIsCartOpen(false)}>
+              <Button fullWidth className="py-4 shadow-red-900/20 shadow-lg flex items-center justify-center gap-2">
+                 <Lock size={16} /> Checkout Securely
+              </Button>
             </Link>
           </div>
         )}
