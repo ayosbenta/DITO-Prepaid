@@ -73,7 +73,9 @@ const AdminDashboard: React.FC = () => {
       reviews: 0,
       gallery: [],
       specs: {},
-      features: []
+      features: [],
+      commissionType: 'percentage',
+      commissionValue: 5
     });
     setIsProductModalOpen(true);
   };
@@ -342,7 +344,7 @@ const AdminDashboard: React.FC = () => {
                     <th className="p-4">Product</th>
                     <th className="p-4">Category</th>
                     <th className="p-4">Price</th>
-                    <th className="p-4">Rating</th>
+                    <th className="p-4">Affiliate Com.</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -355,7 +357,14 @@ const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-4 text-gray-500">{p.category}</td>
                       <td className="p-4 font-medium">₱{p.price.toLocaleString()}</td>
-                      <td className="p-4 text-gray-500">{p.rating} ★</td>
+                      <td className="p-4 text-gray-500">
+                        <Badge color="blue">
+                          {p.commissionType === 'fixed' 
+                            ? `₱${p.commissionValue}` 
+                            : `${p.commissionValue || 5}%`
+                          }
+                        </Badge>
+                      </td>
                       <td className="p-4 flex justify-end gap-2">
                         <button onClick={() => handleEditProduct(p)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg"><Edit2 size={16}/></button>
                         <button onClick={() => deleteProduct(p.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={16}/></button>
@@ -383,6 +392,7 @@ const AdminDashboard: React.FC = () => {
                     <th className="p-4">Date</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Total</th>
+                    <th className="p-4">Commission</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -398,6 +408,9 @@ const AdminDashboard: React.FC = () => {
                         </Badge>
                       </td>
                       <td className="p-4 font-bold">₱{order.total.toLocaleString()}</td>
+                      <td className="p-4 text-gray-500">
+                        {order.commission ? `₱${order.commission.toLocaleString()}` : '-'}
+                      </td>
                       <td className="p-4 flex justify-end gap-2">
                         {order.status !== 'Delivered' && (
                           <button onClick={() => updateOrderStatus(order.id, 'Delivered')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100">Mark Delivered</button>
@@ -622,7 +635,7 @@ const AdminDashboard: React.FC = () => {
         {/* Product Modal */}
         {isProductModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+             <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold mb-4">{editingProduct ? 'Edit Product' : 'New Product'}</h3>
                 <div className="space-y-4">
                    <div>
@@ -635,7 +648,7 @@ const AdminDashboard: React.FC = () => {
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                      <div>
-                       <label className="text-xs font-bold text-gray-500 uppercase">Price</label>
+                       <label className="text-xs font-bold text-gray-500 uppercase">Price (₱)</label>
                        <input 
                          type="number"
                          className="w-full border rounded-lg p-2 mt-1" 
@@ -664,6 +677,42 @@ const AdminDashboard: React.FC = () => {
                        onChange={e => setNewProductForm({...newProductForm, image: e.target.value})}
                      />
                    </div>
+                   
+                   {/* Commission Settings */}
+                   <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                     <h4 className="font-bold text-blue-900 mb-3 text-sm flex items-center gap-2">
+                        <Users size={16} /> Affiliate Commission
+                     </h4>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-blue-700 uppercase">Type</label>
+                          <select 
+                             className="w-full border border-blue-200 rounded-lg p-2 mt-1 bg-white text-sm"
+                             value={newProductForm.commissionType || 'percentage'}
+                             onChange={e => setNewProductForm({...newProductForm, commissionType: e.target.value as 'fixed' | 'percentage'})}
+                          >
+                             <option value="percentage">Percentage (%)</option>
+                             <option value="fixed">Fixed Amount (₱)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-blue-700 uppercase">Value</label>
+                          <input 
+                             type="number"
+                             className="w-full border border-blue-200 rounded-lg p-2 mt-1 text-sm"
+                             value={newProductForm.commissionValue ?? 5}
+                             onChange={e => setNewProductForm({...newProductForm, commissionValue: Number(e.target.value)})}
+                          />
+                        </div>
+                     </div>
+                     <p className="text-xs text-blue-600 mt-2">
+                       {newProductForm.commissionType === 'fixed' 
+                         ? `Affiliates earn ₱${newProductForm.commissionValue} per sale.` 
+                         : `Affiliates earn ${newProductForm.commissionValue}% of the sale price.`
+                       }
+                     </p>
+                   </div>
+
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
                    <Button variant="ghost" onClick={() => setIsProductModalOpen(false)}>Cancel</Button>

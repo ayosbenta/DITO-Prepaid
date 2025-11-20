@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings, Affiliate } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
@@ -109,7 +110,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (updatedOrder.referralId && updatedOrder.status === 'Delivered' && prevStatus !== 'Delivered') {
       
       const affiliateId = updatedOrder.referralId;
-      const commissionAmount = updatedOrder.total * 0.05; // 5% Commission
+      
+      // Use the calculated commission from the order, or fallback to 5% default for old orders
+      const commissionAmount = updatedOrder.commission ?? (updatedOrder.total * 0.05);
 
       // Update local affiliates state
       setAffiliates(prevAffiliates => {
@@ -128,8 +131,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         triggerAffiliateSync(updatedAffiliates);
         return updatedAffiliates;
       });
-
-      // We should also update the order to record the commission amount officially
+      
+      // Ensure commission is stamped on the order if it wasn't already
       updatedOrder.commission = commissionAmount;
     }
   };
@@ -182,13 +185,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return o;
     });
 
-    setOrders(newOrders);
-    triggerOrderSync(newOrders);
-
-    // Trigger Commission Check
+    // Trigger Commission Check before syncing
     if (targetOrder) {
       handleCommissionLogic(targetOrder, prevStatus);
     }
+
+    setOrders(newOrders);
+    triggerOrderSync(newOrders);
   };
 
   const deleteOrder = (id: string) => {

@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -11,6 +12,8 @@ export interface Product {
   rating: number;
   reviews: number;
   features: string[];
+  commissionType?: 'fixed' | 'percentage';
+  commissionValue?: number;
 }
 
 export interface CartItem extends Product {

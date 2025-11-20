@@ -1,3 +1,4 @@
+
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
@@ -30,10 +31,10 @@ const AffiliateDashboard: React.FC = () => {
 
   // Calculate Stats
   const referredOrders = orders.filter(o => o.referralId === currentAffiliate.id);
+  
   const pendingCommission = referredOrders
-    .filter(o => o.status !== 'Delivered' && o.status !== 'Pending') // Assuming Pending means order just placed but not processed? Or if logic differs. Let's assume Processing/Shipped are "Pending payout"
     .filter(o => o.status !== 'Delivered')
-    .reduce((acc, o) => acc + (o.total * 0.05), 0);
+    .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0); // Fallback to 5% for backward compat
   
   const referralLink = `${window.location.origin}/?ref=${currentAffiliate.id}`;
 
@@ -76,7 +77,7 @@ const AffiliateDashboard: React.FC = () => {
             </Button>
           </div>
           <p className="text-sm text-gray-400 mt-3">
-            Share this link to earn 5% commission on every successful delivery.
+            Share this link to earn commissions on every successful delivery. Rates vary by product.
           </p>
         </div>
 
@@ -100,7 +101,7 @@ const AffiliateDashboard: React.FC = () => {
                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                    <ShoppingBag size={24} />
                  </div>
-                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">+5% Rate</span>
+                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">+ Sales</span>
               </div>
               <p className="text-gray-500 text-sm font-medium">Total Referred Sales</p>
               <h3 className="text-3xl font-bold text-gray-900">₱{currentAffiliate.totalSales.toLocaleString()}</h3>
@@ -131,7 +132,7 @@ const AffiliateDashboard: React.FC = () => {
                    <th className="p-4">Order Date</th>
                    <th className="p-4">Order ID</th>
                    <th className="p-4">Amount</th>
-                   <th className="p-4">Commission (5%)</th>
+                   <th className="p-4">Commission</th>
                    <th className="p-4">Status</th>
                  </tr>
                </thead>
@@ -141,7 +142,9 @@ const AffiliateDashboard: React.FC = () => {
                      <td className="p-4 text-gray-500">{o.date}</td>
                      <td className="p-4 font-medium text-gray-900">{o.id}</td>
                      <td className="p-4">₱{o.total.toLocaleString()}</td>
-                     <td className="p-4 font-bold text-primary">₱{(o.total * 0.05).toLocaleString()}</td>
+                     <td className="p-4 font-bold text-primary">
+                        ₱{(o.commission || (o.total * 0.05)).toLocaleString()}
+                     </td>
                      <td className="p-4">
                         <Badge color={o.status === 'Delivered' ? 'green' : o.status === 'Processing' ? 'blue' : 'gray'}>
                           {o.status}

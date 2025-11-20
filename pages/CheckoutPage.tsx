@@ -1,3 +1,4 @@
+
 import React, { useContext, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { StoreContext } from '../contexts/StoreContext';
@@ -34,6 +35,22 @@ const CheckoutPage: React.FC = () => {
     e.preventDefault();
     
     const referralId = localStorage.getItem('dito_referral_id') || undefined;
+    
+    // Calculate Commission if referred
+    let totalCommission = 0;
+    if (referralId) {
+      items.forEach(item => {
+        const commType = item.commissionType || 'percentage';
+        const commValue = item.commissionValue ?? 5; // Default 5%
+
+        if (commType === 'fixed') {
+          totalCommission += commValue * item.quantity;
+        } else {
+          // Percentage calculation
+          totalCommission += (item.price * (commValue / 100)) * item.quantity;
+        }
+      });
+    }
 
     const newOrder: Order = {
       id: `#ORD-${Math.floor(Math.random() * 10000)}`,
@@ -42,7 +59,8 @@ const CheckoutPage: React.FC = () => {
       total: cartTotal,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
-      referralId: referralId
+      referralId: referralId,
+      commission: totalCommission
     };
 
     addOrder(newOrder);
