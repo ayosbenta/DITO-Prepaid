@@ -33,13 +33,16 @@ const CheckoutPage: React.FC = () => {
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const referralId = localStorage.getItem('dito_referral_id') || undefined;
+
     const newOrder: Order = {
       id: `#ORD-${Math.floor(Math.random() * 10000)}`,
       customer: `${firstName} ${lastName}`,
       date: new Date().toISOString().split('T')[0],
       total: cartTotal,
       status: 'Pending',
-      items: items.reduce((acc, item) => acc + item.quantity, 0)
+      items: items.reduce((acc, item) => acc + item.quantity, 0),
+      referralId: referralId
     };
 
     addOrder(newOrder);

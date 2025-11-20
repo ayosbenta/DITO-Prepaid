@@ -44,7 +44,7 @@ export const Navbar: React.FC = () => {
               {link.name}
             </Link>
           ))}
-          <Link to="/admin" className="text-sm font-medium text-gray-400 hover:text-gray-600">Admin</Link>
+          <Link to="/affiliate/login" className="text-sm font-medium text-gray-400 hover:text-primary">Affiliates</Link>
         </div>
 
         <div className="flex items-center gap-4">
@@ -81,7 +81,8 @@ export const Navbar: React.FC = () => {
               {link.name}
             </Link>
           ))}
-          <Link to="/admin" className="text-gray-500 py-2">Admin</Link>
+          <Link to="/affiliate/login" className="text-gray-500 py-2">Affiliate Program</Link>
+          <Link to="/admin" className="text-gray-400 text-sm py-2">Admin Panel</Link>
         </div>
       )}
     </nav>
@@ -110,11 +111,10 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-4">Support</h4>
+            <h4 className="font-bold text-gray-900 mb-4">Partners</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li>Help Center</li>
-              <li>Track Order</li>
-              <li>Returns & Warranty</li>
+              <li><Link to="/affiliate/login" className="hover:text-primary">Join Affiliate Program</Link></li>
+              <li><Link to="/affiliate/login" className="hover:text-primary">Affiliate Login</Link></li>
             </ul>
           </div>
           <div>

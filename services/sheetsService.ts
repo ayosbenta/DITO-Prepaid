@@ -1,5 +1,4 @@
-
-import { LandingPageSettings, Product, Order, User } from '../types';
+import { LandingPageSettings, Product, Order, User, Affiliate } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
 
 // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
@@ -14,6 +13,7 @@ interface DashboardData {
   products: Product[];
   orders: Order[];
   customers: User[];
+  affiliates: Affiliate[];
   settings: LandingPageSettings;
 }
 
@@ -30,7 +30,6 @@ export const SheetsService = {
       const products: Product[] = (data.Products || []).map((p: any) => {
         let details = {};
         try {
-          // The json_data column contains gallery, specs, features, etc.
           if (p.json_data) details = JSON.parse(p.json_data);
         } catch (e) {
           console.warn("Failed to parse product json_data", p.name);
@@ -49,7 +48,7 @@ export const SheetsService = {
           subtitle: '', 
           rating: 5, 
           reviews: 0,
-          ...details // Overwrite defaults with parsed JSON data
+          ...details
         };
       });
 
@@ -60,7 +59,9 @@ export const SheetsService = {
         date: o.date ? new Date(o.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         total: Number(o.total),
         status: o.status,
-        items: Number(o.items_count || o.items || 1)
+        items: Number(o.items_count || o.items || 1),
+        referralId: o.referralId ? String(o.referralId) : undefined,
+        commission: o.commission ? Number(o.commission) : 0
       }));
 
       // 3. Parse Customers
@@ -70,7 +71,17 @@ export const SheetsService = {
         phone: String(c.phone)
       }));
 
-      // 4. Parse Settings
+      // 4. Parse Affiliates
+      const affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => ({
+        id: String(a.id),
+        name: String(a.name),
+        email: String(a.email),
+        walletBalance: Number(a.walletBalance || 0),
+        totalSales: Number(a.totalSales || 0),
+        joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      }));
+
+      // 5. Parse Settings
       const settings: LandingPageSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
       
       if (data.Settings && Array.isArray(data.Settings)) {
@@ -80,17 +91,15 @@ export const SheetsService = {
           const keys = row.Key.split('.');
           let current: any = settings;
           
-          // Navigate to the nested property (e.g., hero.titlePrefix)
           for (let i = 0; i < keys.length - 1; i++) {
             if (!current[keys[i]]) current[keys[i]] = {};
             current = current[keys[i]];
           }
-          // Set value
           current[keys[keys.length - 1]] = String(row.Value);
         });
       }
 
-      return { products, orders, customers, settings };
+      return { products, orders, customers, affiliates, settings };
 
     } catch (error) {
       console.error("Failed to fetch data from Sheets:", error);
@@ -98,13 +107,10 @@ export const SheetsService = {
     }
   },
 
-  // Helper to send data safely to Google Apps Script
   sendData: async (action: string, payload: any): Promise<ApiResponse> => {
     if (!GOOGLE_SCRIPT_URL) return { status: 'error', message: 'No Script URL' };
     
     try {
-      // CRITICAL: Content-Type must be text/plain to avoid CORS Preflight (OPTIONS) request
-      // which Google Apps Script does not support.
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         redirect: "follow", 
@@ -131,5 +137,9 @@ export const SheetsService = {
 
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
     return SheetsService.sendData('SYNC_ORDERS', orders);
+  },
+
+  syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
+    return SheetsService.sendData('SYNC_AFFILIATES', affiliates);
   }
 };

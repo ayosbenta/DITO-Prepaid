@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User, LandingPageSettings } from '../types';
+import { Product, Order, User, LandingPageSettings, Affiliate } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
 import { SheetsService } from '../services/sheetsService';
 
@@ -8,6 +7,7 @@ interface StoreContextType {
   products: Product[];
   orders: Order[];
   customers: User[];
+  affiliates: Affiliate[];
   settings: LandingPageSettings;
   // Product Actions
   addProduct: (product: Product) => void;
@@ -19,6 +19,9 @@ interface StoreContextType {
   deleteOrder: (id: string) => void;
   // Customer Actions
   deleteCustomer: (email: string) => void;
+  // Affiliate Actions
+  registerAffiliate: (affiliate: Affiliate) => void;
+  updateAffiliate: (id: string, data: Partial<Affiliate>) => void;
   // Settings Actions
   updateSettings: (settings: LandingPageSettings) => void;
   // Dashboard Stats
@@ -36,6 +39,7 @@ export const StoreContext = createContext<StoreContextType>({
   products: [],
   orders: [],
   customers: [],
+  affiliates: [],
   settings: DEFAULT_SETTINGS,
   addProduct: () => {},
   updateProduct: () => {},
@@ -44,6 +48,8 @@ export const StoreContext = createContext<StoreContextType>({
   updateOrderStatus: () => {},
   deleteOrder: () => {},
   deleteCustomer: () => {},
+  registerAffiliate: () => {},
+  updateAffiliate: () => {},
   updateSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
@@ -55,6 +61,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
   
   const [isSyncing, setIsSyncing] = useState(false);
@@ -67,13 +74,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const data = await SheetsService.getAllData();
       
       if (data) {
-        // Update state with fetched data, allowing empty arrays (e.g. if all products deleted)
         setProducts(data.products || []);
         setOrders(data.orders || []);
         setCustomers(data.customers || []);
+        setAffiliates(data.affiliates || []);
         if (data.settings) setSettings(data.settings);
-      } else {
-        console.log("Using default/fallback data due to fetch failure.");
       }
       
       setIsLoading(false);
@@ -82,7 +87,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     loadData();
   }, []);
 
-  // --- Helper to trigger sync ---
+  // --- Sync Helpers ---
   const triggerProductSync = (newProducts: Product[]) => {
     setIsSyncing(true);
     SheetsService.syncProducts(newProducts).finally(() => setIsSyncing(false));
@@ -91,6 +96,42 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const triggerOrderSync = (newOrders: Order[]) => {
     setIsSyncing(true);
     SheetsService.syncOrders(newOrders).finally(() => setIsSyncing(false));
+  };
+
+  const triggerAffiliateSync = (newAffiliates: Affiliate[]) => {
+    setIsSyncing(true);
+    SheetsService.syncAffiliates(newAffiliates).finally(() => setIsSyncing(false));
+  };
+
+  // --- Logic: Auto-Credit Affiliate Commission ---
+  const handleCommissionLogic = (updatedOrder: Order, prevStatus: string) => {
+    // Only proceed if there is a referrer and status changed TO Delivered
+    if (updatedOrder.referralId && updatedOrder.status === 'Delivered' && prevStatus !== 'Delivered') {
+      
+      const affiliateId = updatedOrder.referralId;
+      const commissionAmount = updatedOrder.total * 0.05; // 5% Commission
+
+      // Update local affiliates state
+      setAffiliates(prevAffiliates => {
+        const updatedAffiliates = prevAffiliates.map(aff => {
+          if (aff.id === affiliateId) {
+            return {
+              ...aff,
+              walletBalance: aff.walletBalance + commissionAmount,
+              totalSales: aff.totalSales + updatedOrder.total
+            };
+          }
+          return aff;
+        });
+        
+        // Sync new balances to Sheets
+        triggerAffiliateSync(updatedAffiliates);
+        return updatedAffiliates;
+      });
+
+      // We should also update the order to record the commission amount officially
+      updatedOrder.commission = commissionAmount;
+    }
   };
 
   // Product CRUD
@@ -118,7 +159,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setOrders(newOrders);
     triggerOrderSync(newOrders);
 
-    // Check if customer exists, if not add them
     const customerExists = customers.some(c => c.name === order.customer);
     if (!customerExists) {
       setCustomers(prev => [...prev, { 
@@ -130,9 +170,25 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateOrderStatus = (id: string, status: Order['status']) => {
-    const newOrders = orders.map(o => o.id === id ? { ...o, status } : o);
+    let targetOrder: Order | undefined;
+    let prevStatus = '';
+
+    const newOrders = orders.map(o => {
+      if (o.id === id) {
+        prevStatus = o.status;
+        targetOrder = { ...o, status };
+        return targetOrder;
+      }
+      return o;
+    });
+
     setOrders(newOrders);
     triggerOrderSync(newOrders);
+
+    // Trigger Commission Check
+    if (targetOrder) {
+      handleCommissionLogic(targetOrder, prevStatus);
+    }
   };
 
   const deleteOrder = (id: string) => {
@@ -144,6 +200,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Customer CRUD
   const deleteCustomer = (email: string) => {
     setCustomers(prev => prev.filter(c => c.email !== email));
+  };
+
+  // Affiliate CRUD
+  const registerAffiliate = (affiliate: Affiliate) => {
+    const newAffiliates = [...affiliates, affiliate];
+    setAffiliates(newAffiliates);
+    triggerAffiliateSync(newAffiliates);
+  };
+
+  const updateAffiliate = (id: string, data: Partial<Affiliate>) => {
+    const newAffiliates = affiliates.map(a => a.id === id ? { ...a, ...data } : a);
+    setAffiliates(newAffiliates);
+    triggerAffiliateSync(newAffiliates);
   };
 
   // Settings Update
@@ -166,6 +235,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       products,
       orders,
       customers,
+      affiliates,
       settings,
       addProduct,
       updateProduct,
@@ -174,6 +244,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       updateOrderStatus,
       deleteOrder,
       deleteCustomer,
+      registerAffiliate,
+      updateAffiliate,
       updateSettings,
       stats,
       isSyncing,

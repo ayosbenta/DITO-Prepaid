@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { CartItem, Product } from './types';
 import { Navbar, Footer, CartDrawer } from './components/Layout';
 import AIChatBot from './components/AIChatBot';
@@ -12,6 +12,23 @@ import CatalogPage from './pages/CatalogPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminDashboard from './pages/AdminDashboard';
+import AffiliateLoginPage from './pages/AffiliateLoginPage';
+import AffiliateDashboard from './pages/AffiliateDashboard';
+
+// Helper to capture ?ref=ID
+const ReferralHandler = () => {
+  const [searchParams] = useSearchParams();
+  const refId = searchParams.get('ref');
+
+  useEffect(() => {
+    if (refId) {
+      localStorage.setItem('dito_referral_id', refId);
+      console.log('Referral tracked:', refId);
+    }
+  }, [refId]);
+
+  return null;
+};
 
 // Scroll To Top Wrapper
 const ScrollToTop = () => {
@@ -65,11 +82,21 @@ const App: React.FC = () => {
       }}>
         <Router>
           <ScrollToTop />
+          <ReferralHandler />
           <div className="min-h-screen flex flex-col font-sans text-gray-900">
             <Routes>
-              {/* Admin Route - No Navbar/Footer for cleaner dash */}
+              {/* Admin Route */}
               <Route path="/admin" element={<AdminDashboard />} />
               
+              {/* Affiliate Routes */}
+              <Route path="/affiliate/login" element={<AffiliateLoginPage />} />
+              <Route path="/affiliate/dashboard" element={
+                <>
+                  <Navbar />
+                  <AffiliateDashboard />
+                </>
+              } />
+
               {/* Public Routes */}
               <Route path="*" element={
                 <>

@@ -23,6 +23,15 @@ export interface User {
   phone: string;
 }
 
+export interface Affiliate {
+  id: string;
+  name: string;
+  email: string;
+  walletBalance: number;
+  totalSales: number;
+  joinDate: string;
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -30,6 +39,8 @@ export interface Order {
   total: number;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Pending';
   items: number;
+  referralId?: string; // The affiliate ID who referred this order
+  commission?: number; // The amount earned by the affiliate
 }
 
 export interface LandingPageSettings {
