@@ -1,15 +1,8 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings } from '../types';
-import { HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SETTINGS } from '../constants';
+import { DEFAULT_SETTINGS } from '../constants';
 import { SheetsService } from '../services/sheetsService';
-
-// Initial Mock Data for Customers based on orders
-const INITIAL_CUSTOMERS: User[] = [
-  { name: 'Maria Clara', email: 'maria@example.com', phone: '09171234567' },
-  { name: 'Jose Rizal', email: 'jose@example.com', phone: '09181234567' },
-  { name: 'Andres B.', email: 'andres@example.com', phone: '09191234567' },
-];
 
 interface StoreContextType {
   products: Product[];
@@ -36,6 +29,7 @@ interface StoreContextType {
     lowStock: number;
   };
   isSyncing: boolean;
+  isLoading: boolean;
 }
 
 export const StoreContext = createContext<StoreContextType>({
@@ -53,15 +47,40 @@ export const StoreContext = createContext<StoreContextType>({
   updateSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
+  isLoading: true,
 });
 
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize with constant data
-  const [products, setProducts] = useState<Product[]>([HERO_PRODUCT, ...RELATED_PRODUCTS]);
-  const [orders, setOrders] = useState<Order[]>(RECENT_ORDERS);
-  const [customers, setCustomers] = useState<User[]>(INITIAL_CUSTOMERS);
+  // Start with empty/default data while loading
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<User[]>([]);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
+  
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load data from Google Sheets on Mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const data = await SheetsService.getAllData();
+      
+      if (data) {
+        // Only update if we got valid data back
+        if (data.products.length > 0) setProducts(data.products);
+        if (data.orders.length > 0) setOrders(data.orders);
+        if (data.customers.length > 0) setCustomers(data.customers);
+        if (data.settings) setSettings(data.settings);
+      } else {
+        console.log("Using default/fallback data due to fetch failure or empty sheet.");
+      }
+      
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, []);
 
   // --- Helper to trigger sync ---
   const triggerProductSync = (newProducts: Product[]) => {
@@ -139,7 +158,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     revenue: orders.reduce((acc, curr) => acc + curr.total, 0),
     totalOrders: orders.length,
     totalCustomers: customers.length,
-    lowStock: products.length < 3 ? 1 : 0, // Mock logic
+    lowStock: products.length < 3 ? 1 : 0, 
   };
 
   return (
@@ -157,7 +176,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       deleteCustomer,
       updateSettings,
       stats,
-      isSyncing
+      isSyncing,
+      isLoading
     }}>
       {children}
     </StoreContext.Provider>

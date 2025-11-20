@@ -23,7 +23,7 @@ const AdminDashboard: React.FC = () => {
     products, orders, customers, stats, settings,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer, updateSettings, isSyncing
+    deleteCustomer, updateSettings, isSyncing, isLoading
   } = useContext(StoreContext);
 
   // Local state for Forms/Modals
@@ -37,6 +37,16 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     setSettingsForm(settings);
   }, [settings]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Loader2 className="animate-spin text-primary mb-4" size={48} />
+        <h2 className="text-xl font-bold text-gray-900">Loading Dashboard...</h2>
+        <p className="text-gray-500">Fetching data from Google Sheets</p>
+      </div>
+    );
+  }
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
