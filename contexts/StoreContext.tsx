@@ -75,54 +75,40 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load data from Google Sheets on Mount
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      const data = await SheetsService.getAllData();
-      
-      if (data) {
-        setProducts(data.products || []);
-        setOrders(data.orders || []);
-        setCustomers(data.customers || []);
-        setAffiliates(data.affiliates || []);
-        if (data.settings) {
-          // Split settings between Landing Page and Payment Settings
-          // Assuming the SheetsService returns a merged object or raw rows, 
-          // but the current implementation parses into `settings`.
-          // We need to extract payment settings if they are mixed in, or manage them.
-          // For this implementation, we will assume `data.settings` contains keys for payment as well
-          // or we manually parse them if stored in the same sheet.
-          
-          // However, based on SheetsService implementation, it maps dot notation.
-          // Let's assume we store payment settings in the same sheet with keys like 'payment.cod.enabled'
-          // The SheetsService parser creates a nested object. We can extract 'payment' from it if it exists.
-          
-          const fullSettings: any = data.settings;
-          
-          if (fullSettings.payment) {
-             // Merge with defaults to ensure structure
-             setPaymentSettings({
-               cod: { ...DEFAULT_PAYMENT_SETTINGS.cod, ...fullSettings.payment.cod },
-               gcash: { ...DEFAULT_PAYMENT_SETTINGS.gcash, ...fullSettings.payment.gcash },
-               bank: { ...DEFAULT_PAYMENT_SETTINGS.bank, ...fullSettings.payment.bank },
-             });
-             
-             // Clean up payment from landing page settings to avoid type collision if needed, 
-             // but strict typing handles it in usage.
-             const { payment, ...landingSettings } = fullSettings;
-             setSettings(landingSettings as LandingPageSettings);
-          } else {
-             setSettings(fullSettings as LandingPageSettings);
-          }
-        }
-      }
-      
-      setIsLoading(false);
-    };
+  const loadData = async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
+    
+    const data = await SheetsService.getAllData();
+    
+    if (data) {
+      setProducts(data.products || []);
+      setOrders(data.orders || []);
+      setCustomers(data.customers || []);
+      setAffiliates(data.affiliates || []);
+      if (data.settings) setSettings(data.settings);
+      if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
+    }
+    
+    if (!isBackground) setIsLoading(false);
+  };
 
+  // Initial Load
+  useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-Refresh / Polling Logic
+  // This ensures "All dashboards... auto-refresh" requirements are met
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Do not refresh if we are currently syncing changes to avoid overwriting optimistic updates
+      if (!isSyncing) {
+        loadData(true); // true = background refresh (no spinner)
+      }
+    }, 15000); // Refresh every 15 seconds
+
+    return () => clearInterval(intervalId);
+  }, [isSyncing]);
 
   // --- Sync Helpers ---
   const triggerProductSync = (newProducts: Product[]) => {
@@ -283,16 +269,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setSettings(newSettings);
     setIsSyncing(true);
     // We need to pass payment settings too so they don't get overwritten in the key-value store
-    // Construct a merged object for the generic saver
     const mergedSettings = { ...newSettings, payment: paymentSettings };
-    SheetsService.saveSettings(mergedSettings as any).finally(() => setIsSyncing(false));
+    SheetsService.saveSettings(mergedSettings).finally(() => setIsSyncing(false));
   };
 
   const updatePaymentSettings = (newPaymentSettings: PaymentSettings) => {
     setPaymentSettings(newPaymentSettings);
     setIsSyncing(true);
     const mergedSettings = { ...settings, payment: newPaymentSettings };
-    SheetsService.saveSettings(mergedSettings as any).finally(() => setIsSyncing(false));
+    SheetsService.saveSettings(mergedSettings).finally(() => setIsSyncing(false));
   };
 
   // Derived Stats

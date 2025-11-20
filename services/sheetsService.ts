@@ -1,6 +1,6 @@
 
-import { LandingPageSettings, Product, Order, User, Affiliate } from '../types';
-import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings } from '../types';
+import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
 // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7VQb56S2UWSMk0IAIS0MWB84R_ODwCwO_aeSC443Jr2VFP4VpFxJRqjANKm6p5jAhkQ/exec"; 
@@ -16,6 +16,7 @@ interface DashboardData {
   customers: User[];
   affiliates: Affiliate[];
   settings: LandingPageSettings;
+  paymentSettings: PaymentSettings;
 }
 
 export const SheetsService = {
@@ -69,7 +70,9 @@ export const SheetsService = {
         status: o.status,
         items: Number(o.items_count || o.items || 1),
         referralId: o.referralId ? String(o.referralId) : undefined,
-        commission: o.commission ? Number(o.commission) : 0
+        commission: o.commission ? Number(o.commission) : 0,
+        paymentMethod: o.paymentMethod || 'COD',
+        proofOfPayment: o.proofOfPayment || ''
       }));
 
       // 3. Parse Customers
@@ -92,25 +95,41 @@ export const SheetsService = {
         lifetimeEarnings: Number(a.lifetimeEarnings || 0)
       }));
 
-      // 5. Parse Settings
-      const settings: LandingPageSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+      // 5. Parse Settings (Merged Landing & Payment)
+      // We start with defaults to ensure structure
+      const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS };
       
       if (data.Settings && Array.isArray(data.Settings)) {
         data.Settings.forEach((row: any) => {
           if (!row.Key || row.Value === undefined) return;
           
           const keys = row.Key.split('.');
-          let current: any = settings;
+          let current: any = rawSettings;
           
           for (let i = 0; i < keys.length - 1; i++) {
             if (!current[keys[i]]) current[keys[i]] = {};
             current = current[keys[i]];
           }
-          current[keys[keys.length - 1]] = String(row.Value);
+          // Convert boolean strings to booleans
+          let val = row.Value;
+          if (val === 'true') val = true;
+          if (val === 'false') val = false;
+          
+          current[keys[keys.length - 1]] = val;
         });
       }
+      
+      // Split them back out
+      const { payment, ...landingSettings } = rawSettings;
 
-      return { products, orders, customers, affiliates, settings };
+      return { 
+        products, 
+        orders, 
+        customers, 
+        affiliates, 
+        settings: landingSettings as LandingPageSettings, 
+        paymentSettings: payment as PaymentSettings 
+      };
 
     } catch (error) {
       console.warn("Sheets API Unavailable or Failed. Loading fallback mock data.", error);
@@ -120,7 +139,8 @@ export const SheetsService = {
         orders: RECENT_ORDERS,
         customers: [],
         affiliates: [],
-        settings: DEFAULT_SETTINGS
+        settings: DEFAULT_SETTINGS,
+        paymentSettings: DEFAULT_PAYMENT_SETTINGS
       };
     }
   },
@@ -145,7 +165,7 @@ export const SheetsService = {
     }
   },
 
-  saveSettings: async (settings: LandingPageSettings): Promise<ApiResponse> => {
+  saveSettings: async (settings: any): Promise<ApiResponse> => {
     return SheetsService.sendData('SAVE_SETTINGS', settings);
   },
 
