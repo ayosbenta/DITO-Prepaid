@@ -131,7 +131,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (updatedOrder.referralId && updatedOrder.status === 'Delivered' && prevStatus !== 'Delivered') {
       
       const affiliateId = updatedOrder.referralId;
+      // Use existing commission or fallback to calculation
       const commissionAmount = updatedOrder.commission ?? (updatedOrder.total * 0.05);
+      
+      // Stamp order with finalized commission if not present
+      updatedOrder.commission = commissionAmount;
 
       setAffiliates(prevAffiliates => {
         const updatedAffiliates = prevAffiliates.map(aff => {
@@ -146,12 +150,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           return aff;
         });
         
+        // Trigger sync immediately with the updated array
         triggerAffiliateSync(updatedAffiliates);
         return updatedAffiliates;
       });
-      
-      // Ensure commission is stamped on the order if it wasn't already
-      updatedOrder.commission = commissionAmount;
     }
   };
 
@@ -194,6 +196,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     let targetOrder: Order | undefined;
     let prevStatus = '';
 
+    // Create new array but also capture the target order for side effects
     const newOrders = orders.map(o => {
       if (o.id === id) {
         prevStatus = o.status;
@@ -203,8 +206,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return o;
     });
 
-    // Trigger Commission Check before syncing
     if (targetOrder) {
+      // This might mutate targetOrder (adding commission) before we sync orders
       handleCommissionLogic(targetOrder, prevStatus);
     }
 
