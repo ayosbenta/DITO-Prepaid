@@ -67,13 +67,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const data = await SheetsService.getAllData();
       
       if (data) {
-        // Only update if we got valid data back
-        if (data.products.length > 0) setProducts(data.products);
-        if (data.orders.length > 0) setOrders(data.orders);
-        if (data.customers.length > 0) setCustomers(data.customers);
+        // Update state with fetched data, allowing empty arrays (e.g. if all products deleted)
+        setProducts(data.products || []);
+        setOrders(data.orders || []);
+        setCustomers(data.customers || []);
         if (data.settings) setSettings(data.settings);
       } else {
-        console.log("Using default/fallback data due to fetch failure or empty sheet.");
+        console.log("Using default/fallback data due to fetch failure.");
       }
       
       setIsLoading(false);

@@ -23,7 +23,6 @@ export const SheetsService = {
     if (!GOOGLE_SCRIPT_URL) return null;
 
     try {
-      // Use standard GET request (CORS handled by Google Apps Script if deployed correctly)
       const response = await fetch(GOOGLE_SCRIPT_URL);
       const data = await response.json();
 
@@ -72,7 +71,6 @@ export const SheetsService = {
       }));
 
       // 4. Parse Settings
-      // Start with defaults to ensure structure exists
       const settings: LandingPageSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
       
       if (data.Settings && Array.isArray(data.Settings)) {
@@ -100,51 +98,38 @@ export const SheetsService = {
     }
   },
 
-  saveSettings: async (settings: LandingPageSettings): Promise<ApiResponse> => {
+  // Helper to send data safely to Google Apps Script
+  sendData: async (action: string, payload: any): Promise<ApiResponse> => {
     if (!GOOGLE_SCRIPT_URL) return { status: 'error', message: 'No Script URL' };
     
     try {
+      // CRITICAL: Content-Type must be text/plain to avoid CORS Preflight (OPTIONS) request
+      // which Google Apps Script does not support.
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'SAVE_SETTINGS', payload: settings })
+        redirect: "follow", 
+        headers: { 
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({ action, payload })
       });
+      
       return { status: 'success' };
     } catch (error) {
+      console.error(`Sync error [${action}]:`, error);
       return { status: 'error', message: 'Network Error' };
     }
+  },
+
+  saveSettings: async (settings: LandingPageSettings): Promise<ApiResponse> => {
+    return SheetsService.sendData('SAVE_SETTINGS', settings);
   },
 
   syncProducts: async (products: Product[]): Promise<ApiResponse> => {
-    if (!GOOGLE_SCRIPT_URL) return { status: 'error', message: 'No Script URL' };
-
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'SYNC_PRODUCTS', payload: products })
-      });
-      return { status: 'success' };
-    } catch (error) {
-      return { status: 'error', message: 'Network Error' };
-    }
+    return SheetsService.sendData('SYNC_PRODUCTS', products);
   },
 
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
-    if (!GOOGLE_SCRIPT_URL) return { status: 'error', message: 'No Script URL' };
-
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'SYNC_ORDERS', payload: orders })
-      });
-      return { status: 'success' };
-    } catch (error) {
-      return { status: 'error', message: 'Network Error' };
-    }
+    return SheetsService.sendData('SYNC_ORDERS', orders);
   }
 };
