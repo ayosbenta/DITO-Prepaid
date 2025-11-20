@@ -20,6 +20,10 @@ const AffiliateLoginPage: React.FC = () => {
     const affiliate = affiliates.find(a => a.email.toLowerCase() === email.toLowerCase());
     
     if (affiliate) {
+      if (affiliate.status === 'banned') {
+        setError('This account has been suspended. Please contact support.');
+        return;
+      }
       localStorage.setItem('dito_affiliate_id', affiliate.id);
       navigate('/affiliate/dashboard');
     } else {

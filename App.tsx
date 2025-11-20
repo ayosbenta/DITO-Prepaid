@@ -26,7 +26,7 @@ const ReferralHandler = () => {
   useEffect(() => {
     let refId = searchParams.get('ref');
 
-    // Fallback 1: Check query params before the hash (common in some server configs)
+    // Fallback 1: Check query params before the hash (common in some server configs /?ref=123#/)
     if (!refId) {
       const params = new URLSearchParams(window.location.search);
       refId = params.get('ref');

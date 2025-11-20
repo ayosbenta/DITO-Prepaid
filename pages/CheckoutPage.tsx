@@ -88,7 +88,7 @@ const CheckoutPage: React.FC = () => {
       total: cartTotal,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
-      referralId: referralId || '', // Ensure key is sent even if null/undefined, crucial for Sheets columns
+      referralId: referralId || '', // Ensure key is sent even if null/undefined to prevent column mismatch in Sheets
       commission: totalCommission,
       paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',
       proofOfPayment: proofOfPayment

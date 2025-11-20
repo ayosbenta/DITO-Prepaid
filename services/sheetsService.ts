@@ -96,7 +96,6 @@ export const SheetsService = {
       }));
 
       // 5. Parse Settings (Merged Landing & Payment)
-      // We start with defaults to ensure structure
       const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS };
       
       if (data.Settings && Array.isArray(data.Settings)) {
@@ -119,8 +118,9 @@ export const SheetsService = {
         });
       }
       
-      // Split them back out
-      const { payment, ...landingSettings } = rawSettings;
+      // Split them back out (handle case where payment might not exist in response if new)
+      const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
+      const { payment: _, ...landingSettings } = rawSettings;
 
       return { 
         products, 

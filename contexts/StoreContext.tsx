@@ -150,7 +150,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           return aff;
         });
         
-        // Trigger sync immediately with the updated array
+        // Trigger sync immediately with the updated array to ensure wallet balance is saved
         triggerAffiliateSync(updatedAffiliates);
         return updatedAffiliates;
       });
@@ -207,7 +207,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
 
     if (targetOrder) {
-      // This might mutate targetOrder (adding commission) before we sync orders
+      // This might mutate targetOrder (adding commission) and triggers affiliate sync
       handleCommissionLogic(targetOrder, prevStatus);
     }
 
@@ -248,12 +248,18 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const trackAffiliateClick = (id: string) => {
+    // We only update if we find the affiliate locally to avoid creating ghost affiliates
+    // This relies on affiliates being loaded
     setAffiliates(prev => {
       const target = prev.find(a => a.id === id);
       if (!target) return prev;
 
       const newAffiliates = prev.map(a => a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a);
-      triggerAffiliateSync(newAffiliates);
+      
+      // Trigger background sync to save the click
+      // We don't set isSyncing to true here to avoid blocking UI updates for just a click track
+      SheetsService.syncAffiliates(newAffiliates).catch(err => console.error("Failed to sync click", err));
+      
       return newAffiliates;
     });
   };
