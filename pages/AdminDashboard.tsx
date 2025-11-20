@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X
 } from 'lucide-react';
 import { RECENT_ORDERS, SALES_DATA } from '../constants';
 import { 
@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
@@ -63,23 +64,49 @@ const AdminDashboard: React.FC = () => {
     },
   ];
 
+  const handleMenuClick = (label: string) => {
+    setActiveTab(label);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-gray-900">
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-gray-900 relative overflow-x-hidden">
+      
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20 xl:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-100 fixed h-full hidden xl:flex flex-col z-20">
-        <div className="p-8 flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20 text-white font-black">
-            D
+      <aside className={`
+        w-72 bg-white border-r border-gray-100 fixed inset-y-0 left-0 z-30 flex flex-col transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+        xl:translate-x-0 xl:shadow-none
+      `}>
+        <div className="p-6 sm:p-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20 text-white font-black">
+              D
+            </div>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">DITO Admin</span>
           </div>
-          <span className="text-xl font-bold text-gray-900 tracking-tight">DITO Admin</span>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="xl:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        <div className="flex-1 px-6 py-4 space-y-2">
+        <div className="flex-1 px-6 py-4 space-y-2 overflow-y-auto">
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-4">Main Menu</div>
           {menuItems.map((item) => (
             <button
               key={item.label}
-              onClick={() => setActiveTab(item.label)}
+              onClick={() => handleMenuClick(item.label)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                 activeTab === item.label 
                   ? 'bg-red-50 text-primary shadow-sm' 
@@ -105,37 +132,45 @@ const AdminDashboard: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 xl:ml-72 p-8 overflow-y-auto">
+      <main className="flex-1 xl:ml-72 p-4 sm:p-8 overflow-y-auto w-full">
         {/* Header */}
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-gray-500 text-sm mt-1">Welcome back, Admin.</p>
+        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 xl:hidden shadow-sm active:scale-95 transition-transform"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+              <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Welcome back, Admin.</p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="relative hidden md:block">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-primary w-64 transition-all"
+                className="pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-primary w-full sm:w-64 transition-all shadow-sm"
               />
             </div>
-            <button className="relative p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+            <button className="relative p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm flex-shrink-0">
               <Bell size={20} />
               <span className="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
             </button>
-            <Link to="/" className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+            <Link to="/" className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm whitespace-nowrap text-sm font-medium flex-shrink-0">
                 View Site
             </Link>
           </div>
         </header>
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {kpis.map((kpi, idx) => (
-            <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div key={idx} className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
               <div className="flex justify-between items-start mb-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${kpi.bg} group-hover:scale-110 transition-transform duration-300`}>
                   <kpi.icon className={kpi.color} size={24} />
@@ -147,23 +182,23 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{kpi.label}</p>
-                <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{kpi.value}</h3>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{kpi.value}</h3>
               </div>
             </div>
           ))}
         </div>
 
         {/* Charts Section */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8 mb-8">
           {/* Revenue Chart */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
+          <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center mb-6 sm:mb-8">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Revenue Analytics</h3>
                 <p className="text-gray-500 text-sm">Monthly revenue performance</p>
               </div>
             </div>
-            <div className="h-[300px] w-full">
+            <div className="h-[250px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={SALES_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
@@ -208,14 +243,14 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Orders Bar Chart */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center mb-6 sm:mb-8">
                <div>
                 <h3 className="text-lg font-bold text-gray-900">Daily Orders</h3>
                 <p className="text-gray-500 text-sm">Last 7 days</p>
               </div>
             </div>
-            <div className="h-[300px] w-full">
+            <div className="h-[250px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={SALES_DATA} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
@@ -250,22 +285,22 @@ const AdminDashboard: React.FC = () => {
 
         {/* Recent Orders Table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="p-5 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="text-lg font-bold text-gray-900">Recent Orders</h3>
               <p className="text-gray-500 text-sm">Manage and track your recent shipments.</p>
             </div>
-            <div className="flex gap-2">
-               <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 transition-colors">
+            <div className="flex gap-2 w-full sm:w-auto">
+               <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 transition-colors">
                  <Filter size={16} /> Filter
                </button>
-               <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-secondary transition-colors shadow-sm shadow-red-600/20">
-                 Export Data
+               <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-secondary transition-colors shadow-sm shadow-red-600/20">
+                 Export
                </button>
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50/50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Order ID</th>

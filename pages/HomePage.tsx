@@ -1,3 +1,4 @@
+
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check } from 'lucide-react';
@@ -14,71 +15,87 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="overflow-hidden bg-white">
+    <div className="overflow-hidden bg-white font-sans">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      <section className="relative pt-28 pb-16 lg:pt-40 lg:pb-24 overflow-hidden">
         {/* Background Decor */}
-        <div className="absolute top-0 right-0 -z-10 w-[60%] h-full bg-red-50 rounded-l-[5rem] opacity-50"></div>
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+           <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-red-50 rounded-full blur-3xl opacity-60"></div>
+           <div className="absolute bottom-[10%] left-[-10%] w-[400px] h-[400px] bg-gray-50 rounded-full blur-3xl opacity-60"></div>
+        </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center">
             
-            {/* Left: Content */}
-            <div className="space-y-8 animate-fade-in-up order-2 lg:order-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-primary font-bold text-xs tracking-wider uppercase">
+            {/* Content - Top on Mobile */}
+            <div className="space-y-8 text-center lg:text-left animate-fade-in-up order-1 w-full">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-50 border border-red-100 text-primary font-bold text-xs tracking-widest uppercase mx-auto lg:mx-0">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                New Arrival
+                Best Seller
               </div>
               
-              <h1 className="text-5xl lg:text-7xl font-extrabold text-gray-900 leading-tight tracking-tight">
-                Unlimited <span className="text-primary">4G/5G WiFi</span><br />at Home
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                Unlimited <span className="text-primary block sm:inline">4G/5G WiFi</span><br className="hidden sm:block" /> at Home
               </h1>
               
-              <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-                Experience the future of home internet with the DITO Home WoWFi Pro. 
-                Ultra-fast 4G/5G speeds for streaming, gaming, and working.
+              <p className="text-lg sm:text-xl text-gray-500 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium">
+                Experience ultra-fast 4G/5G speeds with DITO Home WiFi.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <Button variant="primary" className="px-10 py-4 text-lg shadow-xl shadow-red-900/20" onClick={handleShopNow}>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
+                <Button variant="primary" className="px-12 py-4 text-lg shadow-xl shadow-red-600/20 rounded-full w-full sm:w-auto transition-transform hover:-translate-y-1" onClick={handleShopNow}>
                    Shop Now
                 </Button>
-                <Link to={`/product/${HERO_PRODUCT.id}`}>
-                   <Button variant="outline" className="px-10 py-4 text-lg w-full sm:w-auto">
+                <Link to={`/product/${HERO_PRODUCT.id}`} className="w-full sm:w-auto">
+                   <Button variant="outline" className="px-12 py-4 text-lg w-full rounded-full border-2 border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-white transition-all">
                      Learn More
                    </Button>
                 </Link>
               </div>
               
-              <div className="pt-6 flex items-center gap-8 text-sm font-medium text-gray-500">
+              {/* Trust Indicators */}
+              <div className="pt-4 flex items-center justify-center lg:justify-start gap-6 text-sm font-bold text-gray-500">
                 <div className="flex items-center gap-2">
-                   <div className="bg-green-100 p-1 rounded-full"><Check size={14} className="text-green-600"/></div>
+                   <Check size={18} className="text-primary"/>
                    Plug & Play
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="bg-green-100 p-1 rounded-full"><Check size={14} className="text-green-600"/></div>
+                   <Check size={18} className="text-primary"/>
                    Free 50GB Data
                 </div>
               </div>
             </div>
 
-            {/* Right: Image */}
-            <div className="relative animate-fade-in order-1 lg:order-2 flex justify-center lg:justify-end">
-              <div className="relative z-10 max-w-md lg:max-w-full">
-                <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100 transform hover:scale-[1.02] transition-transform duration-500">
+            {/* Image - Bottom on Mobile */}
+            <div className="relative w-full order-2 mt-6 lg:mt-0 flex justify-center lg:justify-end">
+              <div className="relative z-10 w-full max-w-md">
+                <div className="relative bg-white rounded-[3rem] shadow-2xl shadow-gray-200/80 border border-gray-100 p-8 aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden group">
+                   
+                   {/* Scenic Background Gradient Simulation */}
+                   <div className="absolute inset-0 bg-gradient-to-b from-[#F0F4FF] to-white opacity-80"></div>
+                   <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-white to-transparent opacity-100"></div>
+                   
                    <img 
                      src={HERO_PRODUCT.image} 
                      alt="DITO Home WoWFi Pro" 
-                     className="w-full h-auto object-contain"
+                     className="relative z-10 w-[110%] h-auto object-contain transform group-hover:scale-105 transition-transform duration-700 ease-out drop-shadow-xl"
                    />
-                   <div className="absolute bottom-8 right-8 bg-white/90 backdrop-blur-md border border-gray-200 px-4 py-2 rounded-xl shadow-lg">
-                      <p className="text-xs text-gray-500 font-bold uppercase">Price</p>
-                      <p className="text-2xl font-bold text-primary">₱{HERO_PRODUCT.price.toLocaleString()}</p>
+
+                   {/* Floating Price Tag */}
+                   <div className="absolute bottom-8 bg-white/95 backdrop-blur-md border border-gray-100 pl-6 pr-8 py-4 rounded-2xl shadow-xl flex items-center gap-4 animate-fade-in-up">
+                      <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-primary">
+                        <Wifi size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Start Today</p>
+                        <p className="text-2xl font-black text-gray-900">₱1,990</p>
+                      </div>
                    </div>
                 </div>
+                
+                {/* Decorative elements */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border border-dashed border-gray-200 rounded-full -z-10 animate-[spin_60s_linear_infinite]"></div>
               </div>
-              {/* Blobs */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-red-100/50 to-transparent rounded-full blur-3xl -z-10"></div>
             </div>
             
           </div>
@@ -158,7 +175,7 @@ const HomePage: React.FC = () => {
          <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to upgrade your home internet?</h2>
             <p className="text-gray-400 mb-8 text-lg">Get the DITO Home WoWFi Pro today and experience the difference.</p>
-            <Button variant="primary" className="px-12 py-4 text-lg mx-auto" onClick={handleShopNow}>
+            <Button variant="primary" className="px-12 py-4 text-lg mx-auto rounded-full" onClick={handleShopNow}>
                Get Started Now
             </Button>
          </div>
