@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell,
@@ -19,10 +19,10 @@ const AdminDashboard: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { 
-    products, orders, customers, stats, 
+    products, orders, customers, stats, settings,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer
+    deleteCustomer, updateSettings
   } = useContext(StoreContext);
 
   // Local state for Forms/Modals
@@ -30,11 +30,19 @@ const AdminDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProductForm, setNewProductForm] = useState<Partial<Product>>({});
 
+  // Local state for Settings Form
+  const [settingsForm, setSettingsForm] = useState(settings);
+
+  useEffect(() => {
+    setSettingsForm(settings);
+  }, [settings]);
+
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
     { icon: Package, label: 'Products' },
     { icon: ShoppingBag, label: 'Orders' },
     { icon: Users, label: 'Customers' },
+    { icon: Settings, label: 'Settings' },
   ];
 
   // --- Helper Functions ---
@@ -77,6 +85,21 @@ const AdminDashboard: React.FC = () => {
     setIsProductModalOpen(false);
   };
 
+  const handleSettingsChange = (section: keyof typeof settings, key: string, value: string) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [key]: value
+      }
+    }));
+  };
+
+  const saveSettings = () => {
+    updateSettings(settingsForm);
+    alert('Settings saved successfully!');
+  };
+
   const kpis = [
     { 
       label: 'Total Revenue', 
@@ -100,7 +123,7 @@ const AdminDashboard: React.FC = () => {
       label: 'Customers', 
       value: stats.totalCustomers.toString(), 
       trend: '-2.1%', 
-      trendUp: false,
+      trendUp: false, 
       icon: Users, 
       color: 'text-emerald-600', 
       bg: 'bg-emerald-50' 
@@ -118,6 +141,172 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Settings':
+        return (
+          <div className="max-w-4xl mx-auto space-y-8 pb-20">
+            {/* Hero Settings */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Hero Section Configuration</h3>
+                <p className="text-sm text-gray-500 mt-1">Customize the main banner on the homepage.</p>
+              </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Headline Prefix</label>
+                    <input 
+                      value={settingsForm.hero.titlePrefix}
+                      onChange={(e) => handleSettingsChange('hero', 'titlePrefix', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Highlighted Text (Red)</label>
+                    <input 
+                      value={settingsForm.hero.titleHighlight}
+                      onChange={(e) => handleSettingsChange('hero', 'titleHighlight', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-primary font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Headline Suffix</label>
+                    <input 
+                      value={settingsForm.hero.titleSuffix}
+                      onChange={(e) => handleSettingsChange('hero', 'titleSuffix', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subtitle</label>
+                    <textarea 
+                      rows={3}
+                      value={settingsForm.hero.subtitle}
+                      onChange={(e) => handleSettingsChange('hero', 'subtitle', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hero Image URL</label>
+                    <input 
+                      value={settingsForm.hero.heroImage}
+                      onChange={(e) => handleSettingsChange('hero', 'heroImage', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      placeholder="https://example.com/image.png"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primary Button</label>
+                      <input 
+                        value={settingsForm.hero.btnPrimary}
+                        onChange={(e) => handleSettingsChange('hero', 'btnPrimary', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Secondary Button</label>
+                      <input 
+                        value={settingsForm.hero.btnSecondary}
+                        onChange={(e) => handleSettingsChange('hero', 'btnSecondary', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Other Sections */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Page Sections</h3>
+              </div>
+              <div className="p-6 space-y-8">
+                {/* Features */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Features Title</label>
+                      <input 
+                        value={settingsForm.features.title}
+                        onChange={(e) => handleSettingsChange('features', 'title', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Features Subtitle</label>
+                      <input 
+                        value={settingsForm.features.subtitle}
+                        onChange={(e) => handleSettingsChange('features', 'subtitle', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                </div>
+
+                <div className="w-full h-px bg-gray-100"></div>
+
+                {/* Testimonials */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Testimonials Title</label>
+                      <input 
+                        value={settingsForm.testimonials.title}
+                        onChange={(e) => handleSettingsChange('testimonials', 'title', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Testimonials Subtitle</label>
+                      <input 
+                        value={settingsForm.testimonials.subtitle}
+                        onChange={(e) => handleSettingsChange('testimonials', 'subtitle', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                </div>
+
+                <div className="w-full h-px bg-gray-100"></div>
+
+                {/* CTA */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Call to Action Title</label>
+                      <input 
+                        value={settingsForm.cta.title}
+                        onChange={(e) => handleSettingsChange('cta', 'title', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CTA Subtitle</label>
+                      <input 
+                        value={settingsForm.cta.subtitle}
+                        onChange={(e) => handleSettingsChange('cta', 'subtitle', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CTA Button</label>
+                      <input 
+                        value={settingsForm.cta.btnText}
+                        onChange={(e) => handleSettingsChange('cta', 'btnText', e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-xl outline-none"
+                      />
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Action */}
+            <div className="fixed bottom-6 right-6 z-40">
+               <Button onClick={saveSettings} className="shadow-2xl shadow-red-900/40 py-4 px-8 text-lg flex items-center gap-3">
+                 <Save size={20} /> Save Changes
+               </Button>
+            </div>
+          </div>
+        );
+
       case 'Products':
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

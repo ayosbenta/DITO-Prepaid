@@ -1,6 +1,6 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User } from '../types';
-import { HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
+import { Product, Order, User, LandingPageSettings } from '../types';
+import { HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SETTINGS } from '../constants';
 
 // Initial Mock Data for Customers based on orders
 const INITIAL_CUSTOMERS: User[] = [
@@ -13,6 +13,7 @@ interface StoreContextType {
   products: Product[];
   orders: Order[];
   customers: User[];
+  settings: LandingPageSettings;
   // Product Actions
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updatedProduct: Product) => void;
@@ -23,6 +24,8 @@ interface StoreContextType {
   deleteOrder: (id: string) => void;
   // Customer Actions
   deleteCustomer: (email: string) => void;
+  // Settings Actions
+  updateSettings: (settings: LandingPageSettings) => void;
   // Dashboard Stats
   stats: {
     revenue: number;
@@ -36,6 +39,7 @@ export const StoreContext = createContext<StoreContextType>({
   products: [],
   orders: [],
   customers: [],
+  settings: DEFAULT_SETTINGS,
   addProduct: () => {},
   updateProduct: () => {},
   deleteProduct: () => {},
@@ -43,6 +47,7 @@ export const StoreContext = createContext<StoreContextType>({
   updateOrderStatus: () => {},
   deleteOrder: () => {},
   deleteCustomer: () => {},
+  updateSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
 });
 
@@ -51,6 +56,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [products, setProducts] = useState<Product[]>([HERO_PRODUCT, ...RELATED_PRODUCTS]);
   const [orders, setOrders] = useState<Order[]>(RECENT_ORDERS);
   const [customers, setCustomers] = useState<User[]>(INITIAL_CUSTOMERS);
+  const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
 
   // Product CRUD
   const addProduct = (product: Product) => {
@@ -92,6 +98,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCustomers(prev => prev.filter(c => c.email !== email));
   };
 
+  // Settings Update
+  const updateSettings = (newSettings: LandingPageSettings) => {
+    setSettings(newSettings);
+  };
+
   // Derived Stats
   const stats = {
     revenue: orders.reduce((acc, curr) => acc + curr.total, 0),
@@ -105,6 +116,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       products,
       orders,
       customers,
+      settings,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -112,6 +124,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       updateOrderStatus,
       deleteOrder,
       deleteCustomer,
+      updateSettings,
       stats
     }}>
       {children}

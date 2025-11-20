@@ -1,4 +1,4 @@
-import { Product, Order } from './types';
+import { Product, Order, LandingPageSettings } from './types';
 
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
@@ -79,3 +79,28 @@ export const SALES_DATA = [
   { name: 'Sat', sales: 2390 },
   { name: 'Sun', sales: 3490 },
 ];
+
+export const DEFAULT_SETTINGS: LandingPageSettings = {
+  hero: {
+    titlePrefix: 'Unlimited',
+    titleHighlight: '4G/5G WiFi',
+    titleSuffix: 'at Home',
+    subtitle: 'Experience ultra-fast 4G/5G speeds with DITO Home WiFi.',
+    btnPrimary: 'Shop Now',
+    btnSecondary: 'Learn More',
+    heroImage: 'https://picsum.photos/seed/routerblue/600/600'
+  },
+  features: {
+    title: 'Experience the Advantage',
+    subtitle: 'Why thousands of Filipino households are switching to DITO Home.'
+  },
+  testimonials: {
+    title: 'Customer Stories',
+    subtitle: 'See what our community has to say.'
+  },
+  cta: {
+    title: 'Ready to upgrade your home internet?',
+    subtitle: 'Get the DITO Home WoWFi Pro today and experience the difference.',
+    btnText: 'Get Started Now'
+  }
+};

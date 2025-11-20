@@ -32,6 +32,31 @@ export interface Order {
   items: number;
 }
 
+export interface LandingPageSettings {
+  hero: {
+    titlePrefix: string;
+    titleHighlight: string;
+    titleSuffix: string;
+    subtitle: string;
+    btnPrimary: string;
+    btnSecondary: string;
+    heroImage: string;
+  };
+  features: {
+    title: string;
+    subtitle: string;
+  };
+  testimonials: {
+    title: string;
+    subtitle: string;
+  };
+  cta: {
+    title: string;
+    subtitle: string;
+    btnText: string;
+  };
+}
+
 export interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product) => void;

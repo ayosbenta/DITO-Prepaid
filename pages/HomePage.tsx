@@ -7,7 +7,7 @@ import { Button } from '../components/UI';
 
 const HomePage: React.FC = () => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);
-  const { products } = useContext(StoreContext);
+  const { products, settings } = useContext(StoreContext);
 
   // Dynamic Hero Product (Fallback to first product if specific ID missing)
   const heroProduct = products.find(p => p.id === 'dito-wowfi-pro') || products[0];
@@ -42,20 +42,20 @@ const HomePage: React.FC = () => {
               </div>
               
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
-                Unlimited <span className="text-primary block sm:inline">4G/5G WiFi</span><br className="hidden sm:block" /> at Home
+                {settings.hero.titlePrefix} <span className="text-primary block sm:inline">{settings.hero.titleHighlight}</span><br className="hidden sm:block" /> {settings.hero.titleSuffix}
               </h1>
               
               <p className="text-lg sm:text-xl text-gray-500 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium">
-                Experience ultra-fast 4G/5G speeds with DITO Home WiFi.
+                {settings.hero.subtitle}
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
                 <Button variant="primary" className="px-12 py-4 text-lg shadow-xl shadow-red-600/20 rounded-full w-full sm:w-auto transition-transform hover:-translate-y-1" onClick={handleShopNow}>
-                   Shop Now
+                   {settings.hero.btnPrimary}
                 </Button>
                 <Link to={`/product/${heroProduct.id}`} className="w-full sm:w-auto">
                    <Button variant="outline" className="px-12 py-4 text-lg w-full rounded-full border-2 border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-white transition-all">
-                     Learn More
+                     {settings.hero.btnSecondary}
                    </Button>
                 </Link>
               </div>
@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
                    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-white to-transparent opacity-100"></div>
                    
                    <img 
-                     src={heroProduct.image} 
+                     src={settings.hero.heroImage || heroProduct.image} 
                      alt="DITO Home WoWFi Pro" 
                      className="relative z-10 w-[110%] h-auto object-contain transform group-hover:scale-105 transition-transform duration-700 ease-out drop-shadow-xl"
                    />
@@ -113,8 +113,8 @@ const HomePage: React.FC = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">Experience the Advantage</h2>
-            <p className="text-gray-500">Why thousands of Filipino households are switching to DITO Home.</p>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">{settings.features.title}</h2>
+            <p className="text-gray-500">{settings.features.subtitle}</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -141,8 +141,8 @@ const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900">Customer Stories</h2>
-              <p className="text-gray-500 mt-2">See what our community has to say.</p>
+              <h2 className="text-3xl font-bold text-gray-900">{settings.testimonials.title}</h2>
+              <p className="text-gray-500 mt-2">{settings.testimonials.subtitle}</p>
             </div>
             <div className="hidden sm:flex gap-2">
                <button className="p-2 rounded-full border bg-white hover:bg-gray-50"><ArrowRight className="rotate-180" size={20}/></button>
@@ -180,10 +180,10 @@ const HomePage: React.FC = () => {
       <section className="py-20 bg-gray-900 text-white relative overflow-hidden">
          <div className="absolute top-0 right-0 w-1/2 h-full bg-gray-800 skew-x-12 translate-x-20 opacity-50"></div>
          <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to upgrade your home internet?</h2>
-            <p className="text-gray-400 mb-8 text-lg">Get the DITO Home WoWFi Pro today and experience the difference.</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">{settings.cta.title}</h2>
+            <p className="text-gray-400 mb-8 text-lg">{settings.cta.subtitle}</p>
             <Button variant="primary" className="px-12 py-4 text-lg mx-auto rounded-full" onClick={handleShopNow}>
-               Get Started Now
+               {settings.cta.btnText}
             </Button>
          </div>
       </section>
