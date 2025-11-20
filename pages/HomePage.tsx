@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, ShieldCheck, Home, Banknote, Star, ArrowRight, CheckCircle } from 'lucide-react';
 import { HERO_PRODUCT } from '../constants';
-import { CartContext } from '../App';
+import { CartContext } from '../contexts/CartContext';
 
 const HomePage: React.FC = () => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);

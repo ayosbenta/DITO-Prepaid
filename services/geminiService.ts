@@ -3,7 +3,11 @@ import { GoogleGenAI } from "@google/genai";
 // Initialize the Gemini API client
 // IMPORTANT: In a real production app, API calls should often be proxied through a backend
 // to protect the API key. For this demo, we use the process.env.API_KEY directly.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
+// Safely retrieve the API key to avoid runtime errors in environments where process is not defined
+const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 const SYSTEM_INSTRUCTION = `
 You are the DITO Home AI Assistant. You help customers with the DITO Home WoWFi Pro product.

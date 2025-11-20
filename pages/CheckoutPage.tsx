@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { CartContext } from '../App';
+import { CartContext } from '../contexts/CartContext';
 import { PaymentMethod } from '../types';
 import { CheckCircle, CreditCard, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';

@@ -1,8 +1,9 @@
-import React, { useState, createContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { CartContextType, CartItem, Product } from './types';
+import { CartItem, Product } from './types';
 import { Navbar, Footer, CartDrawer } from './components/Layout';
 import AIChatBot from './components/AIChatBot';
+import { CartContext } from './contexts/CartContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -10,19 +11,6 @@ import CatalogPage from './pages/CatalogPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminDashboard from './pages/AdminDashboard';
-
-// Context initialization
-export const CartContext = createContext<CartContextType>({
-  items: [],
-  addToCart: () => {},
-  removeFromCart: () => {},
-  updateQuantity: () => {},
-  cartTotal: 0,
-  itemCount: 0,
-  clearCart: () => {},
-  isCartOpen: false,
-  setIsCartOpen: () => {},
-});
 
 // Scroll To Top Wrapper
 const ScrollToTop = () => {

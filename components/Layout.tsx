@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
-import { CartContext } from '../App'; // Using App as the context source for simplicity
+import { CartContext } from '../contexts/CartContext';
 import { CartItem } from '../types';
 
 export const Navbar: React.FC = () => {

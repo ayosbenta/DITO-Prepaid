@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, Truck, Shield, Wifi, Check } from 'lucide-react';
 import { HERO_PRODUCT, RELATED_PRODUCTS } from '../constants';
-import { CartContext } from '../App';
+import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
 
 const ProductDetailPage: React.FC = () => {
