@@ -24,12 +24,21 @@ const ReferralHandler = () => {
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Check both standard URL search (before #) and Hash search (after #)
-    // This ensures we capture the ref ID regardless of how the URL is formatted
-    // e.g., domain.com/?ref=123#/ or domain.com/#/?ref=123
-    const hashRef = searchParams.get('ref');
-    const windowRef = new URLSearchParams(window.location.search).get('ref');
-    const refId = hashRef || windowRef;
+    // 1. Try React Router Search Params (HashRouter handles ? after #)
+    let refId = searchParams.get('ref');
+
+    // 2. Fallback: Check window.location.search (Query params before #)
+    if (!refId) {
+      const params = new URLSearchParams(window.location.search);
+      refId = params.get('ref');
+    }
+    
+    // 3. Fallback: Check explicit string manipulation if router fails
+    // (Captures cases like domain.com/?ref=123#/ or domain.com/#/?ref=123)
+    if (!refId && window.location.href.includes('ref=')) {
+        const match = window.location.href.match(/ref=([^&/#]+)/);
+        if(match) refId = match[1];
+    }
 
     if (refId && refId !== processedRef.current) {
       localStorage.setItem('dito_referral_id', refId);

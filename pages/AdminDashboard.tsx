@@ -111,7 +111,6 @@ const AdminDashboard: React.FC = () => {
     setIsProductModalOpen(false);
   };
 
-  // Affiliate Helpers
   const handleEditAffiliate = (aff: Affiliate) => {
     setEditingAffiliate(aff);
     setWalletAdjustment(0);
@@ -125,7 +124,6 @@ const AdminDashboard: React.FC = () => {
       // Handle Wallet Adjustment
       if (walletAdjustment !== 0) {
         updatedData.walletBalance = (updatedData.walletBalance || 0) + walletAdjustment;
-        // Note: We don't automatically increase lifetime earnings on manual adjustments unless specified, keeping it simple here.
       }
 
       updateAffiliate(editingAffiliate.id, updatedData);
@@ -166,6 +164,18 @@ const AdminDashboard: React.FC = () => {
         [key]: value
       }
     }));
+  };
+  
+  // Handle file upload logic for QR code (convert to DataURL)
+  const handleQRUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handlePaymentSettingsChange('gcash', 'qrImage', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const saveSettings = () => {
@@ -222,7 +232,7 @@ const AdminDashboard: React.FC = () => {
           <div className="max-w-4xl mx-auto space-y-8 pb-20">
              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                <div className="p-6 border-b border-gray-100">
-                 <h2 className="text-lg font-bold text-gray-900">Payment Methods</h2>
+                 <h2 className="text-lg font-bold text-gray-900">Payment Methods Configuration</h2>
                  <p className="text-sm text-gray-500">Configure how customers pay at checkout.</p>
                </div>
 
@@ -234,7 +244,7 @@ const AdminDashboard: React.FC = () => {
                            <div className="p-3 bg-green-50 text-green-600 rounded-xl"><CreditCard size={24}/></div>
                            <div>
                               <h3 className="font-bold text-gray-900">Cash on Delivery (COD)</h3>
-                              <p className="text-sm text-gray-500">Allow customers to pay upon receiving the item.</p>
+                              <p className="text-sm text-gray-500">Enable or disable cash payment upon delivery.</p>
                            </div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -293,21 +303,36 @@ const AdminDashboard: React.FC = () => {
                               </div>
                            </div>
                            <div>
-                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">QR Code Image URL</label>
-                              <div className="flex gap-2">
-                                <div className="relative flex-1">
-                                  <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">QR Code Image</label>
+                              <div className="flex gap-4 items-start">
+                                <div className="flex-1 space-y-2">
+                                  <div className="relative">
+                                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input 
+                                      className="w-full border rounded-lg p-2 pl-9 bg-white"
+                                      value={paymentSettingsForm.gcash.qrImage}
+                                      onChange={e => handlePaymentSettingsChange('gcash', 'qrImage', e.target.value)}
+                                      placeholder="Paste Image URL here"
+                                    />
+                                  </div>
+                                  <div className="text-xs text-gray-500 text-center">- OR -</div>
                                   <input 
-                                     className="w-full border rounded-lg p-2 pl-9 bg-white"
-                                     value={paymentSettingsForm.gcash.qrImage}
-                                     onChange={e => handlePaymentSettingsChange('gcash', 'qrImage', e.target.value)}
-                                     placeholder="https://example.com/gcash-qr.png"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleQRUpload}
+                                    className="block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-full file:border-0
+                                      file:text-xs file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100
+                                    "
                                   />
                                 </div>
                                 {paymentSettingsForm.gcash.qrImage && (
-                                   <a href={paymentSettingsForm.gcash.qrImage} target="_blank" rel="noreferrer" className="p-2 border rounded-lg hover:bg-gray-100 text-gray-600">
-                                      <ExternalLink size={20} />
-                                   </a>
+                                   <div className="w-24 h-24 border rounded-lg p-1 bg-white shrink-0">
+                                     <img src={paymentSettingsForm.gcash.qrImage} alt="Preview" className="w-full h-full object-contain" />
+                                   </div>
                                 )}
                               </div>
                            </div>
@@ -344,7 +369,7 @@ const AdminDashboard: React.FC = () => {
                                 className="w-full border rounded-lg p-2 bg-white"
                                 value={paymentSettingsForm.bank.bankName}
                                 onChange={e => handlePaymentSettingsChange('bank', 'bankName', e.target.value)}
-                                placeholder="e.g. BDO / BPI"
+                                placeholder="e.g. BDO / BPI / Metrobank"
                              />
                            </div>
                            <div className="grid grid-cols-2 gap-4">

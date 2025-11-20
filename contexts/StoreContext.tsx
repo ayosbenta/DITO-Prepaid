@@ -98,7 +98,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   // Auto-Refresh / Polling Logic
-  // This ensures "All dashboards... auto-refresh" requirements are met
   useEffect(() => {
     const intervalId = setInterval(() => {
       // Do not refresh if we are currently syncing changes to avoid overwriting optimistic updates
@@ -132,11 +131,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (updatedOrder.referralId && updatedOrder.status === 'Delivered' && prevStatus !== 'Delivered') {
       
       const affiliateId = updatedOrder.referralId;
-      
-      // Use the calculated commission from the order, or fallback to 5% default for old orders
       const commissionAmount = updatedOrder.commission ?? (updatedOrder.total * 0.05);
 
-      // Update local affiliates state
       setAffiliates(prevAffiliates => {
         const updatedAffiliates = prevAffiliates.map(aff => {
           if (aff.id === affiliateId) {
@@ -150,7 +146,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           return aff;
         });
         
-        // Sync new balances to Sheets
         triggerAffiliateSync(updatedAffiliates);
         return updatedAffiliates;
       });
@@ -230,7 +225,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Affiliate CRUD
   const registerAffiliate = (affiliate: Affiliate) => {
-    // Ensure defaults
     const newAffiliate = {
       ...affiliate,
       status: affiliate.status || 'active',
@@ -253,12 +247,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const trackAffiliateClick = (id: string) => {
     setAffiliates(prev => {
       const target = prev.find(a => a.id === id);
-      // Only track if affiliate exists
       if (!target) return prev;
 
       const newAffiliates = prev.map(a => a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a);
-      
-      // Debouncing syncing could be good, but keeping it simple for now
       triggerAffiliateSync(newAffiliates);
       return newAffiliates;
     });
@@ -268,7 +259,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const updateSettings = (newSettings: LandingPageSettings) => {
     setSettings(newSettings);
     setIsSyncing(true);
-    // We need to pass payment settings too so they don't get overwritten in the key-value store
     const mergedSettings = { ...newSettings, payment: paymentSettings };
     SheetsService.saveSettings(mergedSettings).finally(() => setIsSyncing(false));
   };
@@ -280,7 +270,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.saveSettings(mergedSettings).finally(() => setIsSyncing(false));
   };
 
-  // Derived Stats
   const stats = {
     revenue: orders.reduce((acc, curr) => acc + curr.total, 0),
     totalOrders: orders.length,
