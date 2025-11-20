@@ -1,5 +1,5 @@
 import { LandingPageSettings, Product, Order, User, Affiliate } from '../types';
-import { DEFAULT_SETTINGS } from '../constants';
+import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
 
 // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7VQb56S2UWSMk0IAIS0MWB84R_ODwCwO_aeSC443Jr2VFP4VpFxJRqjANKm6p5jAhkQ/exec"; 
@@ -20,10 +20,12 @@ interface DashboardData {
 export const SheetsService = {
   // Fetch all data from Sheets
   getAllData: async (): Promise<DashboardData | null> => {
-    if (!GOOGLE_SCRIPT_URL) return null;
-
     try {
+      if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL is not configured");
+
       const response = await fetch(GOOGLE_SCRIPT_URL);
+      if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+      
       const data = await response.json();
 
       // 1. Parse Products
@@ -102,8 +104,15 @@ export const SheetsService = {
       return { products, orders, customers, affiliates, settings };
 
     } catch (error) {
-      console.error("Failed to fetch data from Sheets:", error);
-      return null;
+      console.warn("Sheets API Unavailable or Failed. Loading fallback mock data.", error);
+      // Return Mock Data if API fails
+      return {
+        products: [HERO_PRODUCT, ...RELATED_PRODUCTS],
+        orders: RECENT_ORDERS,
+        customers: [],
+        affiliates: [],
+        settings: DEFAULT_SETTINGS
+      };
     }
   },
 

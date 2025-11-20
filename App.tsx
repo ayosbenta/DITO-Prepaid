@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { CartItem, Product } from './types';
@@ -14,6 +15,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AffiliateLoginPage from './pages/AffiliateLoginPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
+import CustomerLoginPage from './pages/CustomerLoginPage';
 
 // Helper to capture ?ref=ID
 const ReferralHandler = () => {
@@ -96,6 +98,9 @@ const App: React.FC = () => {
                   <AffiliateDashboard />
                 </>
               } />
+
+              {/* Customer Route */}
+              <Route path="/customer/login" element={<CustomerLoginPage />} />
 
               {/* Public Routes */}
               <Route path="*" element={

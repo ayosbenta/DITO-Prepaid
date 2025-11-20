@@ -1,6 +1,7 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock } from 'lucide-react';
+import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { CartItem } from '../types';
 import { Button } from './UI';
@@ -8,6 +9,7 @@ import { Button } from './UI';
 export const Navbar: React.FC = () => {
   const { itemCount, setIsCartOpen } = useContext(CartContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
@@ -24,68 +26,154 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2 text-primary font-black text-2xl tracking-tighter hover:scale-105 transition-transform">
-          <div className="bg-primary text-white p-1.5 rounded-lg shadow-lg shadow-red-600/20">
-            <Wifi size={20} strokeWidth={3} />
+    <>
+      <nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <Link to="/" className="flex items-center gap-2 text-primary font-black text-2xl tracking-tighter hover:scale-105 transition-transform">
+            <div className="bg-primary text-white p-1.5 rounded-lg shadow-lg shadow-red-600/20">
+              <Wifi size={20} strokeWidth={3} />
+            </div>
+            DITO Home
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8 bg-white/50 px-6 py-2 rounded-full backdrop-blur-sm border border-gray-100/50">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.name} 
+                to={link.path} 
+                className={`text-sm font-medium transition-colors ${location.pathname === link.path ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
+              >
+                {link.name}
+              </Link>
+            ))}
+            
+            {/* Login Button */}
+            <button 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="text-sm font-bold text-primary hover:text-secondary flex items-center gap-1 px-3 py-1 rounded-full hover:bg-red-50 transition-colors"
+            >
+              <LogIn size={16} /> Login
+            </button>
           </div>
-          DITO Home
-        </Link>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8 bg-white/50 px-6 py-2 rounded-full backdrop-blur-sm border border-gray-100/50">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.name} 
-              to={link.path} 
-              className={`text-sm font-medium transition-colors ${location.pathname === link.path ? 'text-primary' : 'text-gray-600 hover:text-primary'}`}
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2.5 bg-white hover:bg-gray-100 rounded-full transition-colors border border-gray-100 shadow-sm group"
             >
-              {link.name}
-            </Link>
-          ))}
-          <Link to="/affiliate/login" className="text-sm font-medium text-gray-400 hover:text-primary">Affiliates</Link>
+              <ShoppingCart size={20} className="text-gray-700 group-hover:text-primary transition-colors" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+            <button 
+              className="md:hidden p-2 hover:bg-gray-100 rounded-full"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 bg-white hover:bg-gray-100 rounded-full transition-colors border border-gray-100 shadow-sm group"
-          >
-            <ShoppingCart size={20} className="text-gray-700 group-hover:text-primary transition-colors" />
-            {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
-                {itemCount}
-              </span>
-            )}
-          </button>
-          <button 
-            className="md:hidden p-2 hover:bg-gray-100 rounded-full"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t absolute w-full px-4 py-4 flex flex-col gap-4 shadow-xl animate-fade-in-up">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.name} 
-              to={link.path} 
-              className="text-gray-900 font-bold text-lg py-2"
-              onClick={() => setIsMobileMenuOpen(false)}
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t absolute w-full px-4 py-4 flex flex-col gap-4 shadow-xl animate-fade-in-up">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.name} 
+                to={link.path} 
+                className="text-gray-900 font-bold text-lg py-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.name}
+              </Link>
+            ))}
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsLoginModalOpen(true);
+              }}
+              className="text-left text-primary font-bold text-lg py-2 flex items-center gap-2"
             >
-              {link.name}
-            </Link>
-          ))}
-          <Link to="/affiliate/login" className="text-gray-500 py-2">Affiliate Program</Link>
-          <Link to="/admin" className="text-gray-400 text-sm py-2">Admin Panel</Link>
+              <LogIn size={20} /> Login / Register
+            </button>
+          </div>
+        )}
+      </nav>
+
+      {/* Login Selection Modal */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setIsLoginModalOpen(false)}
+          />
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl relative animate-fade-in-up">
+            <button 
+              onClick={() => setIsLoginModalOpen(false)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Welcome to DITO Home</h2>
+              <p className="text-gray-500 mt-2">Please select your account type to continue.</p>
+            </div>
+
+            <div className="grid gap-4">
+              <Link 
+                to="/admin" 
+                onClick={() => setIsLoginModalOpen(false)}
+                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-primary hover:bg-red-50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Shield size={24} />
+                </div>
+                <div className="ml-4">
+                  <h3 className="font-bold text-gray-900">Admin Portal</h3>
+                  <p className="text-xs text-gray-500">Store management & analytics</p>
+                </div>
+                <ArrowRight className="ml-auto text-gray-300 group-hover:text-primary" size={20} />
+              </Link>
+
+              <Link 
+                to="/affiliate/login" 
+                onClick={() => setIsLoginModalOpen(false)}
+                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                  <Users size={24} />
+                </div>
+                <div className="ml-4">
+                  <h3 className="font-bold text-gray-900">Affiliate Partner</h3>
+                  <p className="text-xs text-gray-500">Track sales & commissions</p>
+                </div>
+                <ArrowRight className="ml-auto text-gray-300 group-hover:text-blue-600" size={20} />
+              </Link>
+
+              <Link 
+                to="/customer/login" 
+                onClick={() => setIsLoginModalOpen(false)}
+                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
+                  <User size={24} />
+                </div>
+                <div className="ml-4">
+                  <h3 className="font-bold text-gray-900">Customer Login</h3>
+                  <p className="text-xs text-gray-500">Check orders & profile</p>
+                </div>
+                <ArrowRight className="ml-auto text-gray-300 group-hover:text-green-600" size={20} />
+              </Link>
+            </div>
+          </div>
         </div>
       )}
-    </nav>
+    </>
   );
 };
 
