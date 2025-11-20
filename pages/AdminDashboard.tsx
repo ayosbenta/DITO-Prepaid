@@ -170,7 +170,7 @@ const AdminDashboard: React.FC = () => {
       label: 'Total Orders', 
       value: stats.totalOrders.toString(), 
       trend: '+4.2%', 
-      trendUp: true,
+      trendUp: true, 
       icon: ShoppingBag, 
       color: 'text-blue-600', 
       bg: 'bg-blue-50' 

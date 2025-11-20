@@ -38,6 +38,10 @@ export const SheetsService = {
           console.warn("Failed to parse product json_data", p.name);
         }
 
+        // Safe fallback for commission fields
+        let commissionSettings = {};
+        if (p.commissionType) commissionSettings = { commissionType: p.commissionType, commissionValue: Number(p.commissionValue) };
+
         return {
           id: String(p.id),
           name: String(p.name),
@@ -51,7 +55,8 @@ export const SheetsService = {
           subtitle: '', 
           rating: 5, 
           reviews: 0,
-          ...details
+          ...details,
+          ...commissionSettings
         };
       });
 
@@ -84,7 +89,7 @@ export const SheetsService = {
         joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         status: (a.status === 'active' || a.status === 'inactive' || a.status === 'banned') ? a.status : 'active',
         clicks: Number(a.clicks || 0),
-        lifetimeEarnings: Number(a.lifetimeEarnings || a.walletBalance || 0)
+        lifetimeEarnings: Number(a.lifetimeEarnings || 0)
       }));
 
       // 5. Parse Settings

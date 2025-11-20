@@ -33,9 +33,9 @@ export interface Affiliate {
   walletBalance: number;
   totalSales: number;
   joinDate: string;
-  status: 'active' | 'inactive' | 'banned';
-  clicks: number;
-  lifetimeEarnings: number;
+  status?: 'active' | 'inactive' | 'banned';
+  clicks?: number;
+  lifetimeEarnings?: number;
 }
 
 export interface Order {

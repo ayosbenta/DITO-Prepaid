@@ -122,8 +122,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           if (aff.id === affiliateId) {
             return {
               ...aff,
-              walletBalance: aff.walletBalance + commissionAmount,
-              totalSales: aff.totalSales + updatedOrder.total,
+              walletBalance: (aff.walletBalance || 0) + commissionAmount,
+              totalSales: (aff.totalSales || 0) + updatedOrder.total,
               lifetimeEarnings: (aff.lifetimeEarnings || 0) + commissionAmount
             };
           }
@@ -233,10 +233,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const trackAffiliateClick = (id: string) => {
     setAffiliates(prev => {
       const target = prev.find(a => a.id === id);
+      // Only track if affiliate exists
       if (!target) return prev;
 
       const newAffiliates = prev.map(a => a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a);
-      // We could sync immediately or debounce. For simplicity, sync immediately.
+      
+      // Debouncing syncing could be good, but keeping it simple for now
       triggerAffiliateSync(newAffiliates);
       return newAffiliates;
     });
