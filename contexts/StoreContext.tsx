@@ -1,6 +1,8 @@
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings } from '../types';
 import { HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SETTINGS } from '../constants';
+import { SheetsService } from '../services/sheetsService';
 
 // Initial Mock Data for Customers based on orders
 const INITIAL_CUSTOMERS: User[] = [
@@ -33,6 +35,7 @@ interface StoreContextType {
     totalCustomers: number;
     lowStock: number;
   };
+  isSyncing: boolean;
 }
 
 export const StoreContext = createContext<StoreContextType>({
@@ -49,6 +52,7 @@ export const StoreContext = createContext<StoreContextType>({
   deleteCustomer: () => {},
   updateSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
+  isSyncing: false,
 });
 
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -57,23 +61,44 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [orders, setOrders] = useState<Order[]>(RECENT_ORDERS);
   const [customers, setCustomers] = useState<User[]>(INITIAL_CUSTOMERS);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // --- Helper to trigger sync ---
+  const triggerProductSync = (newProducts: Product[]) => {
+    setIsSyncing(true);
+    SheetsService.syncProducts(newProducts).finally(() => setIsSyncing(false));
+  };
+
+  const triggerOrderSync = (newOrders: Order[]) => {
+    setIsSyncing(true);
+    SheetsService.syncOrders(newOrders).finally(() => setIsSyncing(false));
+  };
 
   // Product CRUD
   const addProduct = (product: Product) => {
-    setProducts(prev => [...prev, product]);
+    const newProducts = [...products, product];
+    setProducts(newProducts);
+    triggerProductSync(newProducts);
   };
 
   const updateProduct = (id: string, updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+    const newProducts = products.map(p => p.id === id ? updatedProduct : p);
+    setProducts(newProducts);
+    triggerProductSync(newProducts);
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+    const newProducts = products.filter(p => p.id !== id);
+    setProducts(newProducts);
+    triggerProductSync(newProducts);
   };
 
   // Order CRUD
   const addOrder = (order: Order) => {
-    setOrders(prev => [order, ...prev]);
+    const newOrders = [order, ...orders];
+    setOrders(newOrders);
+    triggerOrderSync(newOrders);
+
     // Check if customer exists, if not add them
     const customerExists = customers.some(c => c.name === order.customer);
     if (!customerExists) {
@@ -86,11 +111,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateOrderStatus = (id: string, status: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    const newOrders = orders.map(o => o.id === id ? { ...o, status } : o);
+    setOrders(newOrders);
+    triggerOrderSync(newOrders);
   };
 
   const deleteOrder = (id: string) => {
-    setOrders(prev => prev.filter(o => o.id !== id));
+    const newOrders = orders.filter(o => o.id !== id);
+    setOrders(newOrders);
+    triggerOrderSync(newOrders);
   };
 
   // Customer CRUD
@@ -101,6 +130,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Settings Update
   const updateSettings = (newSettings: LandingPageSettings) => {
     setSettings(newSettings);
+    setIsSyncing(true);
+    SheetsService.saveSettings(newSettings).finally(() => setIsSyncing(false));
   };
 
   // Derived Stats
@@ -125,7 +156,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       deleteOrder,
       deleteCustomer,
       updateSettings,
-      stats
+      stats,
+      isSyncing
     }}>
       {children}
     </StoreContext.Provider>
