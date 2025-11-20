@@ -23,6 +23,7 @@ interface StoreContextType {
   // Affiliate Actions
   registerAffiliate: (affiliate: Affiliate) => void;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => void;
+  trackAffiliateClick: (id: string) => void;
   // Settings Actions
   updateSettings: (settings: LandingPageSettings) => void;
   // Dashboard Stats
@@ -51,6 +52,7 @@ export const StoreContext = createContext<StoreContextType>({
   deleteCustomer: () => {},
   registerAffiliate: () => {},
   updateAffiliate: () => {},
+  trackAffiliateClick: () => {},
   updateSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
@@ -121,7 +123,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             return {
               ...aff,
               walletBalance: aff.walletBalance + commissionAmount,
-              totalSales: aff.totalSales + updatedOrder.total
+              totalSales: aff.totalSales + updatedOrder.total,
+              lifetimeEarnings: (aff.lifetimeEarnings || 0) + commissionAmount
             };
           }
           return aff;
@@ -207,7 +210,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Affiliate CRUD
   const registerAffiliate = (affiliate: Affiliate) => {
-    const newAffiliates = [...affiliates, affiliate];
+    // Ensure defaults
+    const newAffiliate = {
+      ...affiliate,
+      status: affiliate.status || 'active',
+      clicks: 0,
+      lifetimeEarnings: 0,
+      walletBalance: 0,
+      totalSales: 0
+    };
+    const newAffiliates = [...affiliates, newAffiliate];
     setAffiliates(newAffiliates);
     triggerAffiliateSync(newAffiliates);
   };
@@ -216,6 +228,18 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const newAffiliates = affiliates.map(a => a.id === id ? { ...a, ...data } : a);
     setAffiliates(newAffiliates);
     triggerAffiliateSync(newAffiliates);
+  };
+
+  const trackAffiliateClick = (id: string) => {
+    setAffiliates(prev => {
+      const target = prev.find(a => a.id === id);
+      if (!target) return prev;
+
+      const newAffiliates = prev.map(a => a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a);
+      // We could sync immediately or debounce. For simplicity, sync immediately.
+      triggerAffiliateSync(newAffiliates);
+      return newAffiliates;
+    });
   };
 
   // Settings Update
@@ -249,6 +273,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       deleteCustomer,
       registerAffiliate,
       updateAffiliate,
+      trackAffiliateClick,
       updateSettings,
       stats,
       isSyncing,

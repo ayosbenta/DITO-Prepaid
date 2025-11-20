@@ -1,3 +1,4 @@
+
 import { LandingPageSettings, Product, Order, User, Affiliate } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
 
@@ -80,7 +81,10 @@ export const SheetsService = {
         email: String(a.email),
         walletBalance: Number(a.walletBalance || 0),
         totalSales: Number(a.totalSales || 0),
-        joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        status: (a.status === 'active' || a.status === 'inactive' || a.status === 'banned') ? a.status : 'active',
+        clicks: Number(a.clicks || 0),
+        lifetimeEarnings: Number(a.lifetimeEarnings || a.walletBalance || 0)
       }));
 
       // 5. Parse Settings

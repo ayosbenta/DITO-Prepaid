@@ -41,7 +41,10 @@ const AffiliateLoginPage: React.FC = () => {
       email,
       walletBalance: 0,
       totalSales: 0,
-      joinDate: new Date().toISOString().split('T')[0]
+      joinDate: new Date().toISOString().split('T')[0],
+      status: 'active',
+      clicks: 0,
+      lifetimeEarnings: 0
     };
 
     registerAffiliate(newAffiliate);

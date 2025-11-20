@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -13,23 +13,29 @@ import {
 import { Badge, Button } from '../components/UI';
 import { Link } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Product, Order } from '../types';
+import { Product, Order, Affiliate } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { 
-    products, orders, customers, stats, settings,
+    products, orders, customers, affiliates, stats, settings,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer, updateSettings, isSyncing, isLoading
+    deleteCustomer, updateSettings, isSyncing, isLoading,
+    updateAffiliate
   } = useContext(StoreContext);
 
   // Local state for Forms/Modals
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProductForm, setNewProductForm] = useState<Partial<Product>>({});
+
+  // Affiliate Modals
+  const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+  const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
+  const [walletAdjustment, setWalletAdjustment] = useState(0);
 
   // Local state for Settings Form
   const [settingsForm, setSettingsForm] = useState(settings);
@@ -52,6 +58,7 @@ const AdminDashboard: React.FC = () => {
     { icon: LayoutDashboard, label: 'Dashboard' },
     { icon: Package, label: 'Products' },
     { icon: ShoppingBag, label: 'Orders' },
+    { icon: Briefcase, label: 'Affiliates' },
     { icon: Users, label: 'Customers' },
     { icon: Settings, label: 'Settings' },
   ];
@@ -96,6 +103,43 @@ const AdminDashboard: React.FC = () => {
       addProduct(productToSave);
     }
     setIsProductModalOpen(false);
+  };
+
+  // Affiliate Helpers
+  const handleEditAffiliate = (aff: Affiliate) => {
+    setEditingAffiliate(aff);
+    setWalletAdjustment(0);
+    setIsAffiliateModalOpen(true);
+  };
+
+  const saveAffiliate = () => {
+    if (editingAffiliate) {
+      const updatedData = { ...editingAffiliate };
+      
+      // Handle Wallet Adjustment
+      if (walletAdjustment !== 0) {
+        updatedData.walletBalance = (updatedData.walletBalance || 0) + walletAdjustment;
+        // Note: We don't automatically increase lifetime earnings on manual adjustments unless specified, keeping it simple here.
+      }
+
+      updateAffiliate(editingAffiliate.id, updatedData);
+      setIsAffiliateModalOpen(false);
+    }
+  };
+
+  const toggleAffiliateStatus = (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'banned' : 'active';
+    updateAffiliate(id, { status: newStatus as 'active' | 'banned' });
+  };
+
+  const getAffiliateMetrics = (affId: string) => {
+    const affOrders = orders.filter(o => o.referralId === affId);
+    const successOrders = affOrders.filter(o => o.status === 'Delivered').length;
+    const pendingComm = affOrders
+      .filter(o => o.status !== 'Delivered')
+      .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0);
+    
+    return { successOrders, pendingComm };
   };
 
   const handleSettingsChange = (section: keyof typeof settings, key: string, value: string) => {
@@ -424,6 +468,89 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         );
+
+      case 'Affiliates':
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Affiliate Management</h2>
+              <p className="text-sm text-gray-500">Manage partners and commissions.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-500 font-medium">
+                  <tr>
+                    <th className="p-4">Affiliate</th>
+                    <th className="p-4">Stats (Clicks/Orders)</th>
+                    <th className="p-4">Wallet / Pending</th>
+                    <th className="p-4">Total Earned</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {affiliates.map(aff => {
+                    const metrics = getAffiliateMetrics(aff.id);
+                    return (
+                      <tr key={aff.id} className="hover:bg-gray-50">
+                        <td className="p-4">
+                           <div>
+                              <p className="font-bold text-gray-900">{aff.name}</p>
+                              <p className="text-xs text-gray-500">{aff.email}</p>
+                              <p className="text-[10px] text-gray-400 font-mono mt-1">ID: {aff.id}</p>
+                           </div>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex items-center gap-4">
+                              <div className="text-center">
+                                 <p className="font-bold">{aff.clicks || 0}</p>
+                                 <p className="text-[10px] text-gray-400 uppercase">Clicks</p>
+                              </div>
+                              <div className="h-8 w-px bg-gray-200"></div>
+                              <div className="text-center">
+                                 <p className="font-bold text-green-600">{metrics.successOrders}</p>
+                                 <p className="text-[10px] text-gray-400 uppercase">Orders</p>
+                              </div>
+                           </div>
+                        </td>
+                        <td className="p-4">
+                           <div>
+                              <p className="font-bold text-gray-900">₱{aff.walletBalance.toLocaleString()}</p>
+                              {metrics.pendingComm > 0 && (
+                                <p className="text-xs text-orange-500 font-medium flex items-center gap-1">
+                                  <RotateCcw size={10} /> +₱{metrics.pendingComm.toLocaleString()} pending
+                                </p>
+                              )}
+                           </div>
+                        </td>
+                        <td className="p-4 font-medium text-gray-600">
+                           ₱{aff.lifetimeEarnings?.toLocaleString() || aff.walletBalance.toLocaleString()}
+                        </td>
+                        <td className="p-4">
+                           <Badge color={aff.status === 'active' ? 'green' : aff.status === 'banned' ? 'red' : 'gray'}>
+                              {aff.status || 'active'}
+                           </Badge>
+                        </td>
+                        <td className="p-4 flex justify-end gap-2">
+                           <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg" title="Edit & Adjust Wallet">
+                             <Edit2 size={16} />
+                           </button>
+                           <button 
+                             onClick={() => toggleAffiliateStatus(aff.id, aff.status || 'active')} 
+                             className={`p-2 rounded-lg ${aff.status === 'banned' ? 'hover:bg-green-50 text-green-600' : 'hover:bg-red-50 text-red-600'}`}
+                             title={aff.status === 'banned' ? "Activate" : "Ban"}
+                           >
+                             {aff.status === 'banned' ? <CheckCircle size={16} /> : <Ban size={16} />}
+                           </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
         
       case 'Customers':
         return (
@@ -717,6 +844,60 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex justify-end gap-2 mt-6">
                    <Button variant="ghost" onClick={() => setIsProductModalOpen(false)}>Cancel</Button>
                    <Button onClick={saveProduct}>Save Product</Button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Affiliate Edit Modal */}
+        {isAffiliateModalOpen && editingAffiliate && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Edit Affiliate</h3>
+                <div className="space-y-4">
+                   <div>
+                     <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                     <input 
+                       className="w-full border rounded-lg p-2 mt-1" 
+                       value={editingAffiliate.name} 
+                       onChange={e => setEditingAffiliate({...editingAffiliate, name: e.target.value})}
+                     />
+                   </div>
+                   <div>
+                     <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
+                     <input 
+                       className="w-full border rounded-lg p-2 mt-1" 
+                       value={editingAffiliate.email} 
+                       onChange={e => setEditingAffiliate({...editingAffiliate, email: e.target.value})}
+                     />
+                   </div>
+                   
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <h4 className="font-bold text-gray-900 text-sm mb-3">Manual Wallet Adjustment</h4>
+                      <p className="text-xs text-gray-500 mb-2">Add or subtract funds manually (e.g., for payouts or corrections).</p>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-500">₱</span>
+                        <input 
+                           type="number"
+                           className="w-full border rounded-lg p-2"
+                           placeholder="0"
+                           value={walletAdjustment}
+                           onChange={e => setWalletAdjustment(Number(e.target.value))}
+                        />
+                      </div>
+                      <p className="text-xs mt-2">
+                        Current Balance: <span className="font-bold">₱{editingAffiliate.walletBalance.toLocaleString()}</span>
+                        {walletAdjustment !== 0 && (
+                          <span className="text-primary ml-2">
+                             → ₱{(editingAffiliate.walletBalance + walletAdjustment).toLocaleString()}
+                          </span>
+                        )}
+                      </p>
+                   </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                   <Button variant="ghost" onClick={() => setIsAffiliateModalOpen(false)}>Cancel</Button>
+                   <Button onClick={saveAffiliate}>Save Changes</Button>
                 </div>
              </div>
           </div>

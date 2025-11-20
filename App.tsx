@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { CartItem, Product } from './types';
 import { Navbar, Footer, CartDrawer } from './components/Layout';
 import AIChatBot from './components/AIChatBot';
 import { CartContext } from './contexts/CartContext';
-import { StoreProvider } from './contexts/StoreContext';
+import { StoreProvider, StoreContext } from './contexts/StoreContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -21,13 +21,17 @@ import CustomerLoginPage from './pages/CustomerLoginPage';
 const ReferralHandler = () => {
   const [searchParams] = useSearchParams();
   const refId = searchParams.get('ref');
+  const { trackAffiliateClick } = useContext(StoreContext);
+  const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (refId) {
+    if (refId && refId !== processedRef.current) {
       localStorage.setItem('dito_referral_id', refId);
       console.log('Referral tracked:', refId);
+      trackAffiliateClick(refId);
+      processedRef.current = refId; // Prevent double counting in same session instance
     }
-  }, [refId]);
+  }, [refId, trackAffiliateClick]);
 
   return null;
 };
@@ -41,7 +45,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -70,7 +74,6 @@ const App: React.FC = () => {
   const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <StoreProvider>
       <CartContext.Provider value={{ 
         items: cartItems, 
         addToCart, 
@@ -123,6 +126,13 @@ const App: React.FC = () => {
           </div>
         </Router>
       </CartContext.Provider>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <StoreProvider>
+      <AppContent />
     </StoreProvider>
   );
 };
