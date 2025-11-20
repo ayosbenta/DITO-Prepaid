@@ -20,18 +20,24 @@ import CustomerLoginPage from './pages/CustomerLoginPage';
 // Helper to capture ?ref=ID
 const ReferralHandler = () => {
   const [searchParams] = useSearchParams();
-  const refId = searchParams.get('ref');
   const { trackAffiliateClick } = useContext(StoreContext);
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Check both standard URL search (before #) and Hash search (after #)
+    // This ensures we capture the ref ID regardless of how the URL is formatted
+    // e.g., domain.com/?ref=123#/ or domain.com/#/?ref=123
+    const hashRef = searchParams.get('ref');
+    const windowRef = new URLSearchParams(window.location.search).get('ref');
+    const refId = hashRef || windowRef;
+
     if (refId && refId !== processedRef.current) {
       localStorage.setItem('dito_referral_id', refId);
       console.log('Referral tracked:', refId);
       trackAffiliateClick(refId);
       processedRef.current = refId; // Prevent double counting in same session instance
     }
-  }, [refId, trackAffiliateClick]);
+  }, [searchParams, trackAffiliateClick]);
 
   return null;
 };

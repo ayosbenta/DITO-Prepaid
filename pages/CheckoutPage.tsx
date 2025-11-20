@@ -63,7 +63,7 @@ const CheckoutPage: React.FC = () => {
       return;
     }
     
-    const referralId = localStorage.getItem('dito_referral_id') || undefined;
+    const referralId = localStorage.getItem('dito_referral_id');
     
     // Calculate Commission if referred
     let totalCommission = 0;
@@ -88,7 +88,7 @@ const CheckoutPage: React.FC = () => {
       total: cartTotal,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
-      referralId: referralId,
+      referralId: referralId || '', // Ensure key is sent even if null
       commission: totalCommission,
       paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',
       proofOfPayment: proofOfPayment
