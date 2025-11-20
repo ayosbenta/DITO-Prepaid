@@ -1,4 +1,5 @@
-import { Product, Order, LandingPageSettings } from './types';
+
+import { Product, Order, LandingPageSettings, PaymentSettings } from './types';
 
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
@@ -102,5 +103,23 @@ export const DEFAULT_SETTINGS: LandingPageSettings = {
     title: 'Ready to upgrade your home internet?',
     subtitle: 'Get the DITO Home WoWFi Pro today and experience the difference.',
     btnText: 'Get Started Now'
+  }
+};
+
+export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
+  cod: {
+    enabled: true
+  },
+  gcash: {
+    enabled: false,
+    accountName: '',
+    accountNumber: '',
+    qrImage: ''
+  },
+  bank: {
+    enabled: false,
+    bankName: '',
+    accountName: '',
+    accountNumber: ''
   }
 };

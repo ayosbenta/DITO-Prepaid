@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -20,10 +20,10 @@ const AdminDashboard: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { 
-    products, orders, customers, affiliates, stats, settings,
+    products, orders, customers, affiliates, stats, settings, paymentSettings,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer, updateSettings, isSyncing, isLoading,
+    deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading,
     updateAffiliate
   } = useContext(StoreContext);
 
@@ -39,10 +39,15 @@ const AdminDashboard: React.FC = () => {
 
   // Local state for Settings Form
   const [settingsForm, setSettingsForm] = useState(settings);
+  const [paymentSettingsForm, setPaymentSettingsForm] = useState(paymentSettings);
 
   useEffect(() => {
     setSettingsForm(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setPaymentSettingsForm(paymentSettings);
+  }, [paymentSettings]);
 
   if (isLoading) {
     return (
@@ -58,6 +63,7 @@ const AdminDashboard: React.FC = () => {
     { icon: LayoutDashboard, label: 'Dashboard' },
     { icon: Package, label: 'Products' },
     { icon: ShoppingBag, label: 'Orders' },
+    { icon: CreditCard, label: 'Payment Gateway' },
     { icon: Briefcase, label: 'Affiliates' },
     { icon: Users, label: 'Customers' },
     { icon: Settings, label: 'Settings' },
@@ -152,8 +158,22 @@ const AdminDashboard: React.FC = () => {
     }));
   };
 
+  const handlePaymentSettingsChange = (method: 'cod' | 'gcash' | 'bank', key: string, value: any) => {
+    setPaymentSettingsForm(prev => ({
+      ...prev,
+      [method]: {
+        ...prev[method],
+        [key]: value
+      }
+    }));
+  };
+
   const saveSettings = () => {
     updateSettings(settingsForm);
+  };
+  
+  const savePaymentSettings = () => {
+    updatePaymentSettings(paymentSettingsForm);
   };
 
   const kpis = [
@@ -197,6 +217,175 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Payment Gateway':
+        return (
+          <div className="max-w-4xl mx-auto space-y-8 pb-20">
+             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+               <div className="p-6 border-b border-gray-100">
+                 <h2 className="text-lg font-bold text-gray-900">Payment Methods</h2>
+                 <p className="text-sm text-gray-500">Configure how customers pay at checkout.</p>
+               </div>
+
+               <div className="divide-y divide-gray-100">
+                  {/* COD Section */}
+                  <div className="p-6">
+                     <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-green-50 text-green-600 rounded-xl"><CreditCard size={24}/></div>
+                           <div>
+                              <h3 className="font-bold text-gray-900">Cash on Delivery (COD)</h3>
+                              <p className="text-sm text-gray-500">Allow customers to pay upon receiving the item.</p>
+                           </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={paymentSettingsForm.cod.enabled}
+                            onChange={e => handlePaymentSettingsChange('cod', 'enabled', e.target.checked)}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                     </div>
+                  </div>
+
+                  {/* GCash Section */}
+                  <div className="p-6">
+                     <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><CreditCard size={24}/></div>
+                           <div>
+                              <h3 className="font-bold text-gray-900">GCash Payment</h3>
+                              <p className="text-sm text-gray-500">Accept payments via GCash QR or Transfer.</p>
+                           </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={paymentSettingsForm.gcash.enabled}
+                            onChange={e => handlePaymentSettingsChange('gcash', 'enabled', e.target.checked)}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                     </div>
+                     
+                     {paymentSettingsForm.gcash.enabled && (
+                        <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200 animate-fade-in">
+                           <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label>
+                                <input 
+                                   className="w-full border rounded-lg p-2 bg-white"
+                                   value={paymentSettingsForm.gcash.accountName}
+                                   onChange={e => handlePaymentSettingsChange('gcash', 'accountName', e.target.value)}
+                                   placeholder="e.g. Juan Dela Cruz"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number</label>
+                                <input 
+                                   className="w-full border rounded-lg p-2 bg-white"
+                                   value={paymentSettingsForm.gcash.accountNumber}
+                                   onChange={e => handlePaymentSettingsChange('gcash', 'accountNumber', e.target.value)}
+                                   placeholder="0917 123 4567"
+                                />
+                              </div>
+                           </div>
+                           <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">QR Code Image URL</label>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                  <input 
+                                     className="w-full border rounded-lg p-2 pl-9 bg-white"
+                                     value={paymentSettingsForm.gcash.qrImage}
+                                     onChange={e => handlePaymentSettingsChange('gcash', 'qrImage', e.target.value)}
+                                     placeholder="https://example.com/gcash-qr.png"
+                                  />
+                                </div>
+                                {paymentSettingsForm.gcash.qrImage && (
+                                   <a href={paymentSettingsForm.gcash.qrImage} target="_blank" rel="noreferrer" className="p-2 border rounded-lg hover:bg-gray-100 text-gray-600">
+                                      <ExternalLink size={20} />
+                                   </a>
+                                )}
+                              </div>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Bank Transfer Section */}
+                  <div className="p-6">
+                     <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><CreditCard size={24}/></div>
+                           <div>
+                              <h3 className="font-bold text-gray-900">Bank Transfer</h3>
+                              <p className="text-sm text-gray-500">Direct bank deposit instructions.</p>
+                           </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={paymentSettingsForm.bank.enabled}
+                            onChange={e => handlePaymentSettingsChange('bank', 'enabled', e.target.checked)}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                     </div>
+
+                     {paymentSettingsForm.bank.enabled && (
+                        <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200 animate-fade-in">
+                           <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bank Name</label>
+                             <input 
+                                className="w-full border rounded-lg p-2 bg-white"
+                                value={paymentSettingsForm.bank.bankName}
+                                onChange={e => handlePaymentSettingsChange('bank', 'bankName', e.target.value)}
+                                placeholder="e.g. BDO / BPI"
+                             />
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label>
+                                <input 
+                                   className="w-full border rounded-lg p-2 bg-white"
+                                   value={paymentSettingsForm.bank.accountName}
+                                   onChange={e => handlePaymentSettingsChange('bank', 'accountName', e.target.value)}
+                                   placeholder="e.g. DITO Telecom Inc."
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number</label>
+                                <input 
+                                   className="w-full border rounded-lg p-2 bg-white"
+                                   value={paymentSettingsForm.bank.accountNumber}
+                                   onChange={e => handlePaymentSettingsChange('bank', 'accountNumber', e.target.value)}
+                                   placeholder="0000 1234 5678"
+                                />
+                              </div>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+               </div>
+               
+               <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
+                  <Button 
+                    onClick={savePaymentSettings} 
+                    className="shadow-lg flex items-center gap-2"
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                    {isSyncing ? 'Saving...' : 'Save Payment Settings'}
+                  </Button>
+               </div>
+             </div>
+          </div>
+        );
+
       case 'Settings':
         return (
           <div className="max-w-4xl mx-auto space-y-8 pb-20">
@@ -436,7 +625,7 @@ const AdminDashboard: React.FC = () => {
                     <th className="p-4">Date</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Total</th>
-                    <th className="p-4">Commission</th>
+                    <th className="p-4">Payment</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -452,8 +641,11 @@ const AdminDashboard: React.FC = () => {
                         </Badge>
                       </td>
                       <td className="p-4 font-bold">₱{order.total.toLocaleString()}</td>
-                      <td className="p-4 text-gray-500">
-                        {order.commission ? `₱${order.commission.toLocaleString()}` : '-'}
+                      <td className="p-4 text-xs">
+                        <div className="font-bold">{order.paymentMethod || 'COD'}</div>
+                        {order.proofOfPayment && (
+                           <a href={order.proofOfPayment} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800 mt-1 block">View Receipt</a>
+                        )}
                       </td>
                       <td className="p-4 flex justify-end gap-2">
                         {order.status !== 'Delivered' && (

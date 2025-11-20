@@ -3,19 +3,42 @@ import React, { useContext, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { StoreContext } from '../contexts/StoreContext';
 import { PaymentMethod, Order } from '../types';
-import { CheckCircle, CreditCard, Truck, ChevronRight, Lock } from 'lucide-react';
+import { CheckCircle, CreditCard, Truck, ChevronRight, Lock, Upload, X, QrCode, Landmark } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/UI';
 
 const CheckoutPage: React.FC = () => {
   const { items, cartTotal, clearCart } = useContext(CartContext);
-  const { addOrder } = useContext(StoreContext);
+  const { addOrder, paymentSettings } = useContext(StoreContext);
   const [step, setStep] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.COD);
+  const [selectedMethod, setSelectedMethod] = useState<string>('');
   
   // Form State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [proofOfPayment, setProofOfPayment] = useState<string>('');
+  const [fileName, setFileName] = useState('');
+
+  // Set default selected method based on enabled settings
+  React.useEffect(() => {
+    if (!selectedMethod) {
+      if (paymentSettings.cod.enabled) setSelectedMethod('cod');
+      else if (paymentSettings.gcash.enabled) setSelectedMethod('gcash');
+      else if (paymentSettings.bank.enabled) setSelectedMethod('bank');
+    }
+  }, [paymentSettings, selectedMethod]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProofOfPayment(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   if (items.length === 0 && step !== 3) {
     return (
@@ -33,6 +56,12 @@ const CheckoutPage: React.FC = () => {
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation for Proof of Payment
+    if ((selectedMethod === 'gcash' || selectedMethod === 'bank') && !proofOfPayment) {
+      alert("Please upload a proof of payment (receipt) to continue.");
+      return;
+    }
     
     const referralId = localStorage.getItem('dito_referral_id') || undefined;
     
@@ -60,13 +89,24 @@ const CheckoutPage: React.FC = () => {
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
       referralId: referralId,
-      commission: totalCommission
+      commission: totalCommission,
+      paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',
+      proofOfPayment: proofOfPayment
     };
 
     addOrder(newOrder);
     clearCart();
     setStep(3);
     window.scrollTo(0,0);
+  };
+
+  const getPaymentMethodLabel = (key: string) => {
+    switch(key) {
+      case 'cod': return 'Cash on Delivery';
+      case 'gcash': return 'GCash';
+      case 'bank': return 'Bank Transfer';
+      default: return key;
+    }
   };
 
   return (
@@ -102,7 +142,10 @@ const CheckoutPage: React.FC = () => {
               <CheckCircle size={48} className="text-green-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-            <p className="text-gray-500 mb-8">Thank you for your purchase. Your order has been placed successfully.</p>
+            <p className="text-gray-500 mb-8">
+              Thank you for your purchase. Your order has been placed successfully.
+              {selectedMethod !== 'cod' && " We are verifying your payment."}
+            </p>
             <Link to="/">
               <Button fullWidth className="py-4">Return Home</Button>
             </Link>
@@ -160,20 +203,137 @@ const CheckoutPage: React.FC = () => {
                     <div className="bg-red-50 p-2 rounded-xl"><CreditCard size={20} className="text-primary" /></div>
                     Payment Method
                   </h2>
-                  <div className="space-y-3">
-                    {Object.values(PaymentMethod).map((method) => (
-                      <label key={method} className={`flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${paymentMethod === method ? 'border-primary bg-red-50/50 ring-1 ring-primary' : 'border-gray-200 hover:border-red-200 bg-gray-50'}`}>
+                  
+                  <div className="space-y-4">
+                    {/* COD Option */}
+                    {paymentSettings.cod.enabled && (
+                      <label className={`flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${selectedMethod === 'cod' ? 'border-primary bg-red-50/50 ring-1 ring-primary' : 'border-gray-200 hover:border-red-200 bg-gray-50'}`}>
                         <input 
                           type="radio" 
                           name="payment" 
-                          value={method} 
-                          checked={paymentMethod === method}
-                          onChange={() => setPaymentMethod(method)}
+                          value="cod" 
+                          checked={selectedMethod === 'cod'}
+                          onChange={() => setSelectedMethod('cod')}
                           className="w-5 h-5 text-primary border-gray-300 focus:ring-primary"
                         />
-                        <span className="ml-4 font-bold text-gray-900">{method}</span>
+                        <span className="ml-4 font-bold text-gray-900">Cash on Delivery</span>
                       </label>
-                    ))}
+                    )}
+
+                    {/* GCash Option */}
+                    {paymentSettings.gcash.enabled && (
+                      <div className={`border rounded-2xl transition-all overflow-hidden ${selectedMethod === 'gcash' ? 'border-primary bg-red-50/30 ring-1 ring-primary' : 'border-gray-200 bg-gray-50'}`}>
+                        <label className="flex items-center p-4 cursor-pointer">
+                          <input 
+                            type="radio" 
+                            name="payment" 
+                            value="gcash" 
+                            checked={selectedMethod === 'gcash'}
+                            onChange={() => setSelectedMethod('gcash')}
+                            className="w-5 h-5 text-primary border-gray-300 focus:ring-primary"
+                          />
+                          <div className="ml-4 flex items-center gap-2">
+                            <span className="font-bold text-gray-900">GCash</span>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">E-Wallet</span>
+                          </div>
+                        </label>
+                        
+                        {selectedMethod === 'gcash' && (
+                          <div className="px-6 pb-6 pt-2 border-t border-primary/10 bg-white">
+                             <div className="flex flex-col md:flex-row gap-6 mt-4">
+                               {paymentSettings.gcash.qrImage && (
+                                 <div className="w-32 h-32 bg-gray-100 rounded-xl shrink-0 border p-1">
+                                    <img src={paymentSettings.gcash.qrImage} alt="GCash QR" className="w-full h-full object-contain rounded-lg" />
+                                 </div>
+                               )}
+                               <div className="space-y-2 text-sm">
+                                  <p className="text-gray-500">Scan the QR code or send payment to:</p>
+                                  <div className="font-bold text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                     <p>{paymentSettings.gcash.accountName}</p>
+                                     <p className="text-lg tracking-wider text-blue-600">{paymentSettings.gcash.accountNumber}</p>
+                                  </div>
+                               </div>
+                             </div>
+                             
+                             <div className="mt-6">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Upload Proof of Payment (Screenshot)</label>
+                                <div className="relative">
+                                   <input 
+                                     type="file" 
+                                     accept="image/*" 
+                                     onChange={handleFileChange}
+                                     className="hidden" 
+                                     id="proof-upload-gcash"
+                                   />
+                                   <label htmlFor="proof-upload-gcash" className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-blue-50 transition-colors text-gray-500">
+                                      <Upload size={20} />
+                                      {fileName ? <span className="text-primary font-bold">{fileName}</span> : "Click to upload Receipt"}
+                                   </label>
+                                </div>
+                             </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bank Transfer Option */}
+                    {paymentSettings.bank.enabled && (
+                      <div className={`border rounded-2xl transition-all overflow-hidden ${selectedMethod === 'bank' ? 'border-primary bg-red-50/30 ring-1 ring-primary' : 'border-gray-200 bg-gray-50'}`}>
+                        <label className="flex items-center p-4 cursor-pointer">
+                          <input 
+                            type="radio" 
+                            name="payment" 
+                            value="bank" 
+                            checked={selectedMethod === 'bank'}
+                            onChange={() => setSelectedMethod('bank')}
+                            className="w-5 h-5 text-primary border-gray-300 focus:ring-primary"
+                          />
+                          <div className="ml-4 flex items-center gap-2">
+                            <span className="font-bold text-gray-900">Bank Transfer</span>
+                          </div>
+                        </label>
+                        
+                        {selectedMethod === 'bank' && (
+                          <div className="px-6 pb-6 pt-2 border-t border-primary/10 bg-white">
+                             <div className="space-y-4 mt-4">
+                                <p className="text-gray-500 text-sm">Please transfer the total amount to:</p>
+                                <div className="font-bold text-gray-900 bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-start gap-3">
+                                   <div className="p-2 bg-white rounded-lg border shadow-sm text-primary"><Landmark size={24} /></div>
+                                   <div>
+                                      <p className="text-sm text-gray-500 uppercase tracking-wide font-bold">{paymentSettings.bank.bankName}</p>
+                                      <p className="text-lg">{paymentSettings.bank.accountName}</p>
+                                      <p className="text-xl tracking-widest text-blue-600 font-mono mt-1">{paymentSettings.bank.accountNumber}</p>
+                                   </div>
+                                </div>
+                             </div>
+                             
+                             <div className="mt-6">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Upload Proof of Payment</label>
+                                <div className="relative">
+                                   <input 
+                                     type="file" 
+                                     accept="image/*" 
+                                     onChange={handleFileChange}
+                                     className="hidden" 
+                                     id="proof-upload-bank"
+                                   />
+                                   <label htmlFor="proof-upload-bank" className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-blue-50 transition-colors text-gray-500">
+                                      <Upload size={20} />
+                                      {fileName ? <span className="text-primary font-bold">{fileName}</span> : "Click to upload Receipt"}
+                                   </label>
+                                </div>
+                             </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* If no methods enabled */}
+                    {!paymentSettings.cod.enabled && !paymentSettings.gcash.enabled && !paymentSettings.bank.enabled && (
+                       <div className="p-4 bg-red-50 text-red-600 rounded-xl text-center text-sm">
+                          No payment methods are currently available. Please contact support.
+                       </div>
+                    )}
                   </div>
                 </div>
               </form>
@@ -213,6 +373,7 @@ const CheckoutPage: React.FC = () => {
                     onClick={() => (document.getElementById('checkout-form') as HTMLFormElement)?.requestSubmit()}
                     fullWidth 
                     className="py-4 shadow-red-500/20 shadow-lg text-lg"
+                    disabled={(!paymentSettings.cod.enabled && !paymentSettings.gcash.enabled && !paymentSettings.bank.enabled)}
                   >
                     Place Order
                   </Button>

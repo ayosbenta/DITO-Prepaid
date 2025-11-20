@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User, LandingPageSettings, Affiliate } from '../types';
-import { DEFAULT_SETTINGS } from '../constants';
+import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 import { SheetsService } from '../services/sheetsService';
 
 interface StoreContextType {
@@ -10,6 +10,7 @@ interface StoreContextType {
   customers: User[];
   affiliates: Affiliate[];
   settings: LandingPageSettings;
+  paymentSettings: PaymentSettings;
   // Product Actions
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updatedProduct: Product) => void;
@@ -26,6 +27,7 @@ interface StoreContextType {
   trackAffiliateClick: (id: string) => void;
   // Settings Actions
   updateSettings: (settings: LandingPageSettings) => void;
+  updatePaymentSettings: (settings: PaymentSettings) => void;
   // Dashboard Stats
   stats: {
     revenue: number;
@@ -43,6 +45,7 @@ export const StoreContext = createContext<StoreContextType>({
   customers: [],
   affiliates: [],
   settings: DEFAULT_SETTINGS,
+  paymentSettings: DEFAULT_PAYMENT_SETTINGS,
   addProduct: () => {},
   updateProduct: () => {},
   deleteProduct: () => {},
@@ -54,6 +57,7 @@ export const StoreContext = createContext<StoreContextType>({
   updateAffiliate: () => {},
   trackAffiliateClick: () => {},
   updateSettings: () => {},
+  updatePaymentSettings: () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
   isLoading: true,
@@ -66,6 +70,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [customers, setCustomers] = useState<User[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,7 +86,36 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setOrders(data.orders || []);
         setCustomers(data.customers || []);
         setAffiliates(data.affiliates || []);
-        if (data.settings) setSettings(data.settings);
+        if (data.settings) {
+          // Split settings between Landing Page and Payment Settings
+          // Assuming the SheetsService returns a merged object or raw rows, 
+          // but the current implementation parses into `settings`.
+          // We need to extract payment settings if they are mixed in, or manage them.
+          // For this implementation, we will assume `data.settings` contains keys for payment as well
+          // or we manually parse them if stored in the same sheet.
+          
+          // However, based on SheetsService implementation, it maps dot notation.
+          // Let's assume we store payment settings in the same sheet with keys like 'payment.cod.enabled'
+          // The SheetsService parser creates a nested object. We can extract 'payment' from it if it exists.
+          
+          const fullSettings: any = data.settings;
+          
+          if (fullSettings.payment) {
+             // Merge with defaults to ensure structure
+             setPaymentSettings({
+               cod: { ...DEFAULT_PAYMENT_SETTINGS.cod, ...fullSettings.payment.cod },
+               gcash: { ...DEFAULT_PAYMENT_SETTINGS.gcash, ...fullSettings.payment.gcash },
+               bank: { ...DEFAULT_PAYMENT_SETTINGS.bank, ...fullSettings.payment.bank },
+             });
+             
+             // Clean up payment from landing page settings to avoid type collision if needed, 
+             // but strict typing handles it in usage.
+             const { payment, ...landingSettings } = fullSettings;
+             setSettings(landingSettings as LandingPageSettings);
+          } else {
+             setSettings(fullSettings as LandingPageSettings);
+          }
+        }
       }
       
       setIsLoading(false);
@@ -248,7 +282,17 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const updateSettings = (newSettings: LandingPageSettings) => {
     setSettings(newSettings);
     setIsSyncing(true);
-    SheetsService.saveSettings(newSettings).finally(() => setIsSyncing(false));
+    // We need to pass payment settings too so they don't get overwritten in the key-value store
+    // Construct a merged object for the generic saver
+    const mergedSettings = { ...newSettings, payment: paymentSettings };
+    SheetsService.saveSettings(mergedSettings as any).finally(() => setIsSyncing(false));
+  };
+
+  const updatePaymentSettings = (newPaymentSettings: PaymentSettings) => {
+    setPaymentSettings(newPaymentSettings);
+    setIsSyncing(true);
+    const mergedSettings = { ...settings, payment: newPaymentSettings };
+    SheetsService.saveSettings(mergedSettings as any).finally(() => setIsSyncing(false));
   };
 
   // Derived Stats
@@ -266,6 +310,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       customers,
       affiliates,
       settings,
+      paymentSettings,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -277,6 +322,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       updateAffiliate,
       trackAffiliateClick,
       updateSettings,
+      updatePaymentSettings,
       stats,
       isSyncing,
       isLoading

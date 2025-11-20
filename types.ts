@@ -47,6 +47,8 @@ export interface Order {
   items: number;
   referralId?: string; // The affiliate ID who referred this order
   commission?: number; // The amount earned by the affiliate
+  paymentMethod?: string;
+  proofOfPayment?: string; // Base64 string or URL of the receipt
 }
 
 export interface LandingPageSettings {
@@ -71,6 +73,24 @@ export interface LandingPageSettings {
     title: string;
     subtitle: string;
     btnText: string;
+  };
+}
+
+export interface PaymentSettings {
+  cod: {
+    enabled: boolean;
+  };
+  gcash: {
+    enabled: boolean;
+    accountName: string;
+    accountNumber: string;
+    qrImage: string;
+  };
+  bank: {
+    enabled: boolean;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
   };
 }
 
