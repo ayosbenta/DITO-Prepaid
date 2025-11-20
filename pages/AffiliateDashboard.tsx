@@ -80,7 +80,10 @@ const AffiliateDashboard: React.FC = () => {
     setPayoutAmount(0);
   };
 
-  const affiliatePayouts = payouts.filter(p => p.affiliateId === currentAffiliate.id);
+  // Ensure payouts are sorted by date descending
+  const affiliatePayouts = payouts
+    .filter(p => p.affiliateId === currentAffiliate.id)
+    .sort((a, b) => new Date(b.dateRequested).getTime() - new Date(a.dateRequested).getTime());
 
   return (
     <div className="min-h-screen bg-gray-50 pt-28 pb-12">
@@ -142,9 +145,9 @@ const AffiliateDashboard: React.FC = () => {
                     <div className="mt-4 flex gap-2">
                       <button 
                         onClick={() => setActiveTab('payouts')}
-                        className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg backdrop-blur-sm transition-colors"
+                        className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg backdrop-blur-sm transition-colors flex items-center gap-1"
                       >
-                        Request Payout
+                        Request Payout <DollarSign size={12} />
                       </button>
                     </div>
                   </div>
@@ -222,30 +225,39 @@ const AffiliateDashboard: React.FC = () => {
         )}
 
         {activeTab === 'payouts' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
              <div className="flex flex-col md:flex-row gap-8">
                 {/* Wallet Card (Compact) */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm md:w-1/3">
-                   <div className="flex items-center justify-between mb-4">
-                     <h3 className="font-bold text-gray-900">Your Wallet</h3>
-                     <Wallet className="text-primary" />
+                <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm md:w-1/3 flex flex-col justify-between">
+                   <div>
+                     <div className="flex items-center justify-between mb-4">
+                       <h3 className="font-bold text-gray-900">Available Balance</h3>
+                       <div className="p-2 bg-primary/10 text-primary rounded-lg"><Wallet size={20} /></div>
+                     </div>
+                     <p className="text-4xl font-black text-gray-900 tracking-tight">₱{currentAffiliate.walletBalance.toLocaleString()}</p>
+                     <p className="text-sm text-gray-500 mt-2">Ready for withdrawal</p>
                    </div>
-                   <p className="text-3xl font-black text-gray-900">₱{currentAffiliate.walletBalance.toLocaleString()}</p>
-                   <p className="text-sm text-gray-500 mt-1">Available for payout</p>
-                   <Button fullWidth className="mt-6" onClick={() => setIsPayoutModalOpen(true)}>
+                   <Button fullWidth className="mt-8 py-4 text-lg" onClick={() => setIsPayoutModalOpen(true)} disabled={currentAffiliate.walletBalance < 100}>
                      Request Payout
                    </Button>
+                   {currentAffiliate.walletBalance < 100 && (
+                      <p className="text-xs text-center text-orange-500 mt-3 font-medium">Minimum payout is ₱100</p>
+                   )}
                 </div>
 
                 {/* Payout Info */}
-                <div className="flex-1 bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                   <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2"><CreditCard size={18}/> Payment Method</h3>
-                   <p className="text-blue-800 text-sm mb-4">We currently process payouts exclusively via <strong>GCash</strong>. Requests are typically processed within 24-48 hours.</p>
-                   <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside">
-                     <li>Minimum withdrawal amount is ₱100.</li>
-                     <li>Ensure your GCash name matches your registered affiliate name.</li>
-                     <li>Incorrect details may cause delays or rejection.</li>
-                   </ul>
+                <div className="flex-1 bg-blue-50 p-8 rounded-2xl border border-blue-100">
+                   <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-lg"><CreditCard size={20}/> Payout Information</h3>
+                   <p className="text-blue-800 text-sm mb-6 leading-relaxed">We currently process payouts exclusively via <strong>GCash</strong> to ensure fast and reliable transactions for our partners. Requests are typically reviewed and processed within 24-48 hours during business days.</p>
+                   
+                   <div className="bg-white/50 p-4 rounded-xl">
+                     <h4 className="font-bold text-blue-900 text-xs uppercase mb-3">Important Guidelines</h4>
+                     <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside">
+                       <li>Minimum withdrawal amount is ₱100.</li>
+                       <li>Ensure your GCash name matches your registered affiliate name.</li>
+                       <li>Incorrect details may cause delays or rejection.</li>
+                     </ul>
+                   </div>
                 </div>
              </div>
 
@@ -267,14 +279,17 @@ const AffiliateDashboard: React.FC = () => {
                     <tbody className="divide-y divide-gray-100">
                       {affiliatePayouts.length > 0 ? affiliatePayouts.map(p => (
                         <tr key={p.id} className="hover:bg-gray-50">
-                          <td className="p-4 font-medium text-gray-900">{p.id}</td>
+                          <td className="p-4 font-medium text-gray-900 font-mono text-xs">{p.id}</td>
                           <td className="p-4 text-gray-500">
                             {new Date(p.dateRequested).toLocaleDateString()}
                           </td>
-                          <td className="p-4 font-bold">₱{p.amount.toLocaleString()}</td>
+                          <td className="p-4 font-bold text-primary">₱{p.amount.toLocaleString()}</td>
                           <td className="p-4 text-xs text-gray-500">
-                             <div className="font-bold text-gray-700">{p.method}</div>
-                             {p.accountNumber} ({p.accountName})
+                             <div className="font-bold text-gray-700 flex items-center gap-1">
+                               {p.method === 'GCash' && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                               {p.method}
+                             </div>
+                             {p.accountNumber}
                           </td>
                           <td className="p-4">
                             <Badge color={p.status === 'Approved' ? 'green' : p.status === 'Rejected' ? 'red' : 'yellow'}>
@@ -298,56 +313,69 @@ const AffiliateDashboard: React.FC = () => {
 
         {/* Payout Request Modal */}
         {isPayoutModalOpen && (
-           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-900">Request Payout via GCash</h3>
                   <button onClick={() => setIsPayoutModalOpen(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={20} /></button>
                 </div>
 
-                <form onSubmit={handleRequestPayout} className="space-y-4">
+                <form onSubmit={handleRequestPayout} className="space-y-6">
                    <div>
-                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (₱)</label>
-                     <input 
-                        type="number" 
-                        required
-                        min="100"
-                        max={currentAffiliate.walletBalance}
-                        value={payoutAmount}
-                        onChange={e => setPayoutAmount(Number(e.target.value))}
-                        className="w-full p-3 border border-gray-200 rounded-xl text-lg font-bold text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                     />
-                     <p className="text-xs text-gray-400 mt-1">Max available: ₱{currentAffiliate.walletBalance.toLocaleString()}</p>
+                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Amount to Withdraw (₱)</label>
+                     <div className="relative">
+                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₱</span>
+                       <input 
+                          type="number" 
+                          required
+                          min="100"
+                          max={currentAffiliate.walletBalance}
+                          value={payoutAmount}
+                          onChange={e => setPayoutAmount(Number(e.target.value))}
+                          className="w-full pl-8 pr-4 py-4 border border-gray-200 rounded-xl text-2xl font-black text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                          placeholder="0.00"
+                       />
+                     </div>
+                     <div className="flex justify-between items-center mt-2">
+                        <p className="text-xs text-gray-400">Max available: ₱{currentAffiliate.walletBalance.toLocaleString()}</p>
+                        <button 
+                          type="button" 
+                          onClick={() => setPayoutAmount(currentAffiliate.walletBalance)}
+                          className="text-xs font-bold text-primary hover:underline"
+                        >
+                          Max
+                        </button>
+                     </div>
                    </div>
                    
-                   <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                   <div className="p-5 bg-blue-50 rounded-xl border border-blue-100 space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-blue-700 uppercase mb-1">GCash Account Name</label>
+                        <label className="block text-xs font-bold text-blue-800 uppercase mb-1">GCash Account Name</label>
                         <input 
                            type="text" 
                            required
                            value={accountName}
                            onChange={e => setAccountName(e.target.value)}
                            placeholder="Ex: Juan Dela Cruz"
-                           className="w-full p-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 outline-none"
+                           className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 outline-none bg-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-blue-700 uppercase mb-1">GCash Number</label>
+                        <label className="block text-xs font-bold text-blue-800 uppercase mb-1">GCash Number</label>
                         <input 
-                           type="text" 
+                           type="tel" 
                            required
                            value={accountNumber}
                            onChange={e => setAccountNumber(e.target.value)}
                            placeholder="0917 123 4567"
-                           className="w-full p-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 outline-none"
+                           className="w-full p-2.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 outline-none bg-white"
                         />
                       </div>
                    </div>
 
                    <div className="pt-2">
-                     <Button fullWidth disabled={payoutAmount > currentAffiliate.walletBalance || payoutAmount < 100}>
-                       Submit Request
+                     <Button fullWidth disabled={payoutAmount > currentAffiliate.walletBalance || payoutAmount < 100} className="py-4 shadow-xl">
+                       Confirm Request
                      </Button>
                    </div>
                 </form>

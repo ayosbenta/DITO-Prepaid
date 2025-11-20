@@ -59,6 +59,8 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
+  const pendingPayoutsCount = payouts.filter(p => p.status === 'Pending').length;
+
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
     { icon: Package, label: 'Products' },
@@ -229,66 +231,92 @@ const AdminDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Payouts':
+        const totalPending = payouts.filter(p => p.status === 'Pending').reduce((acc, curr) => acc + curr.amount, 0);
+        const totalPaid = payouts.filter(p => p.status === 'Approved').reduce((acc, curr) => acc + curr.amount, 0);
+
         return (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
-              <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
-            </div>
-            <div className="overflow-x-auto">
-               <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-500 font-medium">
-                    <tr>
-                      <th className="p-4">Request ID</th>
-                      <th className="p-4">Affiliate</th>
-                      <th className="p-4">Amount</th>
-                      <th className="p-4">Method / Details</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                     {payouts.map(p => (
-                        <tr key={p.id} className="hover:bg-gray-50">
-                           <td className="p-4 font-mono text-gray-500 text-xs">{p.id}</td>
-                           <td className="p-4">
-                              <p className="font-bold text-gray-900">{p.affiliateName}</p>
-                              <p className="text-xs text-gray-400">ID: {p.affiliateId}</p>
-                           </td>
-                           <td className="p-4 font-bold text-primary">₱{p.amount.toLocaleString()}</td>
-                           <td className="p-4 text-xs">
-                              <p className="font-bold text-gray-700">{p.method}</p>
-                              <p className="text-gray-500">{p.accountNumber} ({p.accountName})</p>
-                           </td>
-                           <td className="p-4">
-                             <Badge color={p.status === 'Approved' ? 'green' : p.status === 'Rejected' ? 'red' : 'yellow'}>
-                               {p.status}
-                             </Badge>
-                           </td>
-                           <td className="p-4 flex justify-end gap-2">
-                              {p.status === 'Pending' && (
-                                <>
-                                  <Button 
-                                    onClick={() => updatePayoutStatus(p.id, 'Approved')} 
-                                    className="bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1 text-xs rounded-lg"
-                                  >
-                                     Approve
-                                  </Button>
-                                  <Button 
-                                    onClick={() => updatePayoutStatus(p.id, 'Rejected')} 
-                                    className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 text-xs rounded-lg"
-                                  >
-                                     Reject
-                                  </Button>
-                                </>
-                              )}
-                              {p.status === 'Approved' && <span className="text-xs text-gray-400">Processed</span>}
-                              {p.status === 'Rejected' && <span className="text-xs text-gray-400">Refunded</span>}
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
+          <div className="space-y-6">
+             {/* Payout Stats */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <p className="text-sm text-gray-500 font-medium">Pending Requests</p>
+                  <h3 className="text-3xl font-black text-orange-500">{pendingPayoutsCount}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Needs approval</p>
+               </div>
+               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <p className="text-sm text-gray-500 font-medium">Total Pending Amount</p>
+                  <h3 className="text-3xl font-black text-gray-900">₱{totalPending.toLocaleString()}</h3>
+                  <p className="text-xs text-gray-400 mt-1">To be disbursed</p>
+               </div>
+               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <p className="text-sm text-gray-500 font-medium">Total Paid Out</p>
+                  <h3 className="text-3xl font-black text-green-600">₱{totalPaid.toLocaleString()}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Lifetime approved payouts</p>
+               </div>
+             </div>
+
+             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
+                <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
+              </div>
+              <div className="overflow-x-auto">
+                 <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="p-4">Date</th>
+                        <th className="p-4">Affiliate</th>
+                        <th className="p-4">Amount</th>
+                        <th className="p-4">Method / Details</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {payouts.length === 0 ? (
+                         <tr><td colSpan={6} className="p-8 text-center text-gray-400">No payout requests found.</td></tr>
+                       ) : payouts.map(p => (
+                          <tr key={p.id} className="hover:bg-gray-50">
+                             <td className="p-4 text-gray-500 text-xs">{new Date(p.dateRequested).toLocaleDateString()}</td>
+                             <td className="p-4">
+                                <p className="font-bold text-gray-900">{p.affiliateName}</p>
+                                <p className="text-[10px] text-gray-400 font-mono">ID: {p.affiliateId}</p>
+                             </td>
+                             <td className="p-4 font-bold text-primary">₱{p.amount.toLocaleString()}</td>
+                             <td className="p-4 text-xs">
+                                <p className="font-bold text-gray-700">{p.method}</p>
+                                <p className="text-gray-500">{p.accountNumber} ({p.accountName})</p>
+                             </td>
+                             <td className="p-4">
+                               <Badge color={p.status === 'Approved' ? 'green' : p.status === 'Rejected' ? 'red' : 'yellow'}>
+                                 {p.status}
+                               </Badge>
+                             </td>
+                             <td className="p-4 flex justify-end gap-2">
+                                {p.status === 'Pending' && (
+                                  <>
+                                    <Button 
+                                      onClick={() => updatePayoutStatus(p.id, 'Approved')} 
+                                      className="bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1 text-xs rounded-lg"
+                                    >
+                                       Approve
+                                    </Button>
+                                    <Button 
+                                      onClick={() => updatePayoutStatus(p.id, 'Rejected')} 
+                                      className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 text-xs rounded-lg"
+                                    >
+                                       Reject
+                                    </Button>
+                                  </>
+                                )}
+                                {p.status === 'Approved' && <span className="text-xs text-gray-400 flex items-center gap-1"><CheckCircle size={12}/> Processed</span>}
+                                {p.status === 'Rejected' && <span className="text-xs text-gray-400 flex items-center gap-1"><RotateCcw size={12}/> Refunded</span>}
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
             </div>
           </div>
         );
@@ -965,14 +993,19 @@ const AdminDashboard: React.FC = () => {
             <button
               key={item.label}
               onClick={() => setActiveTab(item.label)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                 activeTab === item.label 
                   ? 'bg-primary text-white shadow-lg shadow-red-500/20' 
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <item.icon size={18} />
-              {item.label}
+              <div className="flex items-center gap-3 flex-1">
+                <item.icon size={18} />
+                {item.label}
+              </div>
+              {item.label === 'Payouts' && pendingPayoutsCount > 0 && (
+                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm ring-1 ring-white/20">{pendingPayoutsCount}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -998,12 +1031,17 @@ const AdminDashboard: React.FC = () => {
             <button
               key={item.label}
               onClick={() => { setActiveTab(item.label); setIsMobileMenuOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl text-lg font-medium ${
+              className={`w-full flex items-center justify-between px-4 py-4 rounded-xl text-lg font-medium ${
                 activeTab === item.label ? 'bg-primary text-white' : 'text-gray-600'
               }`}
             >
-              <item.icon size={20} />
-              {item.label}
+              <div className="flex items-center gap-3">
+                 <item.icon size={20} />
+                 {item.label}
+              </div>
+              {item.label === 'Payouts' && pendingPayoutsCount > 0 && (
+                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">{pendingPayoutsCount}</span>
+              )}
             </button>
           ))}
         </div>
@@ -1032,7 +1070,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <button className="p-2 bg-white border rounded-full text-gray-500 relative">
                  <Bell size={20} />
-                 <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>
+                 {pendingPayoutsCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>}
               </button>
               <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm">
                  <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="Admin" />

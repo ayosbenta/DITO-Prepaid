@@ -263,7 +263,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const trackAffiliateClick = (id: string) => {
     // We only update if we find the affiliate locally to avoid creating ghost affiliates
-    // This relies on affiliates being loaded
     setAffiliates(prev => {
       const target = prev.find(a => a.id === id);
       if (!target) return prev;
@@ -279,6 +278,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Payout Logic
   const requestPayout = (req: Omit<PayoutRequest, 'id' | 'status' | 'dateRequested'>) => {
+    // Validate balance first
+    const affiliate = affiliates.find(a => a.id === req.affiliateId);
+    if (!affiliate || affiliate.walletBalance < req.amount) {
+      console.error("Insufficient balance for payout request");
+      return;
+    }
+
     // 1. Create the request object
     const newRequest: PayoutRequest = {
       ...req,
@@ -306,6 +312,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const updatePayoutStatus = (id: string, status: PayoutRequest['status']) => {
     const targetPayout = payouts.find(p => p.id === id);
     if (!targetPayout) return;
+    if (targetPayout.status === status) return; // No change
 
     // 1. Update Payout Status
     const newPayouts = payouts.map(p => 
@@ -313,8 +320,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     );
     setPayouts(newPayouts);
 
-    // 2. If Rejected, refund the wallet
-    if (status === 'Rejected') {
+    // 2. If Rejected (and wasn't already rejected), refund the wallet
+    if (status === 'Rejected' && targetPayout.status !== 'Rejected') {
       const newAffiliates = affiliates.map(aff => {
         if (aff.id === targetPayout.affiliateId) {
           return { ...aff, walletBalance: aff.walletBalance + targetPayout.amount };
@@ -324,6 +331,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setAffiliates(newAffiliates);
       triggerAffiliateSync(newAffiliates);
     }
+    // NOTE: If moving from Rejected -> Approved (unlikely but possible), we should technically re-deduct, 
+    // but for now we assume Approved/Rejected are terminal states from Pending.
 
     triggerPayoutSync(newPayouts);
   };
