@@ -3,7 +3,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
+  Clock, MousePointer
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -188,6 +189,11 @@ const AdminDashboard: React.FC = () => {
     updatePaymentSettings(paymentSettingsForm);
   };
 
+  // Calculations for new cards
+  const totalClicks = affiliates.reduce((acc, a) => acc + (a.clicks || 0), 0);
+  const totalPendingPayout = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
+  const totalPaidOut = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
+
   const kpis = [
     { 
       label: 'Total Revenue', 
@@ -225,6 +231,39 @@ const AdminDashboard: React.FC = () => {
       color: 'text-orange-600', 
       bg: 'bg-orange-50' 
     },
+    // New Affiliate KPIs
+    {
+      label: 'Total Affiliates',
+      value: affiliates.length.toString(),
+      description: 'Registered Partners',
+      icon: Briefcase,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50'
+    },
+    {
+      label: 'Total Clicks',
+      value: totalClicks.toLocaleString(),
+      description: 'All-time link clicks',
+      icon: MousePointer,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50'
+    },
+    {
+      label: 'Pending Payout',
+      value: `₱${totalPendingPayout.toLocaleString()}`,
+      description: 'Waiting approval',
+      icon: Clock,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50'
+    },
+    {
+      label: 'Total Paid Outs',
+      value: `₱${totalPaidOut.toLocaleString()}`,
+      description: 'Successfully processed',
+      icon: CheckCircle,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50'
+    }
   ];
 
   const renderContent = () => {
@@ -920,10 +959,14 @@ const AdminDashboard: React.FC = () => {
                   <div>
                     <p className="text-gray-500 text-sm font-medium mb-1">{kpi.label}</p>
                     <h3 className="text-2xl font-black text-gray-900">{kpi.value}</h3>
-                    <div className={`flex items-center gap-1 mt-2 text-xs font-bold ${kpi.trendUp ? 'text-green-600' : 'text-red-500'}`}>
-                      {kpi.trendUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                      {kpi.trend}
-                    </div>
+                    {'trend' in kpi ? (
+                       <div className={`flex items-center gap-1 mt-2 text-xs font-bold ${kpi.trendUp ? 'text-green-600' : 'text-red-500'}`}>
+                         {kpi.trendUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                         {kpi.trend}
+                       </div>
+                    ) : (
+                       <p className="text-xs text-gray-400 mt-2 font-medium">{(kpi as any).description}</p>
+                    )}
                   </div>
                   <div className={`p-3 rounded-xl ${kpi.bg}`}>
                     <kpi.icon className={kpi.color} size={24} />
