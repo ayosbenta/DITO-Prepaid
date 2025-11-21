@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer
+  Clock, MousePointer, Lock, Shield
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -17,6 +17,14 @@ import { StoreContext } from '../contexts/StoreContext';
 import { Product, Order, Affiliate } from '../types';
 
 const AdminDashboard: React.FC = () => {
+  // --- Authentication State ---
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('dito_admin_auth') === 'true';
+  });
+  const [authForm, setAuthForm] = useState({ username: '', password: '' });
+  const [authError, setAuthError] = useState('');
+
+  // --- Dashboard State ---
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -50,6 +58,79 @@ const AdminDashboard: React.FC = () => {
     setPaymentSettingsForm(paymentSettings);
   }, [paymentSettings]);
 
+  // --- Auth Handlers ---
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authForm.username === 'admin' && authForm.password === 'M@y191992') {
+      setIsAuthenticated(true);
+      localStorage.setItem('dito_admin_auth', 'true');
+      setAuthError('');
+    } else {
+      setAuthError('Invalid username or password');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('dito_admin_auth');
+    setAuthForm({ username: '', password: '' });
+    setActiveTab('Dashboard');
+  };
+
+  // --- Render Logic ---
+
+  // 1. Authentication Check
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100 animate-fade-in-up">
+           <div className="text-center mb-8">
+             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-primary shadow-inner">
+               <Shield size={32} />
+             </div>
+             <h1 className="text-2xl font-bold text-gray-900">Admin Portal</h1>
+             <p className="text-gray-500 mt-2">Enter your credentials to access.</p>
+           </div>
+
+           <form onSubmit={handleLogin} className="space-y-4">
+              {authError && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl text-center flex items-center justify-center gap-2 animate-pulse">
+                  <AlertCircle size={16} /> {authError}
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Username</label>
+                <input 
+                  type="text"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  value={authForm.username}
+                  onChange={e => setAuthForm({...authForm, username: e.target.value})}
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+                <input 
+                  type="password"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  value={authForm.password}
+                  onChange={e => setAuthForm({...authForm, password: e.target.value})}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button fullWidth className="py-4 shadow-lg shadow-red-900/20 text-lg mt-4">
+                 <Lock size={18} className="mr-2"/> Secure Login
+              </Button>
+              <Link to="/" className="block text-center text-sm text-gray-400 hover:text-gray-600 mt-6">
+                ← Back to Store
+              </Link>
+           </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Loading Check (Only show if authenticated)
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -1061,10 +1142,16 @@ const AdminDashboard: React.FC = () => {
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t">
-           <Link to="/" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-primary rounded-xl transition-colors text-sm font-medium">
+        <div className="p-4 border-t space-y-1">
+           <Link to="/" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium">
              <LogOut size={18} /> Exit to Store
            </Link>
+            <button 
+             onClick={handleLogout}
+             className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium"
+           >
+             <Lock size={18} /> Logout
+           </button>
         </div>
       </aside>
 
@@ -1096,6 +1183,14 @@ const AdminDashboard: React.FC = () => {
               )}
             </button>
           ))}
+           <div className="border-t pt-4 mt-4">
+             <button 
+               onClick={handleLogout}
+               className="w-full flex items-center gap-3 px-4 py-4 text-red-600 rounded-xl text-lg font-medium"
+             >
+               <Lock size={20} /> Logout
+             </button>
+           </div>
         </div>
       )}
 
