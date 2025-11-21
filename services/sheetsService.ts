@@ -1,4 +1,5 @@
 
+
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
@@ -137,18 +138,23 @@ export const SheetsService = {
           status: a.status || 'active',
           clicks: Number(a.clicks || 0),
           lifetimeEarnings: Number(a.lifetimeEarnings || 0),
-          // Extended Profile Fields mapping - Prioritize explicit columns, fallback to json_data
-          username: a.username || details.username,
-          password: a.password || details.password,
-          firstName: a.firstName || details.firstName,
-          middleName: a.middleName || details.middleName,
-          lastName: a.lastName || details.lastName,
-          birthDate: a.birthDate || details.birthDate,
-          gender: a.gender || details.gender,
-          mobile: a.mobile || details.mobile,
-          address: a.address || details.address,
-          agencyName: a.agencyName || details.agencyName,
-          govtId: a.govtId || details.govtId,
+          
+          // Extended Profile Fields mapping - FORCE STRING CASTING
+          username: String(a.username || details.username || ''),
+          password: String(a.password || details.password || ''),
+          firstName: String(a.firstName || details.firstName || ''),
+          middleName: String(a.middleName || details.middleName || ''),
+          lastName: String(a.lastName || details.lastName || ''),
+          birthDate: String(a.birthDate || details.birthDate || ''),
+          gender: (a.gender || details.gender || 'Male') as 'Male' | 'Female',
+          mobile: String(a.mobile || details.mobile || ''),
+          address: String(a.address || details.address || ''),
+          agencyName: String(a.agencyName || details.agencyName || ''),
+          govtId: String(a.govtId || details.govtId || ''),
+          
+          // Payment Settings
+          gcashName: String(a.gcashName || details.gcashName || ''),
+          gcashNumber: String(a.gcashNumber || details.gcashNumber || '')
         };
       });
 
@@ -231,17 +237,20 @@ export const SheetsService = {
       const { 
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
         // Extract extended fields to put in json_data AND as columns
-        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId
+        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
+        gcashName, gcashNumber
       } = aff;
 
       // Create details object for json_data
       const details = {
-         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId
+         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
+         gcashName, gcashNumber
       };
 
       return {
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
+        gcashName, gcashNumber,
         json_data: JSON.stringify(details)
       };
     });

@@ -1,13 +1,14 @@
 
-import React, { useContext, useState } from 'react';
+
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Copy, DollarSign, ShoppingBag, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard, MousePointer, CheckCircle2 } from 'lucide-react';
+import { Copy, DollarSign, ShoppingBag, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard, MousePointer, CheckCircle2, LogOut, User, Settings, ChevronDown, Lock, Save } from 'lucide-react';
 import { Button, Badge } from '../components/UI';
 
 const AffiliateDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { affiliates, orders, payouts, requestPayout } = useContext(StoreContext);
+  const { affiliates, orders, payouts, requestPayout, updateAffiliate, isSyncing } = useContext(StoreContext);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'payouts'>('dashboard');
   
   // Simulation: In a real app, we'd get the logged-in ID from AuthContext
@@ -19,8 +20,30 @@ const AffiliateDashboard: React.FC = () => {
   const [accountName, setAccountName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
-
   const [copied, setCopied] = useState(false);
+
+  // --- Dropdown & Modals State ---
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // --- Edit Profile State ---
+  const [profileForm, setProfileForm] = useState<any>({});
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  
+  // --- Settings State ---
+  const [settingsForm, setSettingsForm] = useState({ gcashName: '', gcashNumber: '' });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!loggedInAffiliateId || !currentAffiliate) {
     return (
@@ -36,41 +59,91 @@ const AffiliateDashboard: React.FC = () => {
     );
   }
 
-  // Calculate Stats
-  const referredOrders = orders.filter(o => o.referralId === currentAffiliate.id);
-  
-  const pendingCommission = referredOrders
-    .filter(o => o.status !== 'Delivered')
-    .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0); 
-
-  const totalPaidPayouts = payouts
-    .filter(p => p.affiliateId === currentAffiliate.id && p.status === 'Approved')
-    .reduce((acc, p) => acc + p.amount, 0);
-  
-  const referralLink = `${window.location.origin}/?ref=${currentAffiliate.id}`;
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+  // Handlers
   const handleLogout = () => {
     localStorage.removeItem('dito_affiliate_id');
     navigate('/affiliate/login');
   };
 
+  const openProfile = () => {
+    setProfileForm({ ...currentAffiliate });
+    setPasswordForm({ current: '', new: '', confirm: '' });
+    setShowProfile(true);
+    setIsMenuOpen(false);
+  };
+
+  const openSettings = () => {
+    setSettingsForm({ 
+      gcashName: currentAffiliate.gcashName || '', 
+      gcashNumber: currentAffiliate.gcashNumber || '' 
+    });
+    setShowSettings(true);
+    setIsMenuOpen(false);
+  };
+
+  const saveProfile = () => {
+    // Update basic details
+    const updates: any = {
+      mobile: profileForm.mobile,
+      address: profileForm.address,
+      agencyName: profileForm.agencyName
+    };
+
+    // Password Change Logic
+    if (passwordForm.new) {
+       // Robust string check to handle potential number/string mismatch from sheet data
+       if (String(passwordForm.current) !== String(currentAffiliate.password || '')) {
+         alert("Current password is incorrect.");
+         return;
+       }
+       if (passwordForm.new.length < 6) {
+         alert("New password must be at least 6 characters.");
+         return;
+       }
+       if (passwordForm.new !== passwordForm.confirm) {
+         alert("New passwords do not match.");
+         return;
+       }
+       updates.password = passwordForm.new;
+    }
+
+    updateAffiliate(currentAffiliate.id, updates);
+    setShowProfile(false);
+    alert("Profile updated successfully.");
+  };
+
+  const saveSettings = () => {
+    updateAffiliate(currentAffiliate.id, {
+       gcashName: settingsForm.gcashName,
+       gcashNumber: settingsForm.gcashNumber
+    });
+    setShowSettings(false);
+  };
+
+  const openPayoutModal = () => {
+    setAccountName(currentAffiliate.gcashName || '');
+    setAccountNumber(currentAffiliate.gcashNumber || '');
+    setIsPayoutModalOpen(true);
+  };
+
+  // Stats Logic
+  const referredOrders = orders.filter(o => o.referralId === currentAffiliate.id);
+  const pendingCommission = referredOrders
+    .filter(o => o.status !== 'Delivered')
+    .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0); 
+  const totalPaidPayouts = payouts
+    .filter(p => p.affiliateId === currentAffiliate.id && p.status === 'Approved')
+    .reduce((acc, p) => acc + p.amount, 0);
+  const referralLink = `${window.location.origin}/?ref=${currentAffiliate.id}`;
+  const copyLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   const handleRequestPayout = (e: React.FormEvent) => {
     e.preventDefault();
-    if (payoutAmount > currentAffiliate.walletBalance) {
-      alert("Insufficient balance.");
-      return;
-    }
-    if (payoutAmount < 100) {
-      alert("Minimum payout is ₱100");
-      return;
-    }
-    
+    if (payoutAmount > currentAffiliate.walletBalance) return alert("Insufficient balance.");
+    if (payoutAmount < 100) return alert("Minimum payout is ₱100");
     requestPayout({
       affiliateId: currentAffiliate.id,
       affiliateName: currentAffiliate.name,
@@ -79,42 +152,79 @@ const AffiliateDashboard: React.FC = () => {
       accountName,
       accountNumber
     });
-
     setIsPayoutModalOpen(false);
     setPayoutAmount(0);
   };
-
-  // Ensure payouts are sorted by date descending
   const affiliatePayouts = payouts
     .filter(p => p.affiliateId === currentAffiliate.id)
     .sort((a, b) => new Date(b.dateRequested).getTime() - new Date(a.dateRequested).getTime());
+
+  // Initials for Avatar
+  const initials = currentAffiliate.firstName && currentAffiliate.lastName 
+    ? `${currentAffiliate.firstName[0]}${currentAffiliate.lastName[0]}` 
+    : currentAffiliate.name.substring(0, 2).toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-50 pt-28 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 relative">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome, {currentAffiliate.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Welcome, {currentAffiliate.firstName || currentAffiliate.name}</h1>
             <p className="text-gray-500">Affiliate Dashboard • ID: {currentAffiliate.id}</p>
           </div>
-          <div className="flex gap-2">
-             <Button 
-               variant={activeTab === 'dashboard' ? 'primary' : 'outline'} 
-               onClick={() => setActiveTab('dashboard')}
-               className="text-sm"
-             >
-               <LayoutDashboard size={16} /> Dashboard
-             </Button>
-             <Button 
-               variant={activeTab === 'payouts' ? 'primary' : 'outline'} 
-               onClick={() => setActiveTab('payouts')}
-               className="text-sm"
-             >
-               <DollarSign size={16} /> Payouts
-             </Button>
-             <Button variant="ghost" onClick={handleLogout} className="text-sm">Logout</Button>
+          
+          <div className="flex items-center gap-3">
+             <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+               <button 
+                 onClick={() => setActiveTab('dashboard')}
+                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'dashboard' ? 'bg-gray-100 text-primary font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
+               >
+                 Dashboard
+               </button>
+               <button 
+                 onClick={() => setActiveTab('payouts')}
+                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'payouts' ? 'bg-gray-100 text-primary font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
+               >
+                 Payouts
+               </button>
+             </div>
+
+             {/* Avatar Dropdown */}
+             <div className="relative" ref={menuRef}>
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center gap-2 pl-1 pr-3 py-1 bg-white hover:bg-gray-50 border border-gray-200 rounded-full transition-all shadow-sm"
+                >
+                  <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-md">
+                    {initials}
+                  </div>
+                  <ChevronDown size={14} className="text-gray-400" />
+                </button>
+
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-in">
+                    <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                       <p className="text-sm font-bold text-gray-900 truncate">{currentAffiliate.name}</p>
+                       <p className="text-xs text-gray-400 truncate">{currentAffiliate.username}</p>
+                    </div>
+                    
+                    <button onClick={openProfile} className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary flex items-center gap-2">
+                       <User size={16} /> My Profile
+                    </button>
+                    <button onClick={openSettings} className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary flex items-center gap-2">
+                       <CreditCard size={16} /> Payment Settings
+                    </button>
+                    
+                    <div className="h-px bg-gray-100 my-1"></div>
+                    
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                       <LogOut size={16} /> Logout
+                    </button>
+                  </div>
+                )}
+             </div>
           </div>
         </div>
 
@@ -273,7 +383,7 @@ const AffiliateDashboard: React.FC = () => {
                      <p className="text-4xl font-black text-gray-900 tracking-tight">₱{currentAffiliate.walletBalance.toLocaleString()}</p>
                      <p className="text-sm text-gray-500 mt-2">Ready for withdrawal</p>
                    </div>
-                   <Button fullWidth className="mt-8 py-4 text-lg" onClick={() => setIsPayoutModalOpen(true)} disabled={currentAffiliate.walletBalance < 100}>
+                   <Button fullWidth className="mt-8 py-4 text-lg" onClick={openPayoutModal} disabled={currentAffiliate.walletBalance < 100}>
                      Request Payout
                    </Button>
                    {currentAffiliate.walletBalance < 100 && (
@@ -417,6 +527,178 @@ const AffiliateDashboard: React.FC = () => {
                 </form>
              </div>
            </div>
+        )}
+
+        {/* --- Profile Modal --- */}
+        {showProfile && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-2xl p-8 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">My Profile</h3>
+                    <p className="text-gray-500 text-sm">Manage your personal and account details.</p>
+                  </div>
+                  <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
+                </div>
+                
+                <div className="space-y-8">
+                   {/* Read-Only Section */}
+                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-6 bg-gray-50 rounded-xl border border-gray-100">
+                      <div>
+                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Full Name</p>
+                         <p className="font-medium text-gray-900">{currentAffiliate.firstName} {currentAffiliate.lastName}</p>
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Birth Date</p>
+                         <p className="font-medium text-gray-900">{currentAffiliate.birthDate}</p>
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Gender</p>
+                         <p className="font-medium text-gray-900">{currentAffiliate.gender}</p>
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Username</p>
+                         <p className="font-medium text-gray-900">{currentAffiliate.username}</p>
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Email</p>
+                         <p className="font-medium text-gray-900">{currentAffiliate.email}</p>
+                      </div>
+                   </div>
+
+                   {/* Editable Fields */}
+                   <div className="space-y-4">
+                      <h4 className="font-bold text-gray-900 border-b pb-2">Contact Information</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mobile Number</label>
+                           <input 
+                             className="w-full border border-gray-200 rounded-lg p-2.5"
+                             value={profileForm.mobile}
+                             onChange={e => setProfileForm({...profileForm, mobile: e.target.value})}
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Agency Name</label>
+                           <input 
+                             className="w-full border border-gray-200 rounded-lg p-2.5"
+                             value={profileForm.agencyName}
+                             onChange={e => setProfileForm({...profileForm, agencyName: e.target.value})}
+                           />
+                         </div>
+                         <div className="md:col-span-2">
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Address</label>
+                           <input 
+                             className="w-full border border-gray-200 rounded-lg p-2.5"
+                             value={profileForm.address}
+                             onChange={e => setProfileForm({...profileForm, address: e.target.value})}
+                           />
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Password Change */}
+                   <div className="space-y-4">
+                      <h4 className="font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
+                         <Lock size={16} /> Change Password
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Password</label>
+                             <input 
+                               type="password"
+                               className="w-full border border-gray-200 rounded-lg p-2.5"
+                               placeholder="••••••"
+                               value={passwordForm.current}
+                               onChange={e => setPasswordForm({...passwordForm, current: e.target.value})}
+                             />
+                          </div>
+                          <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
+                             <input 
+                               type="password"
+                               className="w-full border border-gray-200 rounded-lg p-2.5"
+                               placeholder="••••••"
+                               value={passwordForm.new}
+                               onChange={e => setPasswordForm({...passwordForm, new: e.target.value})}
+                             />
+                          </div>
+                          <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirm New</label>
+                             <input 
+                               type="password"
+                               className="w-full border border-gray-200 rounded-lg p-2.5"
+                               placeholder="••••••"
+                               value={passwordForm.confirm}
+                               onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})}
+                             />
+                          </div>
+                      </div>
+                   </div>
+                   
+                   {currentAffiliate.govtId && (
+                      <div>
+                         <h4 className="font-bold text-gray-900 border-b pb-2 mb-3">Verification ID</h4>
+                         <img src={currentAffiliate.govtId} alt="ID" className="h-32 w-auto rounded-lg border shadow-sm" />
+                      </div>
+                   )}
+                   
+                   <div className="pt-4 flex justify-end gap-3 border-t">
+                      <Button variant="ghost" onClick={() => setShowProfile(false)}>Cancel</Button>
+                      <Button onClick={saveProfile} disabled={isSyncing}>
+                        {isSyncing ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* --- Settings Modal --- */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Payment Settings</h3>
+                    <p className="text-gray-500 text-sm">Default Payout Details (GCash)</p>
+                  </div>
+                  <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={20} /></button>
+                </div>
+                
+                <div className="space-y-6">
+                   <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-800">
+                      These details will be automatically filled when you request a payout.
+                   </div>
+                   
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Default Account Name</label>
+                      <input 
+                        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        value={settingsForm.gcashName}
+                        onChange={e => setSettingsForm({...settingsForm, gcashName: e.target.value})}
+                        placeholder="Full Name on GCash"
+                      />
+                   </div>
+                   
+                   <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Default GCash Number</label>
+                      <input 
+                        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        value={settingsForm.gcashNumber}
+                        onChange={e => setSettingsForm({...settingsForm, gcashNumber: e.target.value})}
+                        placeholder="0917 123 4567"
+                      />
+                   </div>
+                   
+                   <div className="pt-4">
+                      <Button fullWidth onClick={saveSettings} disabled={isSyncing} className="flex items-center justify-center gap-2">
+                        <Save size={18} /> {isSyncing ? 'Saving...' : 'Save Settings'}
+                      </Button>
+                   </div>
+                </div>
+             </div>
+          </div>
         )}
 
       </div>

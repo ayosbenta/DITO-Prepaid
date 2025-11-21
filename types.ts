@@ -49,6 +49,9 @@ export interface Affiliate {
   address?: string;
   agencyName?: string;
   govtId?: string;
+  // Payment Settings
+  gcashName?: string;
+  gcashNumber?: string;
 }
 
 export interface Order {

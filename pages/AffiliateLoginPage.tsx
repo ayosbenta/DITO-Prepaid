@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
@@ -101,7 +102,7 @@ const AffiliateLoginPage: React.FC = () => {
     const emailExists = affiliates.some(a => a.email.toLowerCase() === formData.email.toLowerCase());
     if (emailExists) newErrors.email = 'Email is already registered';
     
-    const usernameExists = affiliates.some(a => a.username?.toLowerCase() === formData.username.toLowerCase());
+    const usernameExists = affiliates.some(a => String(a.username || '').toLowerCase() === formData.username.toLowerCase());
     if (usernameExists) newErrors.username = 'Username is taken';
 
     setErrors(newErrors);
@@ -110,10 +111,17 @@ const AffiliateLoginPage: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
+
+    if (!loginUsername.trim()) {
+      setLoginError('Please enter your username');
+      return;
+    }
     
     // Find affiliate by Username only (case-insensitive)
+    // Ensure robust string comparison
     const affiliate = affiliates.find(a => 
-      a.username && a.username.toLowerCase() === loginUsername.toLowerCase()
+      String(a.username || '').toLowerCase() === loginUsername.trim().toLowerCase()
     );
     
     if (affiliate) {
@@ -122,8 +130,9 @@ const AffiliateLoginPage: React.FC = () => {
         return;
       }
 
-      // Check Password
-      if (affiliate.password && affiliate.password !== loginPassword) {
+      // Check Password with explicit string conversion
+      const storedPassword = String(affiliate.password || '');
+      if (storedPassword && storedPassword !== loginPassword) {
         setLoginError('Invalid password.');
         return;
       }
