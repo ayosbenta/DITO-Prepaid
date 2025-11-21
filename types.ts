@@ -54,6 +54,17 @@ export interface Affiliate {
   gcashNumber?: string;
 }
 
+export interface ShippingDetails {
+  firstName: string;
+  lastName: string;
+  mobile: string;
+  street: string;
+  province: string;
+  city: string;
+  barangay: string;
+  zipCode: string;
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -65,6 +76,7 @@ export interface Order {
   commission?: number; // The amount earned by the affiliate
   paymentMethod?: string;
   proofOfPayment?: string; // Base64 string or URL of the receipt
+  shippingDetails?: ShippingDetails;
 }
 
 export interface PayoutRequest {

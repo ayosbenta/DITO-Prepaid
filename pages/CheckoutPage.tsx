@@ -1,11 +1,12 @@
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { StoreContext } from '../contexts/StoreContext';
-import { PaymentMethod, Order } from '../types';
-import { CheckCircle, CreditCard, Truck, ChevronRight, Lock, Upload, X, QrCode, Landmark } from 'lucide-react';
+import { Order, ShippingDetails } from '../types';
+import { CheckCircle, CreditCard, Truck, Lock, Upload, Landmark, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/UI';
+import { LocationService, LocationOption } from '../services/locationService';
 
 const CheckoutPage: React.FC = () => {
   const { items, cartTotal, clearCart } = useContext(CartContext);
@@ -13,11 +14,74 @@ const CheckoutPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   
-  // Form State
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Address State
+  const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
+    firstName: '',
+    lastName: '',
+    mobile: '',
+    street: '',
+    province: '',
+    city: '',
+    barangay: '',
+    zipCode: ''
+  });
+
+  // Location Data State
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<LocationOption[]>([]);
+  const [barangays, setBarangays] = useState<LocationOption[]>([]);
+  
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState('');
+  const [selectedCityCode, setSelectedCityCode] = useState('');
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+
   const [proofOfPayment, setProofOfPayment] = useState<string>('');
   const [fileName, setFileName] = useState('');
+
+  // Fetch Provinces on Mount
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      setIsLoadingLocations(true);
+      const data = await LocationService.getProvinces();
+      setProvinces(data);
+      setIsLoadingLocations(false);
+    };
+    fetchProvinces();
+  }, []);
+
+  // Fetch Cities when Province changes
+  useEffect(() => {
+    if (selectedProvinceCode) {
+      const fetchCities = async () => {
+        setIsLoadingLocations(true);
+        const data = await LocationService.getCities(selectedProvinceCode);
+        setCities(data);
+        setBarangays([]);
+        setShippingDetails(prev => ({ ...prev, city: '', barangay: '', zipCode: '' }));
+        setSelectedCityCode('');
+        setIsLoadingLocations(false);
+      };
+      fetchCities();
+    }
+  }, [selectedProvinceCode]);
+
+  // Fetch Barangays and Set Zip when City changes
+  useEffect(() => {
+    if (selectedCityCode) {
+      const fetchBarangays = async () => {
+        setIsLoadingLocations(true);
+        const data = await LocationService.getBarangays(selectedCityCode);
+        setBarangays(data);
+        
+        // Auto-fill Zip Code
+        const zip = LocationService.getZipCode(shippingDetails.city, shippingDetails.province);
+        setShippingDetails(prev => ({ ...prev, zipCode: zip, barangay: '' }));
+        
+        setIsLoadingLocations(false);
+      };
+      fetchBarangays();
+    }
+  }, [selectedCityCode, shippingDetails.city, shippingDetails.province]);
 
   // Set default selected method based on enabled settings
   React.useEffect(() => {
@@ -37,6 +101,21 @@ const CheckoutPage: React.FC = () => {
         setProofOfPayment(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setShippingDetails(prev => ({ ...prev, [name]: value }));
+
+    // Handle specialized dropdown logic for names/codes
+    if (name === 'province') {
+      const province = provinces.find(p => p.name === value);
+      if (province) setSelectedProvinceCode(province.code);
+    }
+    if (name === 'city') {
+      const city = cities.find(c => c.name === value);
+      if (city) setSelectedCityCode(city.code);
     }
   };
 
@@ -83,30 +162,22 @@ const CheckoutPage: React.FC = () => {
 
     const newOrder: Order = {
       id: `#ORD-${Math.floor(Math.random() * 10000)}`,
-      customer: `${firstName} ${lastName}`,
+      customer: `${shippingDetails.firstName} ${shippingDetails.lastName}`,
       date: new Date().toISOString().split('T')[0],
       total: cartTotal,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
-      referralId: referralId || '', // Ensure key is sent even if null/undefined to prevent column mismatch in Sheets
+      referralId: referralId || '',
       commission: totalCommission,
       paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',
-      proofOfPayment: proofOfPayment
+      proofOfPayment: proofOfPayment,
+      shippingDetails: shippingDetails // Include the full address object
     };
 
     addOrder(newOrder);
     clearCart();
     setStep(3);
     window.scrollTo(0,0);
-  };
-
-  const getPaymentMethodLabel = (key: string) => {
-    switch(key) {
-      case 'cod': return 'Cash on Delivery';
-      case 'gcash': return 'GCash';
-      case 'bank': return 'Bank Transfer';
-      default: return key;
-    }
   };
 
   return (
@@ -156,43 +227,128 @@ const CheckoutPage: React.FC = () => {
             <div className="lg:col-span-2">
               <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-8">
                 {/* Section: Address */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative">
+                  {isLoadingLocations && (
+                     <div className="absolute top-4 right-4 text-primary animate-spin">
+                       <Loader2 size={20} />
+                     </div>
+                  )}
                   <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                     <div className="bg-red-50 p-2 rounded-xl"><Truck size={20} className="text-primary" /></div>
                     Delivery Address
                   </h2>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="col-span-2 sm:col-span-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">First Name</label>
                       <input 
                         required 
                         type="text" 
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        name="firstName"
+                        value={shippingDetails.firstName}
+                        onChange={handleInputChange}
                         className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                        placeholder="Juan"
                       />
                     </div>
-                    <div className="col-span-2 sm:col-span-1">
+                    <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Last Name</label>
                       <input 
                         required 
                         type="text" 
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
+                        name="lastName"
+                        value={shippingDetails.lastName}
+                        onChange={handleInputChange}
                         className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                        placeholder="Dela Cruz"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mobile Number</label>
+                      <input 
+                        required 
+                        type="tel" 
+                        name="mobile"
+                        value={shippingDetails.mobile}
+                        onChange={handleInputChange}
+                        className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                        placeholder="0917 123 4567"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Street Address</label>
-                      <input required type="text" className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" />
+                      <input 
+                        required 
+                        type="text" 
+                        name="street"
+                        value={shippingDetails.street}
+                        onChange={handleInputChange}
+                        className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" 
+                        placeholder="House No., Street Name, Subdivision"
+                      />
                     </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">City</label>
-                      <input required type="text" className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" />
+                    
+                    {/* Dropdowns */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Province</label>
+                      <select 
+                        required 
+                        name="province"
+                        value={shippingDetails.province}
+                        onChange={handleInputChange}
+                        className="w-full border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none appearance-none"
+                      >
+                        <option value="">Select Province</option>
+                        {provinces.map(p => (
+                          <option key={p.code} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone Number</label>
-                      <input required type="tel" className="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none" />
+                    
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Municipality / City</label>
+                      <select 
+                        required 
+                        name="city"
+                        value={shippingDetails.city}
+                        onChange={handleInputChange}
+                        disabled={!shippingDetails.province}
+                        className="w-full border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none appearance-none disabled:bg-gray-100 disabled:text-gray-400"
+                      >
+                        <option value="">Select City/Municipality</option>
+                        {cities.map(c => (
+                          <option key={c.code} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Barangay</label>
+                      <select 
+                        required 
+                        name="barangay"
+                        value={shippingDetails.barangay}
+                        onChange={handleInputChange}
+                        disabled={!shippingDetails.city}
+                        className="w-full border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary p-3 border transition-all outline-none appearance-none disabled:bg-gray-100 disabled:text-gray-400"
+                      >
+                        <option value="">Select Barangay</option>
+                        {barangays.map(b => (
+                          <option key={b.code} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Zip Code</label>
+                      <input 
+                        required 
+                        readOnly
+                        type="text" 
+                        name="zipCode"
+                        value={shippingDetails.zipCode}
+                        className="w-full border-gray-200 bg-gray-100 rounded-xl p-3 border outline-none text-gray-600 font-bold cursor-not-allowed" 
+                        placeholder="Auto-filled"
+                      />
                     </div>
                   </div>
                 </div>

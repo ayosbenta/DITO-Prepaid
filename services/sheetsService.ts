@@ -1,5 +1,4 @@
 
-
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
@@ -100,18 +99,26 @@ export const SheetsService = {
       }
 
       // 2. Parse Orders
-      const orders: Order[] = (data.Orders || []).map((o: any) => ({
-        id: String(o.id),
-        customer: String(o.customer),
-        date: o.date ? new Date(o.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        total: Number(o.total),
-        status: o.status,
-        items: Number(o.items_count || o.items || 1),
-        referralId: o.referralId ? String(o.referralId) : undefined,
-        commission: o.commission ? Number(o.commission) : 0,
-        paymentMethod: o.paymentMethod || 'COD',
-        proofOfPayment: o.proofOfPayment || ''
-      }));
+      const orders: Order[] = (data.Orders || []).map((o: any) => {
+        let details: any = {};
+        try {
+          if (o.json_data) details = JSON.parse(o.json_data);
+        } catch (e) { /* ignore */ }
+
+        return {
+          id: String(o.id),
+          customer: String(o.customer),
+          date: o.date ? new Date(o.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          total: Number(o.total),
+          status: o.status,
+          items: Number(o.items_count || o.items || 1),
+          referralId: o.referralId ? String(o.referralId) : undefined,
+          commission: o.commission ? Number(o.commission) : 0,
+          paymentMethod: o.paymentMethod || 'COD',
+          proofOfPayment: o.proofOfPayment || '',
+          shippingDetails: details.shippingDetails || undefined
+        };
+      });
 
       // 3. Parse Customers
       const customers: User[] = (data.Customers || []).map((c: any) => ({
@@ -228,7 +235,18 @@ export const SheetsService = {
 
   saveSettings: async (settings: any): Promise<ApiResponse> => SheetsService.sendData('SAVE_SETTINGS', settings),
   syncProducts: async (products: Product[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PRODUCTS', products),
-  syncOrders: async (orders: Order[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_ORDERS', orders),
+  
+  syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
+    // Flatten shippingDetails into json_data before sending
+    const payload = orders.map(o => {
+      return {
+        ...o,
+        // Store complex object in json_data to persist structure without needing new columns
+        json_data: JSON.stringify({ shippingDetails: o.shippingDetails })
+      };
+    });
+    return SheetsService.sendData('SYNC_ORDERS', payload);
+  },
   
   // Updated syncAffiliates to send all fields explicitly + json_data backup
   syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
