@@ -137,7 +137,7 @@ export const SheetsService = {
           status: a.status || 'active',
           clicks: Number(a.clicks || 0),
           lifetimeEarnings: Number(a.lifetimeEarnings || 0),
-          // Extended Profile Fields mapping
+          // Extended Profile Fields mapping - Prioritize explicit columns, fallback to json_data
           username: a.username || details.username,
           password: a.password || details.password,
           firstName: a.firstName || details.firstName,
@@ -224,13 +224,13 @@ export const SheetsService = {
   syncProducts: async (products: Product[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PRODUCTS', products),
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_ORDERS', orders),
   
-  // Updated syncAffiliates to pack extended fields into json_data
+  // Updated syncAffiliates to send all fields explicitly + json_data backup
   syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
     const payload = affiliates.map(aff => {
       // Extract standard fields
       const { 
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
-        // Extract extended fields to put in json_data
+        // Extract extended fields to put in json_data AND as columns
         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId
       } = aff;
 
@@ -241,6 +241,7 @@ export const SheetsService = {
 
       return {
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
+        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
         json_data: JSON.stringify(details)
       };
     });

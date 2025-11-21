@@ -111,11 +111,9 @@ const AffiliateLoginPage: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Find affiliate by Username (case-insensitive)
+    // Find affiliate by Username only (case-insensitive)
     const affiliate = affiliates.find(a => 
-      (a.username && a.username.toLowerCase() === loginUsername.toLowerCase()) ||
-      // Fallback to email login if needed, or remove this line to force username
-      (a.email.toLowerCase() === loginUsername.toLowerCase())
+      a.username && a.username.toLowerCase() === loginUsername.toLowerCase()
     );
     
     if (affiliate) {
@@ -129,8 +127,6 @@ const AffiliateLoginPage: React.FC = () => {
         setLoginError('Invalid password.');
         return;
       }
-
-      // If no password set (legacy data), maybe allow or force reset (skipping for now)
       
       localStorage.setItem('dito_affiliate_id', affiliate.id);
       navigate('/affiliate/dashboard');
@@ -462,7 +458,7 @@ const AffiliateLoginPage: React.FC = () => {
                   </h3>
                   <div>
                     <label className="form-label">Upload Valid Government ID <span className="text-red-500">*</span></label>
-                    <div className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors ${errors.govtId ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-primary hover:bg-gray-50'}`}>
+                    <div className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors overflow-hidden ${errors.govtId ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-primary hover:bg-gray-50'}`}>
                        {formData.govtId ? (
                          <div className="relative w-full max-w-xs z-10">
                             <img src={formData.govtId} alt="ID Preview" className="w-full h-40 object-cover rounded-lg shadow-md" />
