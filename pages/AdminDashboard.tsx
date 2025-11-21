@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield
+  Clock, MousePointer, Lock, Shield, Printer
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -75,6 +75,148 @@ const AdminDashboard: React.FC = () => {
     localStorage.removeItem('dito_admin_auth');
     setAuthForm({ username: '', password: '' });
     setActiveTab('Dashboard');
+  };
+
+  // --- Waybill Printer ---
+  const printWaybill = (order: Order) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+
+    const shipping = order.shippingDetails || {
+      firstName: order.customer.split(' ')[0] || 'Customer',
+      lastName: order.customer.split(' ').slice(1).join(' ') || '',
+      mobile: 'N/A',
+      street: 'No street provided',
+      barangay: '',
+      city: '',
+      province: '',
+      zipCode: ''
+    };
+
+    const fullAddress = [
+        shipping.street,
+        shipping.barangay,
+        shipping.city,
+        shipping.province,
+        shipping.zipCode
+    ].filter(Boolean).join(', ');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Waybill - ${order.id}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+          body { font-family: 'Inter', sans-serif; padding: 40px; color: #111; background: #fff; }
+          .waybill { border: 2px solid #000; max-width: 800px; margin: 0 auto; }
+          .header { background: #000; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact; }
+          .logo { font-weight: 900; font-size: 24px; letter-spacing: -1px; }
+          .logo span { color: #C8102E; }
+          .grid { display: flex; border-bottom: 2px solid #000; }
+          .col { flex: 1; padding: 20px; border-right: 2px solid #000; }
+          .col:last-child { border-right: none; }
+          .label { font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+          .value { font-size: 16px; font-weight: 700; line-height: 1.4; }
+          .address { font-size: 14px; font-weight: 400; margin-top: 5px; color: #333; }
+          .payment-section { padding: 20px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; -webkit-print-color-adjust: exact; }
+          .amount-box { text-align: right; }
+          .amount-label { font-size: 12px; font-weight: bold; color: #666; }
+          .amount-value { font-size: 32px; font-weight: 900; color: #000; }
+          .details-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 2px solid #000; }
+          .detail-box { padding: 15px; border-right: 1px solid #eee; }
+          .detail-box:last-child { border-right: none; }
+          .footer { padding: 30px; text-align: center; }
+          .barcode { height: 50px; background: repeating-linear-gradient(to right, #000, #000 3px, #fff 3px, #fff 6px); width: 300px; margin: 0 auto 10px auto; -webkit-print-color-adjust: exact; }
+          .id-text { font-family: monospace; letter-spacing: 5px; font-size: 14px; }
+          
+          @media print {
+            body { padding: 0; }
+            .waybill { border: 2px solid #000; margin: 0; width: 100%; max-width: 100%; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="waybill">
+          <div class="header">
+            <div class="logo">DITO <span>Home</span></div>
+            <div style="text-align: right;">
+              <div style="font-size: 10px; opacity: 0.8;">ORDER DATE</div>
+              <div style="font-weight: bold;">${new Date(order.date).toLocaleDateString()}</div>
+            </div>
+          </div>
+          
+          <div class="grid">
+            <div class="col">
+              <div class="label">Sender</div>
+              <div class="value">DITO Home Store</div>
+              <div class="address">
+                Warehouse 42, Logistics Hub<br>
+                Taguig City, Metro Manila<br>
+                1630 Philippines
+              </div>
+            </div>
+            <div class="col">
+              <div class="label">Recipient</div>
+              <div class="value">${shipping.firstName} ${shipping.lastName}</div>
+              <div class="value" style="font-size: 14px; margin-top: 4px;">${shipping.mobile}</div>
+              <div class="address">
+                ${fullAddress || 'No Address Details'}
+              </div>
+            </div>
+          </div>
+
+          <div class="payment-section">
+             <div>
+               <div class="label">Payment Method</div>
+               <div class="value" style="font-size: 20px;">${order.paymentMethod === 'COD' ? 'Cash On Delivery' : order.paymentMethod}</div>
+             </div>
+             <div class="amount-box">
+               <div class="amount-label">AMOUNT TO COLLECT</div>
+               <div class="amount-value">${order.paymentMethod === 'COD' ? '₱' + order.total.toLocaleString() : '₱0.00'}</div>
+             </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="detail-box">
+               <div class="label">Order ID</div>
+               <div class="value">${order.id}</div>
+            </div>
+            <div class="detail-box">
+               <div class="label">Items</div>
+               <div class="value">${order.items} Item(s)</div>
+            </div>
+            <div class="detail-box">
+               <div class="label">Declared Value</div>
+               <div class="value">₱${order.total.toLocaleString()}</div>
+            </div>
+          </div>
+          
+          <div style="padding: 20px; border-bottom: 2px solid #000;">
+             <div class="label">Instructions</div>
+             <div class="address" style="font-style: italic;">
+               Handle with care. Verify identity before release. Call customer before delivery.
+             </div>
+          </div>
+
+          <div class="footer">
+            <div class="barcode"></div>
+            <div class="id-text">${order.id.replace('#','')}</div>
+            <div style="margin-top: 20px; font-size: 10px; color: #666;">
+               Generated via DITO Home Admin Portal
+            </div>
+          </div>
+        </div>
+        <script>
+           window.onload = () => { setTimeout(() => window.print(), 500); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // --- Render Logic ---
@@ -896,6 +1038,14 @@ const AdminDashboard: React.FC = () => {
                         )}
                       </td>
                       <td className="p-4 flex justify-end gap-2">
+                        {/* Print Waybill Button */}
+                        <button 
+                          onClick={() => printWaybill(order)} 
+                          className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg"
+                          title="Print Waybill"
+                        >
+                          <Printer size={16}/>
+                        </button>
                         {order.status !== 'Delivered' && (
                           <button onClick={() => updateOrderStatus(order.id, 'Delivered')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100">Mark Delivered</button>
                         )}
