@@ -37,6 +37,18 @@ export interface Affiliate {
   status?: 'active' | 'inactive' | 'banned';
   clicks?: number;
   lifetimeEarnings?: number;
+  // Extended Profile Fields
+  username?: string;
+  password?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  birthDate?: string;
+  gender?: 'Male' | 'Female';
+  mobile?: string;
+  address?: string;
+  agencyName?: string;
+  govtId?: string;
 }
 
 export interface Order {

@@ -29,7 +29,13 @@ export const DEMO_AFFILIATE: Affiliate = {
   joinDate: new Date().toISOString().split('T')[0],
   status: 'active',
   clicks: 42,
-  lifetimeEarnings: 750
+  lifetimeEarnings: 750,
+  firstName: 'Demo',
+  lastName: 'Partner',
+  username: 'demouser',
+  mobile: '09171234567',
+  address: 'Makati City',
+  govtId: ''
 };
 
 export const SheetsService = {
@@ -113,17 +119,37 @@ export const SheetsService = {
       }));
 
       // 4. Parse Affiliates
-      let affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => ({
-        id: String(a.id),
-        name: String(a.name),
-        email: String(a.email),
-        walletBalance: Number(a.walletBalance || 0),
-        totalSales: Number(a.totalSales || 0),
-        joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        status: a.status || 'active',
-        clicks: Number(a.clicks || 0),
-        lifetimeEarnings: Number(a.lifetimeEarnings || 0)
-      }));
+      let affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => {
+        // Try parsing json_data if it exists for extra fields
+        let details: any = {};
+        try {
+          if (a.json_data) details = JSON.parse(a.json_data);
+        } catch (e) { /* ignore */ }
+
+        return {
+          id: String(a.id),
+          name: String(a.name),
+          email: String(a.email),
+          walletBalance: Number(a.walletBalance || 0),
+          totalSales: Number(a.totalSales || 0),
+          joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          status: a.status || 'active',
+          clicks: Number(a.clicks || 0),
+          lifetimeEarnings: Number(a.lifetimeEarnings || 0),
+          // Extended Profile Fields mapping
+          username: a.username || details.username,
+          password: a.password || details.password,
+          firstName: a.firstName || details.firstName,
+          middleName: a.middleName || details.middleName,
+          lastName: a.lastName || details.lastName,
+          birthDate: a.birthDate || details.birthDate,
+          gender: a.gender || details.gender,
+          mobile: a.mobile || details.mobile,
+          address: a.address || details.address,
+          agencyName: a.agencyName || details.agencyName,
+          govtId: a.govtId || details.govtId,
+        };
+      });
 
       // Fallback: Add Demo Affiliate if list is empty so login works
       if (affiliates.length === 0) {
@@ -196,6 +222,29 @@ export const SheetsService = {
   saveSettings: async (settings: any): Promise<ApiResponse> => SheetsService.sendData('SAVE_SETTINGS', settings),
   syncProducts: async (products: Product[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PRODUCTS', products),
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_ORDERS', orders),
-  syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_AFFILIATES', affiliates),
+  
+  // Updated syncAffiliates to pack extended fields into json_data
+  syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
+    const payload = affiliates.map(aff => {
+      // Extract standard fields
+      const { 
+        id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
+        // Extract extended fields to put in json_data
+        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId
+      } = aff;
+
+      // Create details object for json_data
+      const details = {
+         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId
+      };
+
+      return {
+        id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
+        json_data: JSON.stringify(details)
+      };
+    });
+    return SheetsService.sendData('SYNC_AFFILIATES', payload);
+  },
+
   syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PAYOUTS', payouts)
 };
