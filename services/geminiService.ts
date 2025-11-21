@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
@@ -20,16 +21,9 @@ export const generateChatResponse = async (
   message: string
 ): Promise<string> => {
   try {
-    // Safely access process.env inside the function scope to prevent
-    // module initialization crashes in environments where process is undefined.
-    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
-
-    if (!apiKey) {
-      console.warn("Gemini API Key is missing. Chat functionality will not work.");
-      return "I'm currently offline due to a configuration issue (Missing API Key). Please contact support.";
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Initialize Gemini API with key from environment variables
+    // As per guidelines, we assume process.env.API_KEY is available and valid.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const model = 'gemini-2.5-flash'; 
     
@@ -38,7 +32,7 @@ export const generateChatResponse = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
-        maxOutputTokens: 300, 
+        // maxOutputTokens is removed as it's recommended to avoid setting it if not required
       },
       history: history,
     });

@@ -256,9 +256,14 @@ const AdminDashboard: React.FC = () => {
              </div>
 
              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
-                <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
+                  <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
+                </div>
+                <Button onClick={() => refreshData()} variant="outline" className="text-xs py-2 px-3">
+                   <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                </Button>
               </div>
               <div className="overflow-x-auto">
                  <table className="w-full text-sm text-left">
@@ -1073,7 +1078,7 @@ const AdminDashboard: React.FC = () => {
               <button 
                 onClick={() => refreshData()} 
                 disabled={isSyncing}
-                className="p-2 bg-white border rounded-full text-gray-500 hover:bg-gray-50 hover:text-primary disabled:opacity-50"
+                className="p-2 bg-white border rounded-full text-gray-500 hover:bg-gray-50 hover:text-primary disabled:opacity-50 transition-all"
                 title="Refresh Data"
               >
                  <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />

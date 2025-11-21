@@ -139,11 +139,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.syncAffiliates(newAffiliates).finally(() => setSyncCount(c => c - 1));
   };
 
-  const triggerPayoutSync = (newPayouts: PayoutRequest[]) => {
-    setSyncCount(c => c + 1);
-    SheetsService.syncPayouts(newPayouts).finally(() => setSyncCount(c => c - 1));
-  };
-
   const triggerSettingsSync = (newSettings: LandingPageSettings) => {
     setSyncCount(c => c + 1);
     SheetsService.saveSettings(newSettings).finally(() => setSyncCount(c => c - 1));
@@ -176,9 +171,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setOrders(updatedOrders);
     
     // If new customer, add to list
-    const customerExists = customers.some(c => c.email === order.id); // Fallback check logic, ideally by email in checkout
+    const customerExists = customers.some(c => c.email === order.id); 
     // Note: Order object currently stores customer name, not email directly for ID. 
-    // Simplification: We just sync orders. Customer syncing would happen if we had auth.
     
     triggerOrderSync(updatedOrders);
 
@@ -186,15 +180,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (order.referralId) {
        const affiliate = affiliates.find(a => a.id === order.referralId);
        if (affiliate) {
-         // Update affiliate stats
-         const commissionAmount = order.commission || 0;
          const updatedAffiliates = affiliates.map(a => {
             if (a.id === order.referralId) {
                return {
                  ...a,
                  totalSales: a.totalSales + order.total,
-                 // Note: Wallet balance is typically updated when order is delivered, or immediately depending on policy.
-                 // Here we'll update it immediately for simplicity, or leave it to 'updateOrderStatus'.
                };
             }
             return a;
@@ -237,7 +227,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Customers
   const deleteCustomer = (email: string) => {
-    // In a real app with Sheets, we'd sync this. For now, local state update.
     setCustomers(customers.filter(c => c.email !== email));
   };
 
@@ -301,8 +290,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (payoutIndex === -1) return;
     const payout = payouts[payoutIndex];
 
-    // 1. Update Payout Status
-    const updatedPayouts = payouts.map(p => p.id === id ? { ...p, status, dateProcessed: new Date().toISOString() } : p);
+    const dateProcessed = new Date().toISOString();
+
+    // 1. Update Payout Status in state (Optimistic)
+    const updatedPayouts = payouts.map(p => 
+      p.id === id ? { ...p, status, dateProcessed } : p
+    );
     setPayouts(updatedPayouts);
 
     let updatedAffiliates = affiliates;
@@ -339,19 +332,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const updatePaymentSettings = (newSettings: PaymentSettings) => {
     setPaymentSettings(newSettings);
-    // We save payment settings into the same structure as generic settings in Sheets for simplicity
-    // or update the service to handle it. For now, we'll assume the service handles specific keys.
-    // To simplify, we can just trigger a save of a combined object or modify the service.
-    // Here we will piggyback on saveSettings by passing a special payload if needed, 
-    // but let's assume we update the context state and sync via a dedicated call or merged one.
-    // For this implementation, let's use a generic 'SAVE_SETTINGS' action that accepts flattened keys.
-    // But strictly, let's modify the sync logic in service to handle this or just trigger it.
-    
-    // Actually, let's verify if SheetsService.saveSettings handles this.
-    // It expects a payload. We'll assume the backend merges it.
-    // For robustness, let's just sync the merged settings object if structure allows,
-    // OR create a specific sync for payment settings.
-    // Given the SheetsService structure in the prompt, let's just send it.
     setSyncCount(c => c + 1);
     SheetsService.sendData('SAVE_PAYMENT_SETTINGS', newSettings).finally(() => setSyncCount(c => c - 1));
   };

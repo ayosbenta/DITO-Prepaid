@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -124,3 +125,6 @@ export enum PaymentMethod {
   GCASH = 'GCash',
   BANK = 'Bank Transfer',
 }
+
+// Declaration to fix module resolution errors
+declare module 'react-router-dom';

@@ -26,7 +26,8 @@ export const SheetsService = {
     try {
       if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL is not configured");
 
-      const response = await fetch(GOOGLE_SCRIPT_URL);
+      // Add cache buster to prevent stale data
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=read&t=${Date.now()}`);
       if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
       
       const data = await response.json();
@@ -107,7 +108,7 @@ export const SheetsService = {
         accountNumber: String(p.accountNumber),
         status: p.status || 'Pending',
         dateRequested: p.dateRequested || new Date().toISOString(),
-        dateProcessed: p.dateProcessed
+        dateProcessed: p.dateProcessed || ''
       }));
 
       // 6. Parse Settings (Merged Landing & Payment)
