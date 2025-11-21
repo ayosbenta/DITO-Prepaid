@@ -38,9 +38,9 @@ export const SheetsService = {
     try {
       if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL is not configured");
 
-      // 5 Second Timeout to prevent infinite loading if script is sleeping
+      // 10 Second Timeout (Increased from 5s to prevent premature timeouts on cold starts)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       console.log("Fetching data from Sheets...");
       const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=read&t=${Date.now()}`, {
@@ -56,7 +56,7 @@ export const SheetsService = {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        console.warn("Invalid JSON from Sheets. Using fallback.", text.substring(0, 50));
+        console.warn("Invalid JSON from Sheets.", text.substring(0, 50));
         throw new Error("Invalid JSON response");
       }
 
@@ -86,6 +86,7 @@ export const SheetsService = {
         };
       });
 
+      // Note: We keep the logic that if SHEET is empty but valid, we populate defaults.
       if (products.length === 0) {
         products = [HERO_PRODUCT, ...RELATED_PRODUCTS];
       }
@@ -171,17 +172,10 @@ export const SheetsService = {
       };
 
     } catch (error) {
-      console.warn("Sheets API Unavailable/Failed. Using Offline Mode.", error);
-      // Return Full Mock Data
-      return {
-        products: [HERO_PRODUCT, ...RELATED_PRODUCTS],
-        orders: RECENT_ORDERS,
-        customers: [],
-        affiliates: [DEMO_AFFILIATE],
-        payouts: [],
-        settings: DEFAULT_SETTINGS,
-        paymentSettings: DEFAULT_PAYMENT_SETTINGS
-      };
+      console.warn("Sheets API Fetch Failed:", error);
+      // CRITICAL: Return null on error so the StoreContext knows the fetch failed.
+      // Do NOT return mock data here, or we risk overwriting valid existing data during a background refresh.
+      return null;
     }
   },
 

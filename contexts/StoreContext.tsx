@@ -1,8 +1,8 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest } from '../types';
-import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
-import { SheetsService } from '../services/sheetsService';
+import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
+import { SheetsService, DEMO_AFFILIATE } from '../services/sheetsService';
 
 interface StoreContextType {
   products: Product[];
@@ -88,16 +88,17 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (isInitial) setIsLoading(true);
     else setIsRefreshing(true);
     
-    // Safety net: If fetching takes too long (>8s), force stop loading
+    // Safety net: If fetching takes too long (>10s), force stop loading
     const safetyTimeout = setTimeout(() => {
        if(isInitial) setIsLoading(false);
        setIsRefreshing(false);
-    }, 8000);
+    }, 10000);
 
     try {
       const data = await SheetsService.getAllData();
       
       if (data) {
+        // Success: Update State with Real Data
         setProducts(data.products || []);
         setOrders(data.orders || []);
         setCustomers(data.customers || []);
@@ -105,9 +106,22 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setPayouts(data.payouts || []);
         if (data.settings) setSettings(data.settings);
         if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
+      } else {
+        // Failure: Data is null (Network error or Timeout)
+        console.warn("Background fetch failed. Preserving existing state.");
+        
+        // Only load fallback Mock Data if we have NO data at all (Initial Load Failed)
+        if (products.length === 0) {
+           console.log("Using Fallback/Demo Data");
+           setProducts([HERO_PRODUCT, ...RELATED_PRODUCTS]);
+           setOrders(RECENT_ORDERS);
+           setAffiliates([DEMO_AFFILIATE]);
+           setPayouts([]);
+           // Settings remain default
+        }
       }
     } catch (err) {
-      console.error("Failed to load data", err);
+      console.error("Critical Error in loadData", err);
     } finally {
       clearTimeout(safetyTimeout);
       setIsLoading(false);
