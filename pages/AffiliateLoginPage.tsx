@@ -7,7 +7,7 @@ import { Button } from '../components/UI';
 import { 
   Users, ArrowRight, Loader2, User, Mail, Smartphone, 
   Calendar, MapPin, Lock, Briefcase, ShieldCheck, Upload, 
-  CheckCircle, AlertCircle, Eye, EyeOff, X
+  CheckCircle, AlertCircle, Eye, EyeOff, X, KeyRound
 } from 'lucide-react';
 
 const AffiliateLoginPage: React.FC = () => {
@@ -17,8 +17,10 @@ const AffiliateLoginPage: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   
   // Login State
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Registration State
   const [formData, setFormData] = useState({
@@ -98,6 +100,9 @@ const AffiliateLoginPage: React.FC = () => {
     // Check duplication
     const emailExists = affiliates.some(a => a.email.toLowerCase() === formData.email.toLowerCase());
     if (emailExists) newErrors.email = 'Email is already registered';
+    
+    const usernameExists = affiliates.some(a => a.username?.toLowerCase() === formData.username.toLowerCase());
+    if (usernameExists) newErrors.username = 'Username is taken';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -105,17 +110,32 @@ const AffiliateLoginPage: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const affiliate = affiliates.find(a => a.email.toLowerCase() === loginEmail.toLowerCase());
+    
+    // Find affiliate by Username (case-insensitive)
+    const affiliate = affiliates.find(a => 
+      (a.username && a.username.toLowerCase() === loginUsername.toLowerCase()) ||
+      // Fallback to email login if needed, or remove this line to force username
+      (a.email.toLowerCase() === loginUsername.toLowerCase())
+    );
     
     if (affiliate) {
       if (affiliate.status === 'banned') {
         setLoginError('This account has been suspended. Please contact support.');
         return;
       }
+
+      // Check Password
+      if (affiliate.password && affiliate.password !== loginPassword) {
+        setLoginError('Invalid password.');
+        return;
+      }
+
+      // If no password set (legacy data), maybe allow or force reset (skipping for now)
+      
       localStorage.setItem('dito_affiliate_id', affiliate.id);
       navigate('/affiliate/dashboard');
     } else {
-      setLoginError('Account not found. Please register.');
+      setLoginError('Account not found. Please check your username.');
     }
   };
 
@@ -144,7 +164,7 @@ const AffiliateLoginPage: React.FC = () => {
       gender: formData.gender as 'Male' | 'Female',
       mobile: formData.mobile,
       username: formData.username,
-      password: formData.password, // In real app, hash this!
+      password: formData.password,
       agencyName: formData.agencyName,
       address: formData.address,
       govtId: formData.govtId
@@ -182,18 +202,39 @@ const AffiliateLoginPage: React.FC = () => {
                     <AlertCircle size={16} /> {loginError}
                   </div>
                 )}
+                
+                {/* Username Input */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email Address</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Username</label>
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
-                      type="email" 
+                      type="text" 
                       required
-                      value={loginEmail}
-                      onChange={e => { setLoginEmail(e.target.value); setLoginError(''); }}
+                      value={loginUsername}
+                      onChange={e => { setLoginUsername(e.target.value); setLoginError(''); }}
                       className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                      placeholder="partner@example.com"
+                      placeholder="Enter your username"
                     />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type={showLoginPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }}
+                      className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      placeholder="••••••••"
+                    />
+                    <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
                 </div>
 
@@ -204,9 +245,10 @@ const AffiliateLoginPage: React.FC = () => {
                 {/* Demo Hint */}
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-center">
                    <p className="text-xs text-blue-600 font-bold uppercase mb-1">Demo Access</p>
-                   <p className="text-sm text-blue-800">Use email: <strong>demo@dito.ph</strong></p>
-                   <button type="button" onClick={() => setLoginEmail('demo@dito.ph')} className="text-xs text-blue-500 underline mt-1 hover:text-blue-700">
-                     Auto-fill
+                   <p className="text-sm text-blue-800">Username: <strong>demouser</strong></p>
+                   <p className="text-sm text-blue-800">Password: <strong>password123</strong></p>
+                   <button type="button" onClick={() => { setLoginUsername('demouser'); setLoginPassword('password123'); }} className="text-xs text-blue-500 underline mt-1 hover:text-blue-700">
+                     Auto-fill Credentials
                    </button>
                 </div>
               </form>
@@ -261,7 +303,7 @@ const AffiliateLoginPage: React.FC = () => {
                     <div>
                       <label className="form-label">Birth Date <span className="text-red-500">*</span></label>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                         <input 
                           type="date"
                           name="birthDate" 
@@ -290,7 +332,7 @@ const AffiliateLoginPage: React.FC = () => {
                     <div>
                       <label className="form-label">Email Address <span className="text-red-500">*</span></label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                         <input 
                           type="email"
                           name="email" 
@@ -305,7 +347,7 @@ const AffiliateLoginPage: React.FC = () => {
                     <div>
                       <label className="form-label">Mobile Number <span className="text-red-500">*</span></label>
                       <div className="relative">
-                        <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                         <input 
                           type="tel"
                           name="mobile" 
@@ -398,7 +440,7 @@ const AffiliateLoginPage: React.FC = () => {
                     <div>
                        <label className="form-label">Address / Location <span className="text-red-500">*</span></label>
                        <div className="relative">
-                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                          <input 
                            type="text"
                            name="address" 
@@ -427,7 +469,7 @@ const AffiliateLoginPage: React.FC = () => {
                             <button 
                               type="button"
                               onClick={() => setFormData(prev => ({...prev, govtId: ''}))}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600"
+                              className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 z-20"
                             >
                               <X size={16} />
                             </button>
@@ -442,7 +484,7 @@ const AffiliateLoginPage: React.FC = () => {
                              type="file" 
                              accept="image/*" 
                              onChange={handleFileChange}
-                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                            />
                          </>
                        )}

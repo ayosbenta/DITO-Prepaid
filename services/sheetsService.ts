@@ -33,6 +33,7 @@ export const DEMO_AFFILIATE: Affiliate = {
   firstName: 'Demo',
   lastName: 'Partner',
   username: 'demouser',
+  password: 'password123',
   mobile: '09171234567',
   address: 'Makati City',
   govtId: ''
