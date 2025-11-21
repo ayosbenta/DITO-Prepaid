@@ -2,7 +2,7 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Copy, DollarSign, ShoppingBag, Users, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard } from 'lucide-react';
+import { Copy, DollarSign, ShoppingBag, Users, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard, MousePointer, CheckCircle2 } from 'lucide-react';
 import { Button, Badge } from '../components/UI';
 
 const AffiliateDashboard: React.FC = () => {
@@ -42,6 +42,10 @@ const AffiliateDashboard: React.FC = () => {
   const pendingCommission = referredOrders
     .filter(o => o.status !== 'Delivered')
     .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0); 
+
+  const totalPaidPayouts = payouts
+    .filter(p => p.affiliateId === currentAffiliate.id && p.status === 'Approved')
+    .reduce((acc, p) => acc + p.amount, 0);
   
   const referralLink = `${window.location.origin}/?ref=${currentAffiliate.id}`;
 
@@ -136,7 +140,7 @@ const AffiliateDashboard: React.FC = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {/* Wallet */}
               <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white shadow-lg shadow-red-900/20 relative overflow-hidden">
                   <div className="relative z-10">
@@ -155,7 +159,7 @@ const AffiliateDashboard: React.FC = () => {
               </div>
 
               {/* Total Sales */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                       <ShoppingBag size={24} />
@@ -167,7 +171,7 @@ const AffiliateDashboard: React.FC = () => {
               </div>
 
               {/* Pending */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
                       <Clock size={24} />
@@ -176,6 +180,30 @@ const AffiliateDashboard: React.FC = () => {
                   <p className="text-gray-500 text-sm font-medium">Pending Commissions</p>
                   <h3 className="text-3xl font-bold text-gray-900">₱{pendingCommission.toLocaleString()}</h3>
                   <p className="text-xs text-gray-400 mt-1">Processing Orders</p>
+              </div>
+
+              {/* Total Paid Payouts */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+                      <CheckCircle2 size={24} />
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium">Total Paid Out</p>
+                  <h3 className="text-3xl font-bold text-gray-900">₱{totalPaidPayouts.toLocaleString()}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Approved Withdrawals</p>
+              </div>
+
+              {/* Link Clicks */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                      <MousePointer size={24} />
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium">Total Link Clicks</p>
+                  <h3 className="text-3xl font-bold text-gray-900">{(currentAffiliate.clicks || 0).toLocaleString()}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Visitor Traffic</p>
               </div>
             </div>
 
