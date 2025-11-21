@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
-  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle
+  MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -23,7 +23,7 @@ const AdminDashboard: React.FC = () => {
     products, orders, customers, affiliates, stats, settings, paymentSettings, payouts,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading,
+    deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading, refreshData,
     updateAffiliate, updatePayoutStatus
   } = useContext(StoreContext);
 
@@ -297,13 +297,13 @@ const AdminDashboard: React.FC = () => {
                                   <>
                                     <Button 
                                       onClick={() => updatePayoutStatus(p.id, 'Approved')} 
-                                      className="bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1 text-xs rounded-lg"
+                                      className="bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1 text-xs rounded-lg shadow-none"
                                     >
                                        Approve
                                     </Button>
                                     <Button 
                                       onClick={() => updatePayoutStatus(p.id, 'Rejected')} 
-                                      className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 text-xs rounded-lg"
+                                      className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 text-xs rounded-lg shadow-none"
                                     >
                                        Reject
                                     </Button>
@@ -1068,6 +1068,17 @@ const AdminDashboard: React.FC = () => {
                     </>
                  )}
               </div>
+              
+              {/* Refresh Button */}
+              <button 
+                onClick={() => refreshData()} 
+                disabled={isSyncing}
+                className="p-2 bg-white border rounded-full text-gray-500 hover:bg-gray-50 hover:text-primary disabled:opacity-50"
+                title="Refresh Data"
+              >
+                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+              </button>
+
               <button className="p-2 bg-white border rounded-full text-gray-500 relative">
                  <Bell size={20} />
                  {pendingPayoutsCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>}
