@@ -20,10 +20,13 @@ import CustomerLoginPage from './pages/CustomerLoginPage';
 // Helper to capture ?ref=ID
 const ReferralHandler = () => {
   const [searchParams] = useSearchParams();
-  const { trackAffiliateClick } = useContext(StoreContext);
+  const { trackAffiliateClick, isLoading, affiliates } = useContext(StoreContext);
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // 1. Don't track until data is fully loaded, otherwise affiliate.find() fails
+    if (isLoading) return;
+
     let refId = searchParams.get('ref');
 
     // Fallback 1: Check query params before the hash (common in some server configs /?ref=123#/)
@@ -38,13 +41,25 @@ const ReferralHandler = () => {
          if (match) refId = match[1];
     }
 
+    // 2. Only process if ID exists and hasn't been processed in this session
     if (refId && refId !== processedRef.current) {
       localStorage.setItem('dito_referral_id', refId);
-      console.log('Referral tracked:', refId);
-      trackAffiliateClick(refId);
-      processedRef.current = refId;
+      
+      // 3. Check if this is a valid affiliate ID in our database
+      const isValidAffiliate = affiliates.some(a => a.id === refId);
+
+      if (isValidAffiliate) {
+          console.log('Referral Click Tracked:', refId);
+          trackAffiliateClick(refId);
+          processedRef.current = refId;
+      } else if (affiliates.length > 0) {
+          // If affiliates are loaded but ID is not found, it's invalid. 
+          // Mark as processed so we don't keep retrying.
+          console.warn('Invalid Affiliate ID:', refId);
+          processedRef.current = refId;
+      }
     }
-  }, [searchParams, trackAffiliateClick]);
+  }, [searchParams, trackAffiliateClick, isLoading, affiliates]);
 
   return null;
 };

@@ -38,7 +38,7 @@ export const SheetsService = {
     try {
       if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL is not configured");
 
-      // 10 Second Timeout (Increased from 5s to prevent premature timeouts on cold starts)
+      // 10 Second Timeout to handle cold starts better
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -173,8 +173,7 @@ export const SheetsService = {
 
     } catch (error) {
       console.warn("Sheets API Fetch Failed:", error);
-      // CRITICAL: Return null on error so the StoreContext knows the fetch failed.
-      // Do NOT return mock data here, or we risk overwriting valid existing data during a background refresh.
+      // CRITICAL: Return null so the app knows the fetch failed and doesn't overwrite state with mock data
       return null;
     }
   },

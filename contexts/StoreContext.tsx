@@ -111,6 +111,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         console.warn("Background fetch failed. Preserving existing state.");
         
         // Only load fallback Mock Data if we have NO data at all (Initial Load Failed)
+        // This prevents overwriting real data with mock data during a background sync failure.
         if (products.length === 0) {
            console.log("Using Fallback/Demo Data");
            setProducts([HERO_PRODUCT, ...RELATED_PRODUCTS]);
