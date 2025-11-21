@@ -2,7 +2,7 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Copy, DollarSign, ShoppingBag, Users, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard, MousePointer, CheckCircle2 } from 'lucide-react';
+import { Copy, DollarSign, ShoppingBag, ExternalLink, CheckCircle, Wallet, Clock, XCircle, CreditCard, LayoutDashboard, MousePointer, CheckCircle2 } from 'lucide-react';
 import { Button, Badge } from '../components/UI';
 
 const AffiliateDashboard: React.FC = () => {
@@ -139,71 +139,79 @@ const AffiliateDashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {/* Wallet */}
-              <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white shadow-lg shadow-red-900/20 relative overflow-hidden">
-                  <div className="relative z-10">
-                    <p className="text-red-100 text-sm font-medium mb-1">Current Wallet Balance</p>
-                    <h3 className="text-4xl font-black">₱{currentAffiliate.walletBalance.toLocaleString()}</h3>
-                    <div className="mt-4 flex gap-2">
-                      <button 
-                        onClick={() => setActiveTab('payouts')}
-                        className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg backdrop-blur-sm transition-colors flex items-center gap-1"
-                      >
-                        Request Payout <DollarSign size={12} />
-                      </button>
-                    </div>
+            {/* Stats Grid - 3 Columns Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Left Column: Wallet (Full Height) */}
+              <div className="lg:col-span-1">
+                  <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white shadow-lg shadow-red-900/20 relative overflow-hidden h-full flex flex-col justify-between">
+                      <div className="relative z-10">
+                        <p className="text-red-100 text-sm font-medium mb-1">Current Wallet Balance</p>
+                        <h3 className="text-4xl font-black">₱{currentAffiliate.walletBalance.toLocaleString()}</h3>
+                        <div className="mt-8 flex gap-2">
+                          <button 
+                            onClick={() => setActiveTab('payouts')}
+                            className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-2.5 rounded-lg backdrop-blur-sm transition-colors flex items-center gap-2 group"
+                          >
+                            Request Payout <DollarSign size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      </div>
+                      <Wallet className="absolute right-[-20px] bottom-[-20px] text-white/10 rotate-12" size={180} />
                   </div>
-                  <Wallet className="absolute right-4 bottom-4 text-white/10" size={80} />
               </div>
 
-              {/* Total Sales */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                      <ShoppingBag size={24} />
-                    </div>
-                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">+ Sales</span>
+              {/* Middle Column: Sales & Clicks */}
+              <div className="lg:col-span-1 flex flex-col gap-6 h-full">
+                  {/* Total Sales */}
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex-1 flex flex-col justify-center">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                          <ShoppingBag size={24} />
+                        </div>
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">+ Sales</span>
+                      </div>
+                      <p className="text-gray-500 text-sm font-medium">Total Referred Sales</p>
+                      <h3 className="text-3xl font-bold text-gray-900">₱{currentAffiliate.totalSales.toLocaleString()}</h3>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Total Referred Sales</p>
-                  <h3 className="text-3xl font-bold text-gray-900">₱{currentAffiliate.totalSales.toLocaleString()}</h3>
+
+                  {/* Link Clicks */}
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex-1 flex flex-col justify-center">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                          <MousePointer size={24} />
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-sm font-medium">Total Link Clicks</p>
+                      <h3 className="text-3xl font-bold text-gray-900">{(currentAffiliate.clicks || 0).toLocaleString()}</h3>
+                      <p className="text-xs text-gray-400 mt-1">Visitor Traffic</p>
+                  </div>
               </div>
 
-              {/* Pending */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                      <Clock size={24} />
-                    </div>
+              {/* Right Column: Pending & Paid Out */}
+              <div className="lg:col-span-1 flex flex-col gap-6 h-full">
+                   {/* Pending */}
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex-1 flex flex-col justify-center">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+                          <Clock size={24} />
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-sm font-medium">Pending Commissions</p>
+                      <h3 className="text-3xl font-bold text-gray-900">₱{pendingCommission.toLocaleString()}</h3>
+                      <p className="text-xs text-gray-400 mt-1">Processing Orders</p>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Pending Commissions</p>
-                  <h3 className="text-3xl font-bold text-gray-900">₱{pendingCommission.toLocaleString()}</h3>
-                  <p className="text-xs text-gray-400 mt-1">Processing Orders</p>
-              </div>
 
-              {/* Total Paid Payouts */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 bg-green-50 text-green-600 rounded-xl">
-                      <CheckCircle2 size={24} />
-                    </div>
+                  {/* Total Paid Payouts */}
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex-1 flex flex-col justify-center">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+                          <CheckCircle2 size={24} />
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-sm font-medium">Total Paid Out</p>
+                      <h3 className="text-3xl font-bold text-gray-900">₱{totalPaidPayouts.toLocaleString()}</h3>
+                      <p className="text-xs text-gray-400 mt-1">Approved Withdrawals</p>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Total Paid Out</p>
-                  <h3 className="text-3xl font-bold text-gray-900">₱{totalPaidPayouts.toLocaleString()}</h3>
-                  <p className="text-xs text-gray-400 mt-1">Approved Withdrawals</p>
-              </div>
-
-              {/* Link Clicks */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                      <MousePointer size={24} />
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm font-medium">Total Link Clicks</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{(currentAffiliate.clicks || 0).toLocaleString()}</h3>
-                  <p className="text-xs text-gray-400 mt-1">Visitor Traffic</p>
               </div>
             </div>
 
