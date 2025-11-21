@@ -1,15 +1,15 @@
+
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check } from 'lucide-react';
+import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
 
 const HomePage: React.FC = () => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);
-  const { products, settings } = useContext(StoreContext);
+  const { products, settings, isLoading } = useContext(StoreContext);
 
-  // Dynamic Hero Product (Fallback to first product if specific ID missing)
   const heroProduct = products.find(p => p.id === 'dito-wowfi-pro') || products[0];
 
   const handleShopNow = () => {
@@ -19,7 +19,37 @@ const HomePage: React.FC = () => {
     }
   };
 
-  if (!heroProduct) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-gray-100 border-t-primary rounded-full animate-spin"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary">
+             <Wifi size={20} />
+          </div>
+        </div>
+        <p className="text-gray-500 font-medium mt-6">Connecting to Store...</p>
+        <p className="text-xs text-gray-400 mt-2">Getting things ready</p>
+      </div>
+    );
+  }
+
+  if (!heroProduct) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4 text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 mx-auto">
+           <AlertTriangle className="text-red-500" size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Store Unavailable</h2>
+        <p className="text-gray-500 max-w-md mx-auto">
+          We couldn't load the product catalog. Please check your internet connection or try again later.
+        </p>
+        <Button variant="primary" onClick={() => window.location.reload()} className="mt-6">
+           Reload Page
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden bg-white font-sans">

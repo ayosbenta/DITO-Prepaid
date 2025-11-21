@@ -169,7 +169,6 @@ const AdminDashboard: React.FC = () => {
     }));
   };
   
-  // Handle file upload logic for QR code (convert to DataURL)
   const handleQRUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {

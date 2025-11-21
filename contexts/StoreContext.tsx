@@ -12,27 +12,20 @@ interface StoreContextType {
   payouts: PayoutRequest[];
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
-  // Product Actions
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updatedProduct: Product) => void;
   deleteProduct: (id: string) => void;
-  // Order Actions
   addOrder: (order: Order) => void;
   updateOrderStatus: (id: string, status: Order['status']) => void;
   deleteOrder: (id: string) => void;
-  // Customer Actions
   deleteCustomer: (email: string) => void;
-  // Affiliate Actions
   registerAffiliate: (affiliate: Affiliate) => void;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => void;
   trackAffiliateClick: (id: string) => void;
-  // Payout Actions
   requestPayout: (req: Omit<PayoutRequest, 'id' | 'status' | 'dateRequested'>) => void;
   updatePayoutStatus: (id: string, status: PayoutRequest['status']) => void;
-  // Settings Actions
   updateSettings: (settings: LandingPageSettings) => void;
   updatePaymentSettings: (settings: PaymentSettings) => void;
-  // Dashboard Stats
   stats: {
     revenue: number;
     totalOrders: number;
@@ -75,7 +68,6 @@ export const StoreContext = createContext<StoreContextType>({
 });
 
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Start with empty/default data while loading
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
@@ -84,7 +76,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   
-  // Sync State using a counter to handle multiple concurrent syncs
   const [syncCount, setSyncCount] = useState(0);
   const isSyncing = syncCount > 0;
   
@@ -92,47 +83,49 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async (isBackground = false) => {
-    // Only show global loading spinner on first load
-    if (!isBackground && products.length === 0) setIsLoading(true);
-    // Show refreshing spinner if we already have data but user requested update
-    if (!isBackground && products.length > 0) setIsRefreshing(true);
+    const isInitial = !isBackground && products.length === 0;
     
-    const data = await SheetsService.getAllData();
+    if (isInitial) setIsLoading(true);
+    else setIsRefreshing(true);
     
-    if (data) {
-      setProducts(data.products || []);
-      setOrders(data.orders || []);
-      setCustomers(data.customers || []);
-      setAffiliates(data.affiliates || []);
-      setPayouts(data.payouts || []);
-      if (data.settings) setSettings(data.settings);
-      if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
-    }
-    
-    if (!isBackground) {
+    // Safety net: If fetching takes too long (>8s), force stop loading
+    const safetyTimeout = setTimeout(() => {
+       if(isInitial) setIsLoading(false);
+       setIsRefreshing(false);
+    }, 8000);
+
+    try {
+      const data = await SheetsService.getAllData();
+      
+      if (data) {
+        setProducts(data.products || []);
+        setOrders(data.orders || []);
+        setCustomers(data.customers || []);
+        setAffiliates(data.affiliates || []);
+        setPayouts(data.payouts || []);
+        if (data.settings) setSettings(data.settings);
+        if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
+      }
+    } catch (err) {
+      console.error("Failed to load data", err);
+    } finally {
+      clearTimeout(safetyTimeout);
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
-  // Initial Load
   useEffect(() => {
     loadData();
   }, []);
 
-  // Auto-Refresh / Polling Logic
   useEffect(() => {
     const intervalId = setInterval(() => {
-      // Do not refresh if we are currently syncing changes to avoid overwriting optimistic updates
-      if (!isSyncing) {
-        loadData(true); // true = background refresh (no spinner)
-      }
-    }, 15000); // Refresh every 15 seconds
-
+      if (!isSyncing) loadData(true);
+    }, 15000);
     return () => clearInterval(intervalId);
   }, [isSyncing]); 
 
-  // --- Sync Helpers ---
   const triggerProductSync = (newProducts: Product[]) => {
     setSyncCount(c => c + 1);
     SheetsService.syncProducts(newProducts).finally(() => setSyncCount(c => c - 1));
@@ -153,9 +146,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.saveSettings(newSettings).finally(() => setSyncCount(c => c - 1));
   };
 
-  // --- Actions ---
-
-  // Products
   const addProduct = (product: Product) => {
     const updated = [...products, product];
     setProducts(updated);
@@ -174,25 +164,17 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     triggerProductSync(updated);
   };
 
-  // Orders
   const addOrder = (order: Order) => {
     const updatedOrders = [order, ...orders];
     setOrders(updatedOrders);
-    
-    // If new customer, add to list
-    const customerExists = customers.some(c => c.email === order.id); 
     triggerOrderSync(updatedOrders);
 
-    // Handle Commission if referred
     if (order.referralId) {
        const affiliate = affiliates.find(a => a.id === order.referralId);
        if (affiliate) {
          const updatedAffiliates = affiliates.map(a => {
             if (a.id === order.referralId) {
-               return {
-                 ...a,
-                 totalSales: a.totalSales + order.total,
-               };
+               return { ...a, totalSales: a.totalSales + order.total };
             }
             return a;
          });
@@ -208,7 +190,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setOrders(updatedOrders);
     triggerOrderSync(updatedOrders);
 
-    // If status changed to Delivered, credit the affiliate wallet
     if (oldOrder && oldOrder.status !== 'Delivered' && status === 'Delivered' && oldOrder.referralId) {
        const updatedAffiliates = affiliates.map(a => {
           if (a.id === oldOrder.referralId) {
@@ -232,12 +213,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     triggerOrderSync(updated);
   };
 
-  // Customers
   const deleteCustomer = (email: string) => {
     setCustomers(customers.filter(c => c.email !== email));
   };
 
-  // Affiliates
   const registerAffiliate = (affiliate: Affiliate) => {
     const updated = [...affiliates, affiliate];
     setAffiliates(updated);
@@ -259,7 +238,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  // Payouts
   const requestPayout = (req: Omit<PayoutRequest, 'id' | 'status' | 'dateRequested'>) => {
     const newPayout: PayoutRequest = {
       ...req,
@@ -267,77 +245,48 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       status: 'Pending',
       dateRequested: new Date().toISOString()
     };
-
-    // 1. Update Payouts List
     const updatedPayouts = [newPayout, ...payouts];
     setPayouts(updatedPayouts);
 
-    // 2. Deduct from Affiliate Wallet Immediately
     const updatedAffiliates = affiliates.map(a => {
       if (a.id === req.affiliateId) {
-        return {
-          ...a,
-          walletBalance: Math.max(0, a.walletBalance - req.amount)
-        };
+        return { ...a, walletBalance: Math.max(0, a.walletBalance - req.amount) };
       }
       return a;
     });
     setAffiliates(updatedAffiliates);
-
-    // 3. Sync Both
     setSyncCount(c => c + 1);
     Promise.all([
       SheetsService.syncPayouts(updatedPayouts),
       SheetsService.syncAffiliates(updatedAffiliates)
-    ]).catch(err => {
-      console.error("Failed to sync payout request", err);
-      // Optionally revert state here if strictly required
-    }).finally(() => setSyncCount(c => c - 1));
+    ]).finally(() => setSyncCount(c => c - 1));
   };
 
   const updatePayoutStatus = (id: string, status: PayoutRequest['status']) => {
     const payoutIndex = payouts.findIndex(p => p.id === id);
     if (payoutIndex === -1) return;
     const payout = payouts[payoutIndex];
-
     const dateProcessed = new Date().toISOString();
-
-    // 1. Update Payout Status in state (Optimistic)
-    const updatedPayouts = payouts.map(p => 
-      p.id === id ? { ...p, status, dateProcessed } : p
-    );
+    const updatedPayouts = payouts.map(p => p.id === id ? { ...p, status, dateProcessed } : p);
     setPayouts(updatedPayouts);
 
     let updatedAffiliates = affiliates;
-
-    // 2. If Rejected, Refund the amount to wallet
     if (status === 'Rejected' && payout.status === 'Pending') {
       updatedAffiliates = affiliates.map(a => {
         if (a.id === payout.affiliateId) {
-          return {
-            ...a,
-            walletBalance: a.walletBalance + payout.amount
-          };
+          return { ...a, walletBalance: a.walletBalance + payout.amount };
         }
         return a;
       });
       setAffiliates(updatedAffiliates);
     }
 
-    // 3. Sync
     setSyncCount(c => c + 1);
     const promises = [SheetsService.syncPayouts(updatedPayouts)];
-    if (status === 'Rejected') {
-      promises.push(SheetsService.syncAffiliates(updatedAffiliates));
-    }
-    
-    Promise.all(promises).catch(err => {
-       console.error("Failed to sync payout status", err);
-       alert("Failed to save changes to cloud. Please refresh and try again.");
-    }).finally(() => setSyncCount(c => c - 1));
+    if (status === 'Rejected') promises.push(SheetsService.syncAffiliates(updatedAffiliates));
+    Promise.all(promises).finally(() => setSyncCount(c => c - 1));
   };
 
-  // Settings
   const updateSettings = (newSettings: LandingPageSettings) => {
     setSettings(newSettings);
     triggerSettingsSync(newSettings);
@@ -353,7 +302,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     revenue: orders.reduce((acc, o) => acc + o.total, 0),
     totalOrders: orders.length,
     totalCustomers: customers.length,
-    lowStock: products.filter(p => Math.random() > 0.8).length // Mock low stock logic
+    lowStock: products.filter(p => Math.random() > 0.8).length
   };
 
   return (

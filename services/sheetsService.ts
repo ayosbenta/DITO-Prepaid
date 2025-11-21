@@ -2,8 +2,8 @@
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
-// PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7VQb56S2UWSMk0IAIS0MWB84R_ODwCwO_aeSC443Jr2VFP4VpFxJRqjANKm6p5jAhkQ/exec"; 
+// Updated URL
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNTTB_z9qMoE93XgJTGC11s-rbRvVV_ErfU_9CpzKFxnVsZhcDtE_lCHdKofO8tQ0LRg/exec"; 
 
 interface ApiResponse {
   status: 'success' | 'error';
@@ -20,30 +20,52 @@ interface DashboardData {
   paymentSettings: PaymentSettings;
 }
 
+export const DEMO_AFFILIATE: Affiliate = {
+  id: 'AFF-DEMO',
+  name: 'Demo Partner',
+  email: 'demo@dito.ph',
+  walletBalance: 2500,
+  totalSales: 15000,
+  joinDate: new Date().toISOString().split('T')[0],
+  status: 'active',
+  clicks: 42,
+  lifetimeEarnings: 750
+};
+
 export const SheetsService = {
   // Fetch all data from Sheets
   getAllData: async (): Promise<DashboardData | null> => {
     try {
       if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL is not configured");
 
-      // Add cache buster to prevent stale data
-      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=read&t=${Date.now()}`);
+      // 5 Second Timeout to prevent infinite loading if script is sleeping
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      console.log("Fetching data from Sheets...");
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=read&t=${Date.now()}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
       if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
       
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.warn("Invalid JSON from Sheets. Using fallback.", text.substring(0, 50));
+        throw new Error("Invalid JSON response");
+      }
 
       // 1. Parse Products
-      const products: Product[] = (data.Products || []).map((p: any) => {
+      let products: Product[] = (data.Products || []).map((p: any) => {
         let details = {};
         try {
           if (p.json_data) details = JSON.parse(p.json_data);
-        } catch (e) {
-          console.warn("Failed to parse product json_data", p.name);
-        }
-
-        // Safe fallback for commission fields
-        let commissionSettings = {};
-        if (p.commissionType) commissionSettings = { commissionType: p.commissionType, commissionValue: Number(p.commissionValue) };
+        } catch (e) { /* ignore */ }
 
         return {
           id: String(p.id),
@@ -59,9 +81,14 @@ export const SheetsService = {
           rating: 5, 
           reviews: 0,
           ...details,
-          ...commissionSettings
+          commissionType: p.commissionType,
+          commissionValue: Number(p.commissionValue)
         };
       });
+
+      if (products.length === 0) {
+        products = [HERO_PRODUCT, ...RELATED_PRODUCTS];
+      }
 
       // 2. Parse Orders
       const orders: Order[] = (data.Orders || []).map((o: any) => ({
@@ -85,17 +112,22 @@ export const SheetsService = {
       }));
 
       // 4. Parse Affiliates
-      const affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => ({
+      let affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => ({
         id: String(a.id),
         name: String(a.name),
         email: String(a.email),
         walletBalance: Number(a.walletBalance || 0),
         totalSales: Number(a.totalSales || 0),
         joinDate: a.joinDate ? new Date(a.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        status: (a.status === 'active' || a.status === 'inactive' || a.status === 'banned') ? a.status : 'active',
+        status: a.status || 'active',
         clicks: Number(a.clicks || 0),
         lifetimeEarnings: Number(a.lifetimeEarnings || 0)
       }));
+
+      // Fallback: Add Demo Affiliate if list is empty so login works
+      if (affiliates.length === 0) {
+         affiliates = [DEMO_AFFILIATE];
+      }
 
       // 5. Parse Payouts
       const payouts: PayoutRequest[] = (data.Payouts || []).map((p: any) => ({
@@ -111,51 +143,41 @@ export const SheetsService = {
         dateProcessed: p.dateProcessed || ''
       }));
 
-      // 6. Parse Settings (Merged Landing & Payment)
+      // 6. Parse Settings
       const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS };
-      
       if (data.Settings && Array.isArray(data.Settings)) {
         data.Settings.forEach((row: any) => {
           if (!row.Key || row.Value === undefined) return;
-          
           const keys = row.Key.split('.');
           let current: any = rawSettings;
-          
           for (let i = 0; i < keys.length - 1; i++) {
             if (!current[keys[i]]) current[keys[i]] = {};
             current = current[keys[i]];
           }
-          // Convert boolean strings to booleans
           let val = row.Value;
           if (val === 'true') val = true;
           if (val === 'false') val = false;
-          
           current[keys[keys.length - 1]] = val;
         });
       }
       
-      // Split them back out (handle case where payment might not exist in response if new)
       const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
       const { payment: _, ...landingSettings } = rawSettings;
 
       return { 
-        products, 
-        orders, 
-        customers, 
-        affiliates, 
-        payouts,
+        products, orders, customers, affiliates, payouts,
         settings: landingSettings as LandingPageSettings, 
         paymentSettings: payment as PaymentSettings 
       };
 
     } catch (error) {
-      console.warn("Sheets API Unavailable or Failed. Loading fallback mock data.", error);
-      // Return Mock Data if API fails
+      console.warn("Sheets API Unavailable/Failed. Using Offline Mode.", error);
+      // Return Full Mock Data
       return {
         products: [HERO_PRODUCT, ...RELATED_PRODUCTS],
         orders: RECENT_ORDERS,
         customers: [],
-        affiliates: [],
+        affiliates: [DEMO_AFFILIATE],
         payouts: [],
         settings: DEFAULT_SETTINGS,
         paymentSettings: DEFAULT_PAYMENT_SETTINGS
@@ -165,41 +187,22 @@ export const SheetsService = {
 
   sendData: async (action: string, payload: any): Promise<ApiResponse> => {
     if (!GOOGLE_SCRIPT_URL) return { status: 'error', message: 'No Script URL' };
-    
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        redirect: "follow", 
-        headers: { 
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action, payload })
       });
-      
-      return { status: 'success' };
+      const text = await response.text();
+      try { return JSON.parse(text); } catch { return { status: 'error', message: 'Invalid JSON' }; }
     } catch (error) {
-      console.error(`Sync error [${action}]:`, error);
       return { status: 'error', message: 'Network Error' };
     }
   },
 
-  saveSettings: async (settings: any): Promise<ApiResponse> => {
-    return SheetsService.sendData('SAVE_SETTINGS', settings);
-  },
-
-  syncProducts: async (products: Product[]): Promise<ApiResponse> => {
-    return SheetsService.sendData('SYNC_PRODUCTS', products);
-  },
-
-  syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
-    return SheetsService.sendData('SYNC_ORDERS', orders);
-  },
-
-  syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
-    return SheetsService.sendData('SYNC_AFFILIATES', affiliates);
-  },
-
-  syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => {
-    return SheetsService.sendData('SYNC_PAYOUTS', payouts);
-  }
+  saveSettings: async (settings: any): Promise<ApiResponse> => SheetsService.sendData('SAVE_SETTINGS', settings),
+  syncProducts: async (products: Product[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PRODUCTS', products),
+  syncOrders: async (orders: Order[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_ORDERS', orders),
+  syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_AFFILIATES', affiliates),
+  syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PAYOUTS', payouts)
 };

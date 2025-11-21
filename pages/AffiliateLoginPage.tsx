@@ -53,11 +53,7 @@ const AffiliateLoginPage: React.FC = () => {
     };
 
     registerAffiliate(newAffiliate);
-    
-    // Auto login after register logic is async, so we set localstorage immediately for UX
     localStorage.setItem('dito_affiliate_id', newAffiliate.id);
-    
-    // Wait a bit for sync visually
     setTimeout(() => navigate('/affiliate/dashboard'), 1000);
   };
 
@@ -108,6 +104,17 @@ const AffiliateLoginPage: React.FC = () => {
               {isSyncing ? <Loader2 className="animate-spin" /> : (isRegistering ? 'Create Account' : 'Login to Dashboard')}
             </Button>
           </form>
+
+          {/* DEMO HINT */}
+          {!isRegistering && (
+             <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-center">
+                <p className="text-xs text-blue-600 font-bold uppercase mb-1">Demo Access</p>
+                <p className="text-sm text-blue-800">Use email: <strong>demo@dito.ph</strong></p>
+                <button onClick={() => setEmail('demo@dito.ph')} className="text-xs text-blue-500 underline mt-1">
+                  Auto-fill
+                </button>
+             </div>
+          )}
 
           <div className="mt-6 text-center">
             <button 

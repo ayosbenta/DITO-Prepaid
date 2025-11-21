@@ -22,7 +22,6 @@ export const generateChatResponse = async (
 ): Promise<string> => {
   try {
     // Initialize Gemini API with key from environment variables
-    // As per guidelines, we assume process.env.API_KEY is available and valid.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const model = 'gemini-2.5-flash'; 
@@ -32,7 +31,6 @@ export const generateChatResponse = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
-        // maxOutputTokens is removed as it's recommended to avoid setting it if not required
       },
       history: history,
     });
