@@ -1,6 +1,7 @@
 
 // Source: https://github.com/isaacdarcilla/philippine-addresses
-const BASE_URL = 'https://isaacdarcilla.github.io/philippine-addresses';
+// Switched to raw content to prevent HTML 404 responses
+const BASE_URL = 'https://raw.githubusercontent.com/isaacdarcilla/philippine-addresses/master';
 
 export interface LocationOption {
   code: string;
@@ -11,6 +12,7 @@ export const LocationService = {
   getProvinces: async (): Promise<LocationOption[]> => {
     try {
       const response = await fetch(`${BASE_URL}/province.json`);
+      if (!response.ok) throw new Error('Failed to fetch provinces');
       const data = await response.json();
       return data.map((item: any) => ({
         code: item.province_code,
@@ -24,7 +26,9 @@ export const LocationService = {
 
   getCities: async (provinceCode: string): Promise<LocationOption[]> => {
     try {
-      const response = await fetch(`${BASE_URL}/city-municipality.json`);
+      // Corrected endpoint: city.json
+      const response = await fetch(`${BASE_URL}/city.json`);
+      if (!response.ok) throw new Error('Failed to fetch cities');
       const data = await response.json();
       return data
         .filter((item: any) => item.province_code === provinceCode)
@@ -41,6 +45,7 @@ export const LocationService = {
   getBarangays: async (cityCode: string): Promise<LocationOption[]> => {
     try {
       const response = await fetch(`${BASE_URL}/barangay.json`);
+      if (!response.ok) throw new Error('Failed to fetch barangays');
       const data = await response.json();
       return data
         .filter((item: any) => item.city_code === cityCode)
