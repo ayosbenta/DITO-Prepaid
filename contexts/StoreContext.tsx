@@ -41,6 +41,7 @@ interface StoreContextType {
   };
   isSyncing: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
   refreshData: () => void;
 }
 
@@ -69,6 +70,7 @@ export const StoreContext = createContext<StoreContextType>({
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
   isLoading: true,
+  isRefreshing: false,
   refreshData: () => {},
 });
 
@@ -87,9 +89,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const isSyncing = syncCount > 0;
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async (isBackground = false) => {
-    if (!isBackground) setIsLoading(true);
+    // Only show global loading spinner on first load
+    if (!isBackground && products.length === 0) setIsLoading(true);
+    // Show refreshing spinner if we already have data but user requested update
+    if (!isBackground && products.length > 0) setIsRefreshing(true);
     
     const data = await SheetsService.getAllData();
     
@@ -103,7 +109,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
     }
     
-    if (!isBackground) setIsLoading(false);
+    if (!isBackground) {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   };
 
   // Initial Load
@@ -121,7 +130,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, 15000); // Refresh every 15 seconds
 
     return () => clearInterval(intervalId);
-  }, [isSyncing]); // Dependent on isSyncing state
+  }, [isSyncing]); 
 
   // --- Sync Helpers ---
   const triggerProductSync = (newProducts: Product[]) => {
@@ -172,8 +181,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     // If new customer, add to list
     const customerExists = customers.some(c => c.email === order.id); 
-    // Note: Order object currently stores customer name, not email directly for ID. 
-    
     triggerOrderSync(updatedOrders);
 
     // Handle Commission if referred
@@ -282,7 +289,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     Promise.all([
       SheetsService.syncPayouts(updatedPayouts),
       SheetsService.syncAffiliates(updatedAffiliates)
-    ]).finally(() => setSyncCount(c => c - 1));
+    ]).catch(err => {
+      console.error("Failed to sync payout request", err);
+      // Optionally revert state here if strictly required
+    }).finally(() => setSyncCount(c => c - 1));
   };
 
   const updatePayoutStatus = (id: string, status: PayoutRequest['status']) => {
@@ -321,7 +331,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       promises.push(SheetsService.syncAffiliates(updatedAffiliates));
     }
     
-    Promise.all(promises).finally(() => setSyncCount(c => c - 1));
+    Promise.all(promises).catch(err => {
+       console.error("Failed to sync payout status", err);
+       alert("Failed to save changes to cloud. Please refresh and try again.");
+    }).finally(() => setSyncCount(c => c - 1));
   };
 
   // Settings
@@ -353,7 +366,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       requestPayout, updatePayoutStatus,
       updateSettings, updatePaymentSettings,
       stats,
-      isSyncing, isLoading, refreshData: () => loadData(false)
+      isSyncing, isLoading, isRefreshing, refreshData: () => loadData(false)
     }}>
       {children}
     </StoreContext.Provider>

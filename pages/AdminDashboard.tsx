@@ -23,7 +23,7 @@ const AdminDashboard: React.FC = () => {
     products, orders, customers, affiliates, stats, settings, paymentSettings, payouts,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
-    deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading, refreshData,
+    deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading, isRefreshing, refreshData,
     updateAffiliate, updatePayoutStatus
   } = useContext(StoreContext);
 
@@ -261,8 +261,13 @@ const AdminDashboard: React.FC = () => {
                   <h2 className="text-lg font-bold text-gray-900">Payout Requests</h2>
                   <p className="text-sm text-gray-500">Manage affiliate withdrawal requests.</p>
                 </div>
-                <Button onClick={() => refreshData()} variant="outline" className="text-xs py-2 px-3">
-                   <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                <Button 
+                  onClick={() => refreshData()} 
+                  variant="outline" 
+                  className="text-xs py-2 px-3"
+                  disabled={isRefreshing || isSyncing}
+                >
+                   <RefreshCw size={14} className={isRefreshing || isSyncing ? 'animate-spin' : ''} />
                 </Button>
               </div>
               <div className="overflow-x-auto">
@@ -1077,11 +1082,11 @@ const AdminDashboard: React.FC = () => {
               {/* Refresh Button */}
               <button 
                 onClick={() => refreshData()} 
-                disabled={isSyncing}
+                disabled={isSyncing || isRefreshing}
                 className="p-2 bg-white border rounded-full text-gray-500 hover:bg-gray-50 hover:text-primary disabled:opacity-50 transition-all"
                 title="Refresh Data"
               >
-                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+                 <RefreshCw size={20} className={isSyncing || isRefreshing ? 'animate-spin' : ''} />
               </button>
 
               <button className="p-2 bg-white border rounded-full text-gray-500 relative">
