@@ -709,8 +709,67 @@ const AdminDashboard: React.FC = () => {
           </div>
       );
 
-      case 'Affiliates': return (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      case 'Affiliates': 
+         const totalAffiliates = affiliates.length;
+         const totalAffiliateSales = affiliates.reduce((acc, curr) => acc + curr.totalSales, 0);
+         const totalPendingComm = orders
+             .filter(o => o.referralId && o.status !== 'Delivered')
+             .reduce((sum, o) => sum + (o.commission || (o.total * 0.05)), 0);
+         const totalPayoutsPaid = payouts
+             .filter(p => p.status === 'Approved')
+             .reduce((sum, p) => sum + p.amount, 0);
+
+         return (
+          <div className="space-y-6">
+             {/* Affiliate KPI Cards */}
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Card 1: Total Affiliates */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                      <div>
+                          <p className="text-sm text-gray-500 font-medium">Total Affiliates</p>
+                          <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalAffiliates}</h3>
+                      </div>
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                          <Users size={24} />
+                      </div>
+                  </div>
+
+                  {/* Card 2: Total Sales */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                      <div>
+                          <p className="text-sm text-gray-500 font-medium">Total Sales</p>
+                          <h3 className="text-2xl font-bold text-gray-900 mt-1">₱{totalAffiliateSales.toLocaleString()}</h3>
+                      </div>
+                      <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+                          <ShoppingBag size={24} />
+                      </div>
+                  </div>
+
+                  {/* Card 3: Pending Commission */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                      <div>
+                          <p className="text-sm text-gray-500 font-medium">Total Pending Comm.</p>
+                          <h3 className="text-2xl font-bold text-orange-600 mt-1">₱{totalPendingComm.toLocaleString()}</h3>
+                      </div>
+                      <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+                          <Clock size={24} />
+                      </div>
+                  </div>
+
+                  {/* Card 4: Total Payouts */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                      <div>
+                          <p className="text-sm text-gray-500 font-medium">Total Payouts</p>
+                          <h3 className="text-2xl font-bold text-purple-600 mt-1">₱{totalPayoutsPaid.toLocaleString()}</h3>
+                      </div>
+                      <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                          <DollarSign size={24} />
+                      </div>
+                  </div>
+             </div>
+
+             {/* Affiliate Table */}
+             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
              <div className="p-6 border-b border-gray-100">
                 <h2 className="font-bold text-gray-900">Partner Management</h2>
              </div>
@@ -766,6 +825,7 @@ const AdminDashboard: React.FC = () => {
                    </tbody>
                 </table>
              </div>
+          </div>
           </div>
       );
 
