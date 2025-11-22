@@ -180,6 +180,31 @@ export interface PaymentSettings {
   };
 }
 
+export interface EmailTemplate {
+  subject: string;
+  body: string;
+  enabled: boolean;
+}
+
+export interface SMTPSettings {
+  enabled: boolean;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  secure: boolean; // true for SSL/TLS
+  fromEmail: string;
+  fromName: string;
+  templates: {
+    newOrder: EmailTemplate;
+    orderShipped: EmailTemplate;
+    orderDelivered: EmailTemplate;
+    affiliateSale: EmailTemplate;
+    affiliatePayout: EmailTemplate;
+    [key: string]: EmailTemplate;
+  };
+}
+
 export interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product) => void;

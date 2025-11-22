@@ -1,7 +1,5 @@
 
-
-
-import { Product, Order, LandingPageSettings, PaymentSettings } from './types';
+import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings } from './types';
 
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
@@ -156,5 +154,43 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
     bankName: '',
     accountName: '',
     accountNumber: ''
+  }
+};
+
+export const DEFAULT_SMTP_SETTINGS: SMTPSettings = {
+  enabled: false,
+  host: 'smtp.gmail.com',
+  port: 587,
+  username: '',
+  password: '',
+  secure: false,
+  fromEmail: 'noreply@dito.ph',
+  fromName: 'DITO Home Store',
+  templates: {
+    newOrder: {
+      subject: 'Order Confirmation #{order_id}',
+      body: 'Hi {customer_name},\n\nThank you for your order! We have received your order #{order_id} amounting to ₱{total}.\n\nWe will notify you once it ships.',
+      enabled: true
+    },
+    orderShipped: {
+      subject: 'Your Order #{order_id} has Shipped!',
+      body: 'Good news {customer_name}!\n\nYour order is on the way via {courier}. Tracking Number: {tracking_number}.',
+      enabled: true
+    },
+    orderDelivered: {
+      subject: 'Order Delivered - #{order_id}',
+      body: 'Hello {customer_name},\n\nYour order #{order_id} has been successfully delivered. Enjoy your DITO Home WiFi!',
+      enabled: true
+    },
+    affiliateSale: {
+      subject: 'New Commission Earned! (Order #{order_id})',
+      body: 'Congratulations!\n\nYou earned a commission of ₱{commission} for Order #{order_id}. Keep up the great work!',
+      enabled: true
+    },
+    affiliatePayout: {
+      subject: 'Payout Processed',
+      body: 'Hello,\n\nYour payout request of ₱{amount} has been processed successfully to your account.',
+      enabled: true
+    }
   }
 };

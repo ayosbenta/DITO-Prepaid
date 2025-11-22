@@ -1,8 +1,6 @@
 
-
-
-import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
-import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
+import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS } from '../constants';
 
 // Updated URL
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNTTB_z9qMoE93XgJTGC11s-rbRvVV_ErfU_9CpzKFxnVsZhcDtE_lCHdKofO8tQ0LRg/exec"; 
@@ -20,6 +18,7 @@ interface DashboardData {
   payouts: PayoutRequest[];
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
+  smtpSettings: SMTPSettings;
 }
 
 export const DEMO_AFFILIATE: Affiliate = {
@@ -209,7 +208,7 @@ export const SheetsService = {
       }));
 
       // 6. Parse Settings
-      const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS };
+      const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS, smtp: DEFAULT_SMTP_SETTINGS };
       if (data.Settings && Array.isArray(data.Settings)) {
         data.Settings.forEach((row: any) => {
           if (!row.Key || row.Value === undefined) return;
@@ -229,7 +228,7 @@ export const SheetsService = {
           if (val === 'true') val = true;
           if (val === 'false') val = false;
           
-          // Parse JSON strings for arrays (e.g. zones, couriers)
+          // Parse JSON strings for arrays (e.g. zones, couriers) or objects (e.g. templates)
           if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
              try {
                 val = JSON.parse(val);
@@ -246,7 +245,15 @@ export const SheetsService = {
       }
       
       const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
-      const { payment: _, ...landingSettings } = rawSettings;
+      const smtp = rawSettings.smtp || DEFAULT_SMTP_SETTINGS;
+
+      // Ensure templates exist if not loaded from sheet
+      if (!smtp.templates) {
+        smtp.templates = DEFAULT_SMTP_SETTINGS.templates;
+      }
+      
+      // Remove specialized settings from LandingPageSettings object
+      const { payment: _, smtp: __, ...landingSettings } = rawSettings;
 
       // Merge defaults for shipping if missing from sheet
       if (!landingSettings.shipping) {
@@ -256,7 +263,8 @@ export const SheetsService = {
       return { 
         products, orders, customers, affiliates, payouts,
         settings: landingSettings as LandingPageSettings, 
-        paymentSettings: payment as PaymentSettings 
+        paymentSettings: payment as PaymentSettings,
+        smtpSettings: smtp as SMTPSettings
       };
 
     } catch (error) {
@@ -283,7 +291,6 @@ export const SheetsService = {
 
   saveSettings: async (settings: any): Promise<ApiResponse> => {
       // Pre-process arrays into JSON strings before sending to Sheet
-      // This ensures they are stored as a single value in the Key-Value sheet system
       const processedSettings = JSON.parse(JSON.stringify(settings));
       
       if (processedSettings.shipping) {
@@ -294,13 +301,20 @@ export const SheetsService = {
               processedSettings.shipping.couriers = JSON.stringify(processedSettings.shipping.couriers);
           }
       }
-      
       return SheetsService.sendData('SAVE_SETTINGS', processedSettings);
+  },
+
+  saveSMTPSettings: async (settings: SMTPSettings): Promise<ApiResponse> => {
+      const processedSettings = JSON.parse(JSON.stringify(settings));
+      // Serialize templates to ensure they fit in a single key/cell if using the generic settings sheet
+      if (processedSettings.templates) {
+        processedSettings.templates = JSON.stringify(processedSettings.templates);
+      }
+      return SheetsService.sendData('SAVE_SMTP_SETTINGS', processedSettings);
   },
   
   syncProducts: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
-      // Destructure to separate standard columns from detailed JSON data
       const { 
         id, name, category, price, image, description, subtitle,
         commissionType, commissionValue, 
@@ -309,48 +323,21 @@ export const SheetsService = {
         ...rest 
       } = p;
 
-      // Create a readable summary string for bulk discounts in the Sheet
       const discountSummary = bulkDiscounts 
         ? bulkDiscounts.map(d => `Buy ${d.minQty} Get ${d.percentage}% Off`).join('; ') 
         : '';
 
       return {
-        // Explicit Columns for better Sheet readability
-        id, 
-        name, 
-        subtitle: subtitle || '', 
-        description: description || '',
-        category, 
-        price, 
-        image, 
-        commissionType, 
-        commissionValue,
-        sku: sku || '',
-        stock: stock || 0,
-        min_stock_level: minStockLevel || 10,
-        bulk_discounts_summary: discountSummary,
-
-        // Pack complex nested structures (specs, gallery, etc.) into json_data
+        id, name, subtitle: subtitle || '', description: description || '', category, price, image, commissionType, commissionValue,
+        sku: sku || '', stock: stock || 0, min_stock_level: minStockLevel || 10, bulk_discounts_summary: discountSummary,
         json_data: JSON.stringify({ 
-          ...rest, 
-          sku, 
-          stock, 
-          minStockLevel, 
-          bulkDiscounts, 
-          gallery, 
-          specs, 
-          features,
-          inclusions,
-          subtitle,
-          description,
-          costPrice // Save Purchase Price here
+          ...rest, sku, stock, minStockLevel, bulkDiscounts, gallery, specs, features, inclusions, subtitle, description, costPrice
         })
       };
     });
     return SheetsService.sendData('SYNC_PRODUCTS', payload);
   },
   
-  // Sync dedicated Inventory Sheet
   syncInventory: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
       const stock = p.stock || 0;
@@ -379,7 +366,6 @@ export const SheetsService = {
     const payload = orders.map(o => {
       const shipping = o.shippingDetails;
       const address = shipping ? `${shipping.street}, ${shipping.barangay}, ${shipping.city}, ${shipping.province} ${shipping.zipCode}` : '';
-      
       return {
         ...o,
         shipping_name: shipping ? `${shipping.firstName} ${shipping.lastName}` : '',
@@ -388,7 +374,6 @@ export const SheetsService = {
         json_data: JSON.stringify({ 
            shippingDetails: o.shippingDetails,
            orderItems: o.orderItems,
-           // Save new shipping info
            shippingFee: o.shippingFee,
            courier: o.courier,
            trackingNumber: o.trackingNumber
@@ -405,16 +390,10 @@ export const SheetsService = {
         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
         gcashName, gcashNumber
       } = aff;
-
-      const details = {
-         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
-         gcashName, gcashNumber
-      };
-
+      const details = { username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId, gcashName, gcashNumber };
       return {
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
-        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
-        gcashName, gcashNumber,
+        username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId, gcashName, gcashNumber,
         json_data: JSON.stringify(details)
       };
     });

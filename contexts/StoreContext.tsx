@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest } from '../types';
-import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS } from '../constants';
+import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SMTP_SETTINGS } from '../constants';
 import { SheetsService, DEMO_AFFILIATE } from '../services/sheetsService';
 
 interface StoreContextType {
@@ -12,6 +12,7 @@ interface StoreContextType {
   payouts: PayoutRequest[];
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
+  smtpSettings: SMTPSettings;
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updatedProduct: Product) => void;
   deleteProduct: (id: string) => void;
@@ -26,6 +27,7 @@ interface StoreContextType {
   updatePayoutStatus: (id: string, status: PayoutRequest['status']) => void;
   updateSettings: (settings: LandingPageSettings) => void;
   updatePaymentSettings: (settings: PaymentSettings) => void;
+  updateSMTPSettings: (settings: SMTPSettings) => void;
   forceInventorySync: () => Promise<void>;
   stats: {
     revenue: number;
@@ -48,6 +50,7 @@ export const StoreContext = createContext<StoreContextType>({
   payouts: [],
   settings: DEFAULT_SETTINGS,
   paymentSettings: DEFAULT_PAYMENT_SETTINGS,
+  smtpSettings: DEFAULT_SMTP_SETTINGS,
   addProduct: () => {},
   updateProduct: () => {},
   deleteProduct: () => {},
@@ -62,6 +65,7 @@ export const StoreContext = createContext<StoreContextType>({
   updatePayoutStatus: () => {},
   updateSettings: () => {},
   updatePaymentSettings: () => {},
+  updateSMTPSettings: () => {},
   forceInventorySync: async () => {},
   stats: { revenue: 0, netProfit: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
@@ -78,6 +82,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
+  const [smtpSettings, setSMTPSettings] = useState<SMTPSettings>(DEFAULT_SMTP_SETTINGS);
   
   const [syncCount, setSyncCount] = useState(0);
   const isSyncing = syncCount > 0;
@@ -109,12 +114,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setPayouts(data.payouts || []);
         if (data.settings) setSettings(data.settings);
         if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
+        if (data.smtpSettings) setSMTPSettings(data.smtpSettings);
       } else {
         // Failure: Data is null (Network error or Timeout)
         console.warn("Background fetch failed. Preserving existing state.");
         
         // Only load fallback Mock Data if we have NO data at all (Initial Load Failed)
-        // This prevents overwriting real data with mock data during a background sync failure.
         if (products.length === 0) {
            console.log("Using Fallback/Demo Data");
            setProducts([HERO_PRODUCT, ...RELATED_PRODUCTS]);
@@ -351,11 +356,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.sendData('SAVE_PAYMENT_SETTINGS', newSettings).finally(() => setSyncCount(c => c - 1));
   };
 
+  const updateSMTPSettings = (newSettings: SMTPSettings) => {
+    setSMTPSettings(newSettings);
+    setSyncCount(c => c + 1);
+    // Use dedicated method to ensure templates are serialized correctly
+    SheetsService.saveSMTPSettings(newSettings).finally(() => setSyncCount(c => c - 1));
+  };
+
   // Calculate Net Profit
-  // Revenue = Total Order Value
-  // COGS = Sum(Quantity * Cost Price)
-  // Commissions = Sum(Order Commissions)
-  // Net Profit = Revenue - COGS - Commissions
   const calculateNetProfit = () => {
     let totalRevenue = 0;
     let totalCOGS = 0;
@@ -373,9 +381,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              totalCOGS += (cost * item.quantity);
            }
         });
-      } else {
-        // Fallback logic if detailed items are missing (estimates based on order total vs avg margin, optional)
-        // For now, we assume all recent orders have orderItems.
       }
     });
 
@@ -392,13 +397,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      products, orders, customers, affiliates, payouts, settings, paymentSettings,
+      products, orders, customers, affiliates, payouts, settings, paymentSettings, smtpSettings,
       addProduct, updateProduct, deleteProduct,
       addOrder, updateOrderStatus, deleteOrder,
       deleteCustomer,
       registerAffiliate, updateAffiliate, trackAffiliateClick,
       requestPayout, updatePayoutStatus,
-      updateSettings, updatePaymentSettings,
+      updateSettings, updatePaymentSettings, updateSMTPSettings,
       forceInventorySync,
       stats,
       isSyncing, isLoading, isRefreshing, refreshData: () => loadData(false)
