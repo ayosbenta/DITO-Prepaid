@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag, AlertTriangle } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
+import { StoreContext } from '../contexts/StoreContext';
 import { CartItem } from '../types';
 import { Button } from './UI';
 
@@ -224,10 +225,14 @@ export const Footer: React.FC = () => {
 
 export const CartDrawer: React.FC = () => {
   const { isCartOpen, setIsCartOpen, items, removeFromCart, updateQuantity, cartTotal, discountAmount } = useContext(CartContext);
+  const { settings } = useContext(StoreContext);
 
   if (!isCartOpen) return null;
 
   const subTotal = cartTotal + discountAmount;
+  
+  // Basic logic to check if free shipping applies based on cart total (without address context)
+  const isFreeShippingLikely = settings.shipping.enabled && settings.shipping.freeThreshold > 0 && cartTotal >= settings.shipping.freeThreshold;
 
   return (
     <>
@@ -348,7 +353,11 @@ export const CartDrawer: React.FC = () => {
               )}
               <div className="flex justify-between items-center text-gray-500 text-sm">
                 <span>Shipping</span>
-                <span className="text-green-600 font-medium">Free</span>
+                {isFreeShippingLikely ? (
+                   <span className="text-green-600 font-medium">Free</span>
+                ) : (
+                   <span className="text-gray-900 font-medium text-xs">Calculated at checkout</span>
+                )}
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                 <span className="font-bold text-gray-900 text-lg">Total</span>

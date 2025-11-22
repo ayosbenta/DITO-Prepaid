@@ -10,7 +10,7 @@ import { LocationService, LocationOption } from '../services/locationService';
 
 const CheckoutPage: React.FC = () => {
   const { items, cartTotal, clearCart } = useContext(CartContext);
-  const { addOrder, paymentSettings } = useContext(StoreContext);
+  const { addOrder, paymentSettings, settings } = useContext(StoreContext);
   const [step, setStep] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   
@@ -37,6 +37,49 @@ const CheckoutPage: React.FC = () => {
 
   const [proofOfPayment, setProofOfPayment] = useState<string>('');
   const [fileName, setFileName] = useState('');
+
+  // Shipping Fee State
+  const [shippingFee, setShippingFee] = useState(0);
+
+  // Effect to calculate fee based on settings and address
+  useEffect(() => {
+    if (!settings.shipping.enabled) {
+        setShippingFee(0);
+        return;
+    }
+    
+    // Check Free Shipping Threshold
+    if (settings.shipping.freeThreshold > 0 && cartTotal >= settings.shipping.freeThreshold) {
+        setShippingFee(0);
+        return;
+    }
+
+    if (settings.shipping.calculationType === 'flat') {
+        setShippingFee(settings.shipping.baseFee);
+        return;
+    }
+
+    if (settings.shipping.calculationType === 'zone') {
+        // Zone Logic
+        const userProvince = shippingDetails.province?.trim().toLowerCase() || '';
+        const userCity = shippingDetails.city?.trim().toLowerCase() || '';
+        
+        // Attempt to find a matching zone
+        // We check if the Zone Name is included in Province or City, or vice versa
+        const matchedZone = settings.shipping.zones.find(z => {
+            const zoneName = z.name.toLowerCase();
+            return userProvince && (userProvince.includes(zoneName) || zoneName.includes(userProvince) || userCity.includes(zoneName));
+        });
+
+        if (matchedZone) {
+            setShippingFee(matchedZone.fee);
+        } else {
+            // Fallback to Base Fee if no specific zone match found
+            // This ensures the user sees a cost if their specific province isn't zoned but they are outside
+            setShippingFee(settings.shipping.baseFee); 
+        }
+    }
+  }, [settings.shipping, cartTotal, shippingDetails.province, shippingDetails.city]);
 
   // Fetch Provinces on Mount
   useEffect(() => {
@@ -164,7 +207,7 @@ const CheckoutPage: React.FC = () => {
       id: `#ORD-${Math.floor(Math.random() * 10000)}`,
       customer: `${shippingDetails.firstName} ${shippingDetails.lastName}`,
       date: new Date().toISOString().split('T')[0],
-      total: cartTotal,
+      total: cartTotal + shippingFee,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
       orderItems: items.map(item => ({
@@ -177,7 +220,8 @@ const CheckoutPage: React.FC = () => {
       commission: totalCommission,
       paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',
       proofOfPayment: proofOfPayment,
-      shippingDetails: shippingDetails // Include the full address object
+      shippingDetails: shippingDetails, // Include the full address object
+      shippingFee: shippingFee
     };
 
     addOrder(newOrder);
@@ -522,13 +566,20 @@ const CheckoutPage: React.FC = () => {
                   
                   <div className="border-t border-gray-100 pt-6 space-y-3 text-sm">
                     <div className="flex justify-between text-gray-500"><span>Subtotal</span> <span>₱{cartTotal.toLocaleString()}</span></div>
-                    <div className="flex justify-between text-gray-500"><span>Shipping</span> <span className="text-green-600 font-bold">Free</span></div>
+                    <div className="flex justify-between text-gray-500">
+                      <span>Shipping</span>
+                      {shippingFee === 0 && settings.shipping.freeThreshold > 0 && cartTotal >= settings.shipping.freeThreshold ? (
+                         <span className="text-green-600 font-bold">Free</span>
+                      ) : (
+                         <span className="font-bold text-gray-900">₱{shippingFee.toLocaleString()}</span>
+                      )}
+                    </div>
                     <div className="flex justify-between text-gray-500"><span>Tax</span> <span>Included</span></div>
                   </div>
                   
                   <div className="border-t border-gray-100 mt-6 pt-6 flex justify-between items-center mb-8">
                      <span className="font-bold text-gray-900 text-lg">Total</span>
-                     <span className="font-black text-primary text-2xl">₱{cartTotal.toLocaleString()}</span>
+                     <span className="font-black text-primary text-2xl">₱{(cartTotal + shippingFee).toLocaleString()}</span>
                   </div>
 
                   <Button 
