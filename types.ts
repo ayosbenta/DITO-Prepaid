@@ -32,9 +32,16 @@ export interface CartItem extends Product {
 }
 
 export interface User {
-  name: string;
+  id: string;
+  username: string;
+  password?: string; // Optional for display, required for auth
+  firstName: string;
+  lastName: string;
+  name: string; // Combined name for legacy compatibility
   email: string;
-  phone: string;
+  mobile: string;
+  joinDate?: string;
+  role?: 'customer';
 }
 
 export interface Affiliate {

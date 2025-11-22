@@ -1,10 +1,10 @@
 
-import React, { useContext, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag, AlertTriangle } from 'lucide-react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag, AlertTriangle, ChevronDown, LogOut, Package } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { StoreContext } from '../contexts/StoreContext';
-import { CartItem } from '../types';
+import { CartItem, User as UserType } from '../types';
 import { Button } from './UI';
 
 export const Navbar: React.FC = () => {
@@ -12,13 +12,52 @@ export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Customer Auth State
+  const [customerUser, setCustomerUser] = useState<UserType | null>(null);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Check logged in user
+    const checkUser = () => {
+       const stored = localStorage.getItem('dito_customer_user');
+       if (stored) setCustomerUser(JSON.parse(stored));
+       else setCustomerUser(null);
+    };
+    checkUser();
+    
+    // Listen for storage changes (login/logout from other tabs/components)
+    window.addEventListener('storage', checkUser);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('storage', checkUser);
+    };
+  }, [location]); // Re-check on route change
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('dito_customer_user');
+    setCustomerUser(null);
+    setIsUserDropdownOpen(false);
+    navigate('/');
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -49,13 +88,46 @@ export const Navbar: React.FC = () => {
               </Link>
             ))}
             
-            {/* Login Button */}
-            <button 
-              onClick={() => setIsLoginModalOpen(true)}
-              className="text-sm font-bold text-primary hover:text-secondary flex items-center gap-1 px-3 py-1 rounded-full hover:bg-red-50 transition-colors"
-            >
-              <LogIn size={16} /> Login
-            </button>
+            {/* Login / User Button */}
+            {customerUser ? (
+               <div className="relative" ref={userMenuRef}>
+                  <button 
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="flex items-center gap-2 pl-1 pr-3 py-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-all border border-gray-200"
+                  >
+                     <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-xs">
+                        {customerUser.firstName[0]}{customerUser.lastName[0]}
+                     </div>
+                     <ChevronDown size={14} className="text-gray-500" />
+                  </button>
+                  
+                  {isUserDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-fade-in overflow-hidden">
+                       <div className="px-4 py-2 border-b border-gray-50 bg-gray-50/50">
+                          <p className="font-bold text-gray-900 text-sm truncate">{customerUser.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{customerUser.username}</p>
+                       </div>
+                       <Link to="/customer/dashboard" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <Package size={16} /> My Orders
+                       </Link>
+                       <Link to="/customer/dashboard" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <User size={16} /> My Profile
+                       </Link>
+                       <div className="h-px bg-gray-100 my-1"></div>
+                       <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                          <LogOut size={16} /> Logout
+                       </button>
+                    </div>
+                  )}
+               </div>
+            ) : (
+              <button 
+                onClick={() => setIsLoginModalOpen(true)}
+                className="text-sm font-bold text-primary hover:text-secondary flex items-center gap-1 px-3 py-1 rounded-full hover:bg-red-50 transition-colors"
+              >
+                <LogIn size={16} /> Login
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -92,15 +164,33 @@ export const Navbar: React.FC = () => {
                 {link.name}
               </Link>
             ))}
-            <button 
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                setIsLoginModalOpen(true);
-              }}
-              className="text-left text-primary font-bold text-lg py-2 flex items-center gap-2"
-            >
-              <LogIn size={20} /> Login / Register
-            </button>
+            {customerUser ? (
+              <>
+                <Link 
+                   to="/customer/dashboard"
+                   onClick={() => setIsMobileMenuOpen(false)}
+                   className="text-gray-900 font-bold text-lg py-2 flex items-center gap-2"
+                >
+                   <User size={20} /> My Dashboard
+                </Link>
+                <button 
+                   onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
+                   className="text-red-600 font-bold text-lg py-2 flex items-center gap-2 text-left"
+                >
+                   <LogOut size={20} /> Logout
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsLoginModalOpen(true);
+                }}
+                className="text-left text-primary font-bold text-lg py-2 flex items-center gap-2"
+              >
+                <LogIn size={20} /> Login / Register
+              </button>
+            )}
           </div>
         )}
       </nav>
@@ -127,18 +217,18 @@ export const Navbar: React.FC = () => {
 
             <div className="grid gap-4">
               <Link 
-                to="/admin" 
+                to="/customer/login" 
                 onClick={() => setIsLoginModalOpen(false)}
-                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-primary hover:bg-red-50 transition-all group"
+                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all group"
               >
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                  <Shield size={24} />
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
+                  <User size={24} />
                 </div>
                 <div className="ml-4">
-                  <h3 className="font-bold text-gray-900">Admin Portal</h3>
-                  <p className="text-xs text-gray-500">Store management & analytics</p>
+                  <h3 className="font-bold text-gray-900">Customer Login</h3>
+                  <p className="text-xs text-gray-500">Track orders & manage account</p>
                 </div>
-                <ArrowRight className="ml-auto text-gray-300 group-hover:text-primary" size={20} />
+                <ArrowRight className="ml-auto text-gray-300 group-hover:text-green-600" size={20} />
               </Link>
 
               <Link 
@@ -157,18 +247,18 @@ export const Navbar: React.FC = () => {
               </Link>
 
               <Link 
-                to="/customer/login" 
+                to="/admin" 
                 onClick={() => setIsLoginModalOpen(false)}
-                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all group"
+                className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-primary hover:bg-red-50 transition-all group"
               >
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
-                  <User size={24} />
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Shield size={24} />
                 </div>
                 <div className="ml-4">
-                  <h3 className="font-bold text-gray-900">Customer Login</h3>
-                  <p className="text-xs text-gray-500">Check orders & profile</p>
+                  <h3 className="font-bold text-gray-900">Admin Portal</h3>
+                  <p className="text-xs text-gray-500">Store management & analytics</p>
                 </div>
-                <ArrowRight className="ml-auto text-gray-300 group-hover:text-green-600" size={20} />
+                <ArrowRight className="ml-auto text-gray-300 group-hover:text-primary" size={20} />
               </Link>
             </div>
           </div>

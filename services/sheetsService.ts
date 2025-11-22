@@ -81,37 +81,25 @@ export const SheetsService = {
           category: String(p.category),
           price: Number(p.price),
           image: String(p.image),
-          
-          // Explicitly read description and subtitle from columns, fallback to json_data
           description: String(p.description || details.description || ''),
           subtitle: String(p.subtitle || details.subtitle || ''),
-          
-          // Complex objects usually in json_data
           gallery: details.gallery || (p.image ? [p.image] : []), 
           specs: details.specs || {}, 
           features: details.features || [],
           inclusions: details.inclusions || [],
-          
           rating: 5, 
           reviews: 0,
-          ...details, // Spread details to catch anything else
-          
-          // Ensure core fields are typed correctly. 
-          // Priority: Explicit Columns > json_data > default
+          ...details,
           sku: p.sku ? String(p.sku) : (details.sku || ''),
           stock: (p.stock !== undefined && p.stock !== "") ? Number(p.stock) : (details.stock !== undefined ? Number(details.stock) : 0),
           minStockLevel: (p.min_stock_level !== undefined && p.min_stock_level !== "") ? Number(p.min_stock_level) : (details.minStockLevel !== undefined ? Number(details.minStockLevel) : 10),
           bulkDiscounts: details.bulkDiscounts || [],
-
           commissionType: p.commissionType,
           commissionValue: Number(p.commissionValue),
-          
-          // Cost Price for Net Profit Calc
           costPrice: details.costPrice ? Number(details.costPrice) : 0
         };
       });
 
-      // Note: We keep the logic that if SHEET is empty but valid, we populate defaults.
       if (products.length === 0) {
         products = [HERO_PRODUCT, ...RELATED_PRODUCTS];
       }
@@ -136,7 +124,6 @@ export const SheetsService = {
           proofOfPayment: o.proofOfPayment || '',
           shippingDetails: details.shippingDetails || undefined,
           orderItems: details.orderItems || undefined,
-          // Shipping specific fields
           shippingFee: details.shippingFee ? Number(details.shippingFee) : 0,
           courier: details.courier || '',
           trackingNumber: details.trackingNumber || ''
@@ -144,15 +131,30 @@ export const SheetsService = {
       });
 
       // 3. Parse Customers
-      const customers: User[] = (data.Customers || []).map((c: any) => ({
-        name: String(c.name),
-        email: String(c.email),
-        phone: String(c.phone)
-      }));
+      const customers: User[] = (data.Customers || []).map((c: any) => {
+        let details: any = {};
+        try {
+          if (c.json_data) details = JSON.parse(c.json_data);
+        } catch (e) { /* ignore */ }
+
+        return {
+          id: String(c.id || details.id || `CUST-${Date.now()}`), // Fallback ID
+          name: String(c.name),
+          email: String(c.email),
+          mobile: String(c.phone || details.mobile || ''), // Normalize
+          
+          // Extended Fields
+          firstName: String(details.firstName || c.name.split(' ')[0] || ''),
+          lastName: String(details.lastName || c.name.split(' ').slice(1).join(' ') || ''),
+          username: String(details.username || ''),
+          password: String(details.password || ''),
+          joinDate: String(details.joinDate || new Date().toISOString()),
+          role: 'customer'
+        };
+      });
 
       // 4. Parse Affiliates
       let affiliates: Affiliate[] = (data.Affiliates || []).map((a: any) => {
-        // Try parsing json_data if it exists for extra fields
         let details: any = {};
         try {
           if (a.json_data) details = JSON.parse(a.json_data);
@@ -168,8 +170,6 @@ export const SheetsService = {
           status: a.status || 'active',
           clicks: Number(a.clicks || 0),
           lifetimeEarnings: Number(a.lifetimeEarnings || 0),
-          
-          // Extended Profile Fields mapping - FORCE STRING CASTING
           username: String(a.username || details.username || ''),
           password: String(a.password || details.password || ''),
           firstName: String(a.firstName || details.firstName || ''),
@@ -181,14 +181,11 @@ export const SheetsService = {
           address: String(a.address || details.address || ''),
           agencyName: String(a.agencyName || details.agencyName || ''),
           govtId: String(a.govtId || details.govtId || ''),
-          
-          // Payment Settings
           gcashName: String(a.gcashName || details.gcashName || ''),
           gcashNumber: String(a.gcashNumber || details.gcashNumber || '')
         };
       });
 
-      // Fallback: Add Demo Affiliate if list is empty so login works
       if (affiliates.length === 0) {
          affiliates = [DEMO_AFFILIATE];
       }
@@ -214,62 +211,38 @@ export const SheetsService = {
           if (!row.Key || row.Value === undefined) return;
           const keys = row.Key.split('.');
           let current: any = rawSettings;
-          
-          // Special handling for array/object keys stored as JSON strings
-          // e.g. shipping.couriers = "[{...}]"
-          
           for (let i = 0; i < keys.length - 1; i++) {
             if (!current[keys[i]]) current[keys[i]] = {};
             current = current[keys[i]];
           }
-          
           let val = row.Value;
-          // Parse Boolean
           if (val === 'true') val = true;
           if (val === 'false') val = false;
-          
-          // Parse JSON strings for arrays (e.g. zones, couriers) or objects (e.g. templates)
           if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
-             try {
-                val = JSON.parse(val);
-             } catch (e) { /* keep as string */ }
+             try { val = JSON.parse(val); } catch (e) { /* keep as string */ }
           }
-          
-          // Parse Numbers
-          if (!isNaN(Number(val)) && val !== '' && typeof val === 'string' && !val.startsWith('0')) { // Avoid parsing '0917' as number
+          if (!isNaN(Number(val)) && val !== '' && typeof val === 'string' && !val.startsWith('0')) {
              val = Number(val);
           }
-
           current[keys[keys.length - 1]] = val;
         });
       }
       
       const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
       const smtp = rawSettings.smtp || DEFAULT_SMTP_SETTINGS;
-
-      // Ensure templates exist if not loaded from sheet
-      if (!smtp.templates) {
-        smtp.templates = DEFAULT_SMTP_SETTINGS.templates;
-      }
-      
-      // Remove specialized settings from LandingPageSettings object
+      if (!smtp.templates) smtp.templates = DEFAULT_SMTP_SETTINGS.templates;
       const { payment: _, smtp: __, ...landingSettings } = rawSettings;
-
-      // Merge defaults for shipping if missing from sheet
-      if (!landingSettings.shipping) {
-         landingSettings.shipping = DEFAULT_SETTINGS.shipping;
-      }
+      if (!landingSettings.shipping) landingSettings.shipping = DEFAULT_SETTINGS.shipping;
 
       return { 
         products, orders, customers, affiliates, payouts,
         settings: landingSettings as LandingPageSettings, 
-        paymentSettings: payment as PaymentSettings,
+        paymentSettings: payment as PaymentSettings, 
         smtpSettings: smtp as SMTPSettings
       };
 
     } catch (error) {
       console.warn("Sheets API Fetch Failed:", error);
-      // CRITICAL: Return null so the app knows the fetch failed and doesn't overwrite state with mock data
       return null;
     }
   },
@@ -290,26 +263,17 @@ export const SheetsService = {
   },
 
   saveSettings: async (settings: any): Promise<ApiResponse> => {
-      // Pre-process arrays into JSON strings before sending to Sheet
       const processedSettings = JSON.parse(JSON.stringify(settings));
-      
       if (processedSettings.shipping) {
-          if (processedSettings.shipping.zones) {
-              processedSettings.shipping.zones = JSON.stringify(processedSettings.shipping.zones);
-          }
-          if (processedSettings.shipping.couriers) {
-              processedSettings.shipping.couriers = JSON.stringify(processedSettings.shipping.couriers);
-          }
+          if (processedSettings.shipping.zones) processedSettings.shipping.zones = JSON.stringify(processedSettings.shipping.zones);
+          if (processedSettings.shipping.couriers) processedSettings.shipping.couriers = JSON.stringify(processedSettings.shipping.couriers);
       }
       return SheetsService.sendData('SAVE_SETTINGS', processedSettings);
   },
 
   saveSMTPSettings: async (settings: SMTPSettings): Promise<ApiResponse> => {
       const processedSettings = JSON.parse(JSON.stringify(settings));
-      // Serialize templates to ensure they fit in a single key/cell if using the generic settings sheet
-      if (processedSettings.templates) {
-        processedSettings.templates = JSON.stringify(processedSettings.templates);
-      }
+      if (processedSettings.templates) processedSettings.templates = JSON.stringify(processedSettings.templates);
       return SheetsService.sendData('SAVE_SMTP_SETTINGS', processedSettings);
   },
   
@@ -367,10 +331,6 @@ export const SheetsService = {
       const shipping = o.shippingDetails;
       const address = shipping ? `${shipping.street}, ${shipping.barangay}, ${shipping.city}, ${shipping.province} ${shipping.zipCode}` : '';
       
-      // FIX: Google Sheets Cell Limit Protection
-      // A cell cannot hold more than 50,000 characters.
-      // Base64 images can easily exceed this. If we send a huge string, the script crashes and corrupts the sheet.
-      // We must truncate if it is unsafe.
       let safeProof = o.proofOfPayment || '';
       if (safeProof.length > 45000) {
          safeProof = "Image too large for Sheet (View in App only if cached)";
@@ -378,7 +338,7 @@ export const SheetsService = {
 
       return {
         ...o,
-        proofOfPayment: safeProof, // Use the safe version for the main column
+        proofOfPayment: safeProof, 
         shipping_name: shipping ? `${shipping.firstName} ${shipping.lastName}` : '',
         shipping_phone: shipping ? shipping.mobile : '',
         shipping_address: address,
@@ -388,7 +348,6 @@ export const SheetsService = {
            shippingFee: o.shippingFee,
            courier: o.courier,
            trackingNumber: o.trackingNumber
-           // Note: We do NOT put proofOfPayment inside json_data to save space
         })
       };
     });
@@ -410,6 +369,23 @@ export const SheetsService = {
       };
     });
     return SheetsService.sendData('SYNC_AFFILIATES', payload);
+  },
+
+  // New Customer Sync
+  syncCustomers: async (customers: User[]): Promise<ApiResponse> => {
+    const payload = customers.map(c => {
+      const { name, email, id, firstName, lastName, username, password, joinDate, mobile } = c;
+      // Store extended fields in json_data
+      const details = { id, firstName, lastName, username, password, joinDate, mobile };
+      
+      return {
+        name, 
+        email, 
+        phone: mobile, 
+        json_data: JSON.stringify(details)
+      };
+    });
+    return SheetsService.sendData('SYNC_CUSTOMERS', payload);
   },
 
   syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PAYOUTS', payouts)

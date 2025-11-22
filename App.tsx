@@ -16,6 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AffiliateLoginPage from './pages/AffiliateLoginPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
 import CustomerLoginPage from './pages/CustomerLoginPage';
+import CustomerDashboard from './pages/CustomerDashboard';
 
 // Helper to capture ?ref=ID
 const ReferralHandler = () => {
@@ -24,30 +25,25 @@ const ReferralHandler = () => {
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // 1. Don't track until data is fully loaded
     if (isLoading) return;
 
     const params = new URLSearchParams(location.search);
     let refId = params.get('ref');
 
-    // Fallback 1: Check query params before the hash
     if (!refId) {
       const search = window.location.search;
       const urlParams = new URLSearchParams(search);
       refId = urlParams.get('ref');
     }
     
-    // Fallback 2: Manually parse hash string
     if (!refId && window.location.hash.includes('ref=')) {
          const match = window.location.hash.match(/[?&]ref=([^&]+)/);
          if (match) refId = match[1];
     }
 
-    // 2. Only process if ID exists and hasn't been processed in this session
     if (refId && refId !== processedRef.current) {
       localStorage.setItem('dito_referral_id', refId);
       
-      // 3. Check if this is a valid affiliate ID in our database
       const isValidAffiliate = affiliates.some(a => a.id === refId);
 
       if (isValidAffiliate) {
@@ -95,6 +91,12 @@ const AppContent: React.FC = () => {
 
               {/* Customer Route */}
               <Route path="/customer/login" element={<CustomerLoginPage />} />
+              <Route path="/customer/dashboard" element={
+                <>
+                  <Navbar />
+                  <CustomerDashboard />
+                </>
+              } />
 
               {/* Public Routes */}
               <Route path="*" element={

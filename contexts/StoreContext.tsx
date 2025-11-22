@@ -20,6 +20,7 @@ interface StoreContextType {
   updateOrderStatus: (id: string, status: Order['status']) => void;
   deleteOrder: (id: string) => void;
   deleteCustomer: (email: string) => void;
+  registerCustomer: (customer: User) => void; // New
   registerAffiliate: (affiliate: Affiliate) => void;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => void;
   trackAffiliateClick: (id: string) => void;
@@ -59,6 +60,7 @@ export const StoreContext = createContext<StoreContextType>({
   updateOrderStatus: () => {},
   deleteOrder: () => {},
   deleteCustomer: () => {},
+  registerCustomer: () => {},
   registerAffiliate: () => {},
   updateAffiliate: () => {},
   trackAffiliateClick: () => {},
@@ -97,7 +99,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (isInitial) setIsLoading(true);
     else setIsRefreshing(true);
     
-    // Safety net: If fetching takes too long (>10s), force stop loading
     const safetyTimeout = setTimeout(() => {
        if(isInitial) setIsLoading(false);
        setIsRefreshing(false);
@@ -107,7 +108,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const data = await SheetsService.getAllData();
       
       if (data) {
-        // Success: Update State with Real Data
         setProducts(data.products || []);
         setOrders(data.orders || []);
         setCustomers(data.customers || []);
@@ -117,17 +117,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
         if (data.smtpSettings) setSMTPSettings(data.smtpSettings);
       } else {
-        // Failure: Data is null (Network error or Timeout)
         console.warn("Background fetch failed. Preserving existing state.");
-        
-        // Only load fallback Mock Data if we have NO data at all (Initial Load Failed)
         if (products.length === 0) {
            console.log("Using Fallback/Demo Data");
            setProducts([HERO_PRODUCT, ...RELATED_PRODUCTS]);
            setOrders(RECENT_ORDERS);
            setAffiliates([DEMO_AFFILIATE]);
            setPayouts([]);
-           // Settings remain default
         }
       }
     } catch (err) {
@@ -152,14 +148,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const triggerProductSync = (newProducts: Product[]) => {
     setSyncCount(c => c + 1);
-    // Sync BOTH the main Product Catalog AND the Inventory Sheet
     Promise.all([
         SheetsService.syncProducts(newProducts),
         SheetsService.syncInventory(newProducts)
     ]).finally(() => setSyncCount(c => c - 1));
   };
 
-  // Explicitly exposed for manual triggering via Dashboard
   const forceInventorySync = async () => {
     setSyncCount(c => c + 1);
     try {
@@ -177,6 +171,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const triggerAffiliateSync = (newAffiliates: Affiliate[]) => {
     setSyncCount(c => c + 1);
     SheetsService.syncAffiliates(newAffiliates).finally(() => setSyncCount(c => c - 1));
+  };
+
+  const triggerCustomerSync = (newCustomers: User[]) => {
+    setSyncCount(c => c + 1);
+    SheetsService.syncCustomers(newCustomers).finally(() => setSyncCount(c => c - 1));
   };
 
   const triggerSettingsSync = (newSettings: LandingPageSettings) => {
@@ -203,19 +202,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const addOrder = (order: Order) => {
-    // 1. Add to Orders
     const updatedOrders = [order, ...orders];
     setOrders(updatedOrders);
     triggerOrderSync(updatedOrders);
 
-    // 2. Deduct Stock from Inventory
     if (order.orderItems && order.orderItems.length > 0) {
       let inventoryChanged = false;
       const updatedProducts = products.map(p => {
         const soldItem = order.orderItems?.find(i => i.id === p.id);
         if (soldItem) {
           inventoryChanged = true;
-          // Prevent negative stock
           return { ...p, stock: Math.max(0, (p.stock || 0) - soldItem.quantity) };
         }
         return p;
@@ -227,13 +223,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
     }
 
-    // 3. Affiliate Commission Logic
     if (order.referralId) {
        const affiliate = affiliates.find(a => a.id === order.referralId);
        if (affiliate) {
          const updatedAffiliates = affiliates.map(a => {
             if (a.id === order.referralId) {
-               return { ...a, totalSales: a.totalSales + (order.total - (order.shippingFee || 0)) }; // Log net sales
+               return { ...a, totalSales: a.totalSales + (order.total - (order.shippingFee || 0)) }; 
             }
             return a;
          });
@@ -252,8 +247,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (oldOrder && oldOrder.status !== 'Delivered' && status === 'Delivered' && oldOrder.referralId) {
        const updatedAffiliates = affiliates.map(a => {
           if (a.id === oldOrder.referralId) {
-             // Use shipping excluded amount for commission calc if commission is percentage based logic elsewhere, 
-             // but here we use the pre-calculated commission stored on the order
              const comm = oldOrder.commission || ((oldOrder.total - (oldOrder.shippingFee || 0)) * 0.05);
              return {
                ...a,
@@ -274,8 +267,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     triggerOrderSync(updated);
   };
 
+  const registerCustomer = (customer: User) => {
+    const updated = [...customers, customer];
+    setCustomers(updated);
+    triggerCustomerSync(updated);
+  };
+
   const deleteCustomer = (email: string) => {
-    setCustomers(customers.filter(c => c.email !== email));
+    const updated = customers.filter(c => c.email !== email);
+    setCustomers(updated);
+    triggerCustomerSync(updated);
   };
 
   const registerAffiliate = (affiliate: Affiliate) => {
@@ -362,18 +363,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const updateSMTPSettings = (newSettings: SMTPSettings) => {
     setSMTPSettings(newSettings);
     setSyncCount(c => c + 1);
-    // Use dedicated method to ensure templates are serialized correctly
     SheetsService.saveSMTPSettings(newSettings).finally(() => setSyncCount(c => c - 1));
   };
 
-  // Calculate Net Profit
   const calculateNetProfit = () => {
     let totalRevenue = 0;
     let totalCOGS = 0;
     let totalCommissions = 0;
 
     orders.forEach(order => {
-      // Revenue for profit calc excludes shipping
       const orderRevenue = order.total - (order.shippingFee || 0);
       totalRevenue += orderRevenue;
       totalCommissions += (order.commission || 0);
@@ -393,11 +391,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const stats = {
-    // Exclude shipping fee from total revenue
     revenue: orders.reduce((acc, o) => acc + (o.total - (o.shippingFee || 0)), 0),
     netProfit: calculateNetProfit(),
     totalOrders: orders.length,
-    // Sum of all items in all orders
     totalItemsSold: orders.reduce((acc, o) => acc + (o.items || 0), 0),
     totalCustomers: customers.length,
     lowStock: products.filter(p => (p.stock || 0) <= (p.minStockLevel || 10)).length
@@ -408,7 +404,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       products, orders, customers, affiliates, payouts, settings, paymentSettings, smtpSettings,
       addProduct, updateProduct, deleteProduct,
       addOrder, updateOrderStatus, deleteOrder,
-      deleteCustomer,
+      deleteCustomer, registerCustomer,
       registerAffiliate, updateAffiliate, trackAffiliateClick,
       requestPayout, updatePayoutStatus,
       updateSettings, updatePaymentSettings, updateSMTPSettings,
