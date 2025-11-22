@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft
+  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -43,6 +43,7 @@ const AdminDashboard: React.FC = () => {
   
   // Spec Input State
   const [specInput, setSpecInput] = useState({ key: '', value: '' });
+  const [inclusionInput, setInclusionInput] = useState('');
 
   // Affiliate Modals
   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
@@ -344,9 +345,11 @@ const AdminDashboard: React.FC = () => {
       bulkDiscounts: product.bulkDiscounts || [],
       // Initialize gallery: use existing gallery OR fallback to single image in array OR empty array with one empty string for UI
       gallery: (product.gallery && product.gallery.length > 0) ? product.gallery : (product.image ? [product.image] : []),
-      specs: product.specs || {}
+      specs: product.specs || {},
+      inclusions: product.inclusions || []
     });
     setSpecInput({ key: '', value: '' });
+    setInclusionInput('');
     setIsProductModalOpen(true);
   };
 
@@ -359,6 +362,7 @@ const AdminDashboard: React.FC = () => {
       reviews: 0,
       gallery: [''], // Start with one empty input
       specs: {},
+      inclusions: [],
       features: [],
       commissionType: 'percentage',
       commissionValue: 5,
@@ -370,6 +374,7 @@ const AdminDashboard: React.FC = () => {
       subtitle: ''
     });
     setSpecInput({ key: '', value: '' });
+    setInclusionInput('');
     setIsProductModalOpen(true);
   };
 
@@ -390,7 +395,8 @@ const AdminDashboard: React.FC = () => {
       gallery: cleanGallery.length > 0 ? cleanGallery : [mainImage],
       description: newProductForm.description || '',
       subtitle: newProductForm.subtitle || 'New Product',
-      specs: newProductForm.specs || {}
+      specs: newProductForm.specs || {},
+      inclusions: newProductForm.inclusions || []
     } as Product;
 
     if (editingProduct) {
@@ -436,6 +442,23 @@ const AdminDashboard: React.FC = () => {
      const newSpecs = { ...newProductForm.specs };
      delete newSpecs[keyToRemove];
      setNewProductForm(prev => ({ ...prev, specs: newSpecs }));
+  };
+
+  // Inclusion Helpers
+  const handleAddInclusion = () => {
+    if (inclusionInput.trim()) {
+      setNewProductForm(prev => ({
+        ...prev,
+        inclusions: [...(prev.inclusions || []), inclusionInput.trim()]
+      }));
+      setInclusionInput('');
+    }
+  };
+
+  const handleRemoveInclusion = (index: number) => {
+     const newInclusions = [...(newProductForm.inclusions || [])];
+     newInclusions.splice(index, 1);
+     setNewProductForm(prev => ({ ...prev, inclusions: newInclusions }));
   };
 
   const handleEditAffiliate = (aff: Affiliate) => {
@@ -1588,7 +1611,7 @@ const AdminDashboard: React.FC = () => {
         {/* Product Modal */}
         {isProductModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+             <div className="bg-white rounded-2xl w-full max-w-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold mb-4">{editingProduct ? 'Edit Product' : 'New Product'}</h3>
                 <div className="space-y-4">
                    <div>
@@ -1692,42 +1715,84 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-[10px] text-gray-400 mt-1">The first image will be used as the main product thumbnail.</p>
                    </div>
 
-                   {/* Specs Section */}
+                   {/* Additional Info Section (2 Columns) */}
                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                      <h4 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
-                        <Settings size={16} /> Technical Specifications
+                      <h4 className="font-bold text-gray-900 mb-4 text-sm flex items-center gap-2">
+                        <Settings size={16} /> Additional Info
                       </h4>
-                      <div className="space-y-2 mb-3">
-                         {Object.entries(newProductForm.specs || {}).map(([key, val]) => (
-                            <div key={key} className="flex gap-2 items-center">
-                               <div className="w-1/3 bg-white border rounded px-2 py-1.5 text-xs font-bold text-gray-600 truncate">{key}</div>
-                               <div className="flex-1 bg-white border rounded px-2 py-1.5 text-xs text-gray-800">{val as string}</div>
-                               <button onClick={() => handleRemoveSpec(key)} className="text-red-400 hover:text-red-600 p-1">
-                                  <XCircle size={14} />
-                               </button>
-                            </div>
-                         ))}
-                         {Object.keys(newProductForm.specs || {}).length === 0 && (
-                            <p className="text-xs text-gray-400 italic text-center py-2">No specifications added.</p>
-                         )}
-                      </div>
                       
-                      <div className="flex gap-2 pt-2 border-t border-gray-200">
-                         <input 
-                           value={specInput.key}
-                           onChange={(e) => setSpecInput({...specInput, key: e.target.value})}
-                           placeholder="Spec Name (e.g. Battery)" 
-                           className="w-1/3 border rounded p-1.5 text-xs" 
-                         />
-                         <input 
-                           value={specInput.value}
-                           onChange={(e) => setSpecInput({...specInput, value: e.target.value})}
-                           placeholder="Value (e.g. 5000mAh)" 
-                           className="flex-1 border rounded p-1.5 text-xs" 
-                         />
-                         <button onClick={handleAddSpec} className="bg-gray-900 text-white px-3 rounded text-xs font-bold hover:bg-black">
-                            Add
-                         </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Left Column: Technical Specs */}
+                          <div className="space-y-3">
+                             <p className="text-xs font-bold text-gray-500 uppercase border-b pb-1">Technical Specs</p>
+                             <div className="space-y-2">
+                                {Object.entries(newProductForm.specs || {}).map(([key, val]) => (
+                                   <div key={key} className="flex gap-2 items-center group">
+                                      <div className="flex-1 bg-white border rounded px-2 py-1.5 text-xs font-bold text-gray-600 truncate" title={key}>{key}</div>
+                                      <div className="flex-1 bg-white border rounded px-2 py-1.5 text-xs text-gray-800 truncate" title={String(val)}>{val as string}</div>
+                                      <button onClick={() => handleRemoveSpec(key)} className="text-gray-300 group-hover:text-red-500 p-1">
+                                         <XCircle size={14} />
+                                      </button>
+                                   </div>
+                                ))}
+                                {Object.keys(newProductForm.specs || {}).length === 0 && (
+                                   <p className="text-xs text-gray-400 italic py-1">No specs added.</p>
+                                )}
+                             </div>
+                             
+                             <div className="pt-2 border-t border-gray-200 space-y-2">
+                                <input 
+                                  value={specInput.key}
+                                  onChange={(e) => setSpecInput({...specInput, key: e.target.value})}
+                                  placeholder="Spec Name (e.g. Battery)" 
+                                  className="w-full border rounded p-1.5 text-xs" 
+                                />
+                                <div className="flex gap-2">
+                                  <input 
+                                    value={specInput.value}
+                                    onChange={(e) => setSpecInput({...specInput, value: e.target.value})}
+                                    placeholder="Value (e.g. 5000mAh)" 
+                                    className="flex-1 border rounded p-1.5 text-xs" 
+                                  />
+                                  <button onClick={handleAddSpec} className="bg-gray-800 text-white px-3 rounded text-xs font-bold hover:bg-black">
+                                     Add
+                                  </button>
+                                </div>
+                             </div>
+                          </div>
+
+                          {/* Right Column: Inclusions */}
+                          <div className="space-y-3">
+                             <p className="text-xs font-bold text-gray-500 uppercase border-b pb-1">Inclusions (What's in the box)</p>
+                             <div className="space-y-2">
+                                {(newProductForm.inclusions || []).map((item, idx) => (
+                                   <div key={idx} className="flex gap-2 items-center group">
+                                      <div className="flex-1 bg-white border rounded px-2 py-1.5 text-xs text-gray-800 flex items-center gap-2">
+                                         <Box size={12} className="text-primary" /> {item}
+                                      </div>
+                                      <button onClick={() => handleRemoveInclusion(idx)} className="text-gray-300 group-hover:text-red-500 p-1">
+                                         <XCircle size={14} />
+                                      </button>
+                                   </div>
+                                ))}
+                                {(newProductForm.inclusions || []).length === 0 && (
+                                   <p className="text-xs text-gray-400 italic py-1">No inclusions added.</p>
+                                )}
+                             </div>
+                             
+                             <div className="pt-2 border-t border-gray-200 flex gap-2">
+                                <input 
+                                  value={inclusionInput}
+                                  onChange={(e) => setInclusionInput(e.target.value)}
+                                  placeholder="Item Name (e.g. Power Adapter)" 
+                                  className="flex-1 border rounded p-1.5 text-xs" 
+                                  onKeyDown={(e) => e.key === 'Enter' && handleAddInclusion()}
+                                />
+                                <button onClick={handleAddInclusion} className="bg-gray-800 text-white px-3 rounded text-xs font-bold hover:bg-black">
+                                   Add
+                                </button>
+                             </div>
+                          </div>
                       </div>
                    </div>
 

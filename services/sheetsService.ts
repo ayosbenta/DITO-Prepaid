@@ -89,6 +89,7 @@ export const SheetsService = {
           gallery: details.gallery || (p.image ? [p.image] : []), 
           specs: details.specs || {}, 
           features: details.features || [],
+          inclusions: details.inclusions || [],
           
           rating: 5, 
           reviews: 0,
@@ -256,7 +257,7 @@ export const SheetsService = {
         id, name, category, price, image, description, subtitle,
         commissionType, commissionValue, 
         sku, stock, minStockLevel, bulkDiscounts,
-        gallery, specs, features,
+        gallery, specs, features, inclusions,
         ...rest 
       } = p;
 
@@ -291,6 +292,7 @@ export const SheetsService = {
           gallery, 
           specs, 
           features,
+          inclusions,
           subtitle,
           description
         })

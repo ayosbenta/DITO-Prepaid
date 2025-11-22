@@ -1,7 +1,7 @@
 
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag } from 'lucide-react';
+import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag, Box } from 'lucide-react';
 import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
@@ -222,6 +222,25 @@ const ProductDetailPage: React.FC = () => {
                   </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Inclusions Section */}
+        {product.inclusions && product.inclusions.length > 0 && (
+          <div className="mt-12 max-w-2xl mx-auto">
+             <div className="bg-gray-50 border border-gray-200 rounded-3xl p-8">
+                <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2 text-lg">
+                   <Box size={24} className="text-primary" /> What's in the box?
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                   {product.inclusions.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                         <span className="text-gray-700 font-medium text-sm">{item}</span>
+                      </div>
+                   ))}
+                </div>
+             </div>
           </div>
         )}
 

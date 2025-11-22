@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -8,6 +9,7 @@ export interface Product {
   image: string;
   gallery: string[];
   specs: Record<string, string>;
+  inclusions?: string[];
   rating: number;
   reviews: number;
   features: string[];
