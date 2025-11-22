@@ -719,6 +719,7 @@ const AdminDashboard: React.FC = () => {
                    <thead className="bg-gray-50 text-gray-500 font-medium">
                       <tr>
                          <th className="p-4">Partner</th>
+                         <th className="p-4">Pending Comm.</th>
                          <th className="p-4">Wallet</th>
                          <th className="p-4">Total Sales</th>
                          <th className="p-4">Status</th>
@@ -726,12 +727,18 @@ const AdminDashboard: React.FC = () => {
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-100">
-                      {affiliates.map(aff => (
+                      {affiliates.map(aff => {
+                         const pendingComm = orders
+                            .filter(o => o.referralId === aff.id && o.status !== 'Delivered')
+                            .reduce((sum, o) => sum + (o.commission || (o.total * 0.05)), 0);
+
+                         return (
                          <tr key={aff.id} className="hover:bg-gray-50">
                             <td className="p-4">
                                <div className="font-bold text-gray-900">{aff.name}</div>
                                <div className="text-xs text-gray-400">{aff.email}</div>
                             </td>
+                            <td className="p-4 font-bold text-orange-500">₱{pendingComm.toLocaleString()}</td>
                             <td className="p-4 font-bold text-primary">₱{aff.walletBalance.toLocaleString()}</td>
                             <td className="p-4">₱{aff.totalSales.toLocaleString()}</td>
                             <td className="p-4">
@@ -741,11 +748,21 @@ const AdminDashboard: React.FC = () => {
                             </td>
                             <td className="p-4 text-right">
                                <div className="flex justify-end gap-2">
-                                  <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600"><Edit2 size={16}/></button>
+                                  <button onClick={() => {
+                                      setEditingAffiliate(aff);
+                                      setActiveAffiliateTab('profile');
+                                      setIsAffiliateModalOpen(true);
+                                  }} className="p-2 hover:bg-blue-50 rounded-full text-blue-600" title="View Details">
+                                      <Eye size={16}/>
+                                  </button>
+                                  <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600" title="Manage Wallet">
+                                      <Edit2 size={16}/>
+                                  </button>
                                </div>
                             </td>
                          </tr>
-                      ))}
+                         );
+                      })}
                    </tbody>
                 </table>
              </div>
