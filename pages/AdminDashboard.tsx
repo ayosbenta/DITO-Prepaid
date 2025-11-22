@@ -577,7 +577,7 @@ const AdminDashboard: React.FC = () => {
                                      <div className="font-bold text-gray-900">{product.name}</div>
                                      <div className="text-xs text-gray-400">SKU: {product.sku || 'N/A'}</div>
                                   </div>
-                               </div>
+                                </div>
                             </td>
                             <td className="p-4"><Badge color="blue">{product.category}</Badge></td>
                             <td className="p-4 font-bold">₱{product.price.toLocaleString()}</td>
@@ -745,7 +745,7 @@ const AdminDashboard: React.FC = () => {
                       </div>
                   </div>
 
-                  {/* Card 3: Pending Commission */}
+                  {/* Card 3: Total Pending Commission */}
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                       <div>
                           <p className="text-sm text-gray-500 font-medium">Total Pending Comm.</p>
@@ -778,7 +778,7 @@ const AdminDashboard: React.FC = () => {
                    <thead className="bg-gray-50 text-gray-500 font-medium">
                       <tr>
                          <th className="p-4">Partner</th>
-                         <th className="p-4">Pending Comm.</th>
+                         <th className="p-4">Pending Comm. <span className="text-xs bg-red-100 text-red-600 px-1 rounded ml-1">New</span></th>
                          <th className="p-4">Wallet</th>
                          <th className="p-4">Total Sales</th>
                          <th className="p-4">Status</th>
@@ -814,7 +814,7 @@ const AdminDashboard: React.FC = () => {
                                   }} className="p-2 hover:bg-blue-50 rounded-full text-blue-600" title="View Details">
                                       <Eye size={16}/>
                                   </button>
-                                  <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600" title="Manage Wallet">
+                                  <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600" title="Edit Wallet">
                                       <Edit2 size={16}/>
                                   </button>
                                </div>
