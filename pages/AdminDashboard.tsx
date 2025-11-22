@@ -5,7 +5,7 @@ import {
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -750,45 +750,145 @@ const AdminDashboard: React.FC = () => {
         );
 
       case 'Affiliates': 
+        // Calculations
+        const affTotalSales = affiliates.reduce((acc, a) => acc + a.totalSales, 0);
+        const affPendingPayout = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
+        const affTotalPaid = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
+        const affActiveCount = affiliates.filter(a => a.status === 'active').length;
+        const topAffiliates = [...affiliates].sort((a, b) => b.totalSales - a.totalSales).slice(0, 5);
+
         return (
-           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-             <div className="p-6 border-b border-gray-100">
-                <h2 className="font-bold text-gray-900">Partner Management</h2>
+           <div className="space-y-6">
+             {/* 4 KPIs */}
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                   <div>
+                      <p className="text-gray-500 text-xs font-bold uppercase">Total Sales</p>
+                      <h3 className="text-2xl font-black text-gray-900 mt-2">₱{affTotalSales.toLocaleString()}</h3>
+                   </div>
+                   <div className="mt-4 flex justify-end">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><TrendingUp size={20}/></div>
+                   </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                   <div>
+                      <p className="text-gray-500 text-xs font-bold uppercase">Pending Payout</p>
+                      <h3 className="text-2xl font-black text-gray-900 mt-2">₱{affPendingPayout.toLocaleString()}</h3>
+                   </div>
+                   <div className="mt-4 flex justify-end">
+                      <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><Clock size={20}/></div>
+                   </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                   <div>
+                      <p className="text-gray-500 text-xs font-bold uppercase">Total Paid Out</p>
+                      <h3 className="text-2xl font-black text-gray-900 mt-2">₱{affTotalPaid.toLocaleString()}</h3>
+                   </div>
+                   <div className="mt-4 flex justify-end">
+                      <div className="p-2 bg-green-50 text-green-600 rounded-lg"><CheckCircle size={20}/></div>
+                   </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                   <div>
+                      <p className="text-gray-500 text-xs font-bold uppercase">Active Affiliates</p>
+                      <h3 className="text-2xl font-black text-gray-900 mt-2">{affActiveCount}</h3>
+                   </div>
+                   <div className="mt-4 flex justify-end">
+                      <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><Users size={20}/></div>
+                   </div>
+                </div>
              </div>
-             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                   <thead className="bg-gray-50 text-gray-500 font-medium">
-                      <tr>
-                         <th className="p-4">Partner</th>
-                         <th className="p-4">Pending Comm.</th>
-                         <th className="p-4">Wallet</th>
-                         <th className="p-4">Total Sales</th>
-                         <th className="p-4">Status</th>
-                         <th className="p-4 text-right">Actions</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-100">
-                      {affiliates.map(aff => (
-                         <tr key={aff.id} className="hover:bg-gray-50">
-                            <td className="p-4">
-                               <div className="font-bold text-gray-900">{aff.name}</div>
-                               <div className="text-xs text-gray-400">{aff.email}</div>
-                            </td>
-                            <td className="p-4">₱0</td>
-                            <td className="p-4 font-bold text-primary">₱{aff.walletBalance.toLocaleString()}</td>
-                            <td className="p-4">₱{aff.totalSales.toLocaleString()}</td>
-                            <td className="p-4"><Badge color="green">{aff.status}</Badge></td>
-                            <td className="p-4 text-right">
-                               <div className="flex justify-end gap-2">
-                                  <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600"><Edit2 size={16}/></button>
+
+             <div className="grid lg:grid-cols-3 gap-6">
+                {/* Main Table - Col Span 2 */}
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                   <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                      <h2 className="font-bold text-gray-900">Partner List</h2>
+                   </div>
+                   <div className="overflow-x-auto flex-1">
+                      <table className="w-full text-sm text-left">
+                         <thead className="bg-gray-50 text-gray-500 font-medium">
+                            <tr>
+                               <th className="p-4">Partner</th>
+                               <th className="p-4">Wallet</th>
+                               <th className="p-4">Sales</th>
+                               <th className="p-4">Status</th>
+                               <th className="p-4 text-right">Actions</th>
+                            </tr>
+                         </thead>
+                         <tbody className="divide-y divide-gray-100">
+                            {affiliates.map(aff => (
+                               <tr key={aff.id} className="hover:bg-gray-50">
+                                  <td className="p-4">
+                                     <div className="font-bold text-gray-900">{aff.name}</div>
+                                     <div className="text-xs text-gray-400">{aff.email}</div>
+                                  </td>
+                                  <td className="p-4 font-bold text-primary">₱{aff.walletBalance.toLocaleString()}</td>
+                                  <td className="p-4">₱{aff.totalSales.toLocaleString()}</td>
+                                  <td className="p-4"><Badge color={aff.status === 'active' ? 'green' : 'red'}>{aff.status}</Badge></td>
+                                  <td className="p-4 text-right">
+                                     <div className="flex justify-end gap-2">
+                                        <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-gray-100 rounded-full text-gray-600"><Edit2 size={16}/></button>
+                                     </div>
+                                  </td>
+                               </tr>
+                            ))}
+                         </tbody>
+                      </table>
+                   </div>
+                </div>
+
+                {/* Top 5 Card - Col Span 1 */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+                   <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+                      <div className="p-1.5 bg-yellow-100 text-yellow-600 rounded-lg"><Trophy size={16}/></div>
+                      Top Performers
+                   </h3>
+                   <div className="space-y-6">
+                      {topAffiliates.map((aff, idx) => (
+                         <div key={aff.id} className="flex items-center gap-4 group">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm border-2 ${
+                               idx === 0 ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
+                               idx === 1 ? 'bg-gray-50 text-gray-600 border-gray-200' :
+                               idx === 2 ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                               'bg-white text-gray-400 border-transparent'
+                            }`}>
+                               {idx + 1}
+                            </div>
+                            
+                            <div className="relative">
+                               <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-gray-500 font-bold border border-gray-100 group-hover:border-primary transition-colors">
+                                 {/* Initials */}
+                                 {aff.firstName ? aff.firstName[0] : aff.name[0]}
                                </div>
-                            </td>
-                         </tr>
+                               {/* Rank Badge for top 3 */}
+                               {idx < 3 && (
+                                  <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center text-[8px] ${
+                                     idx === 0 ? 'bg-yellow-400' : idx === 1 ? 'bg-gray-400' : 'bg-orange-400'
+                                  }`}>
+                                     <Trophy size={8} className="text-white" fill="currentColor"/>
+                                  </div>
+                               )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                               <p className="font-bold text-gray-900 text-sm truncate">{aff.name}</p>
+                               <p className="text-xs text-gray-500 truncate">{aff.email}</p>
+                            </div>
+
+                            <div className="text-right">
+                               <p className="font-bold text-primary text-sm">₱{aff.totalSales.toLocaleString()}</p>
+                               <p className="text-[10px] text-gray-400">Sales</p>
+                            </div>
+                         </div>
                       ))}
-                   </tbody>
-                </table>
+                      {topAffiliates.length === 0 && (
+                         <div className="text-center py-8 text-gray-400 text-sm">No sales recorded yet.</div>
+                      )}
+                   </div>
+                </div>
              </div>
-          </div>
+           </div>
         );
 
       case 'Payouts': 
