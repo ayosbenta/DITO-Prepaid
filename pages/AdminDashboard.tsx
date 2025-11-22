@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet
+  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -40,6 +40,9 @@ const AdminDashboard: React.FC = () => {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProductForm, setNewProductForm] = useState<Partial<Product>>({});
+  
+  // Spec Input State
+  const [specInput, setSpecInput] = useState({ key: '', value: '' });
 
   // Affiliate Modals
   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
@@ -335,11 +338,15 @@ const AdminDashboard: React.FC = () => {
     setEditingProduct(product);
     setNewProductForm({
       ...product,
+      description: product.description || '',
+      subtitle: product.subtitle || '',
       // Ensure defaults for inventory fields
       bulkDiscounts: product.bulkDiscounts || [],
       // Initialize gallery: use existing gallery OR fallback to single image in array OR empty array with one empty string for UI
-      gallery: (product.gallery && product.gallery.length > 0) ? product.gallery : (product.image ? [product.image] : [])
+      gallery: (product.gallery && product.gallery.length > 0) ? product.gallery : (product.image ? [product.image] : []),
+      specs: product.specs || {}
     });
+    setSpecInput({ key: '', value: '' });
     setIsProductModalOpen(true);
   };
 
@@ -358,8 +365,11 @@ const AdminDashboard: React.FC = () => {
       sku: '', 
       stock: 0,
       minStockLevel: 10,
-      bulkDiscounts: []
+      bulkDiscounts: [],
+      description: '',
+      subtitle: ''
     });
+    setSpecInput({ key: '', value: '' });
     setIsProductModalOpen(true);
   };
 
@@ -378,8 +388,9 @@ const AdminDashboard: React.FC = () => {
       ...newProductForm,
       image: mainImage,
       gallery: cleanGallery.length > 0 ? cleanGallery : [mainImage],
-      description: newProductForm.description || 'No description',
-      subtitle: newProductForm.subtitle || 'New Product'
+      description: newProductForm.description || '',
+      subtitle: newProductForm.subtitle || 'New Product',
+      specs: newProductForm.specs || {}
     } as Product;
 
     if (editingProduct) {
@@ -408,6 +419,23 @@ const AdminDashboard: React.FC = () => {
     const currentDiscounts = [...(newProductForm.bulkDiscounts || [])];
     currentDiscounts[index] = { ...currentDiscounts[index], [field]: value };
     setNewProductForm({ ...newProductForm, bulkDiscounts: currentDiscounts });
+  };
+  
+  // Spec Helpers
+  const handleAddSpec = () => {
+    if (specInput.key && specInput.value) {
+      setNewProductForm(prev => ({
+        ...prev,
+        specs: { ...prev.specs, [specInput.key]: specInput.value }
+      }));
+      setSpecInput({ key: '', value: '' });
+    }
+  };
+
+  const handleRemoveSpec = (keyToRemove: string) => {
+     const newSpecs = { ...newProductForm.specs };
+     delete newSpecs[keyToRemove];
+     setNewProductForm(prev => ({ ...prev, specs: newSpecs }));
   };
 
   const handleEditAffiliate = (aff: Affiliate) => {
@@ -1571,6 +1599,17 @@ const AdminDashboard: React.FC = () => {
                        onChange={e => setNewProductForm({...newProductForm, name: e.target.value})}
                      />
                    </div>
+                   
+                   <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">Subtitle</label>
+                      <input 
+                        className="w-full border rounded-lg p-2 mt-1" 
+                        value={newProductForm.subtitle || ''} 
+                        onChange={e => setNewProductForm({...newProductForm, subtitle: e.target.value})}
+                        placeholder="e.g. Limited Edition"
+                      />
+                   </div>
+
                    <div className="grid grid-cols-2 gap-4">
                      <div>
                        <label className="text-xs font-bold text-gray-500 uppercase">Price (₱)</label>
@@ -1593,6 +1632,17 @@ const AdminDashboard: React.FC = () => {
                          <option>SIM Cards</option>
                        </select>
                      </div>
+                   </div>
+
+                   {/* Description Field */}
+                   <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
+                      <textarea
+                        className="w-full border rounded-lg p-2 mt-1 min-h-[100px] text-sm"
+                        value={newProductForm.description || ''}
+                        onChange={e => setNewProductForm({...newProductForm, description: e.target.value})}
+                        placeholder="Enter detailed product description..."
+                      />
                    </div>
                    
                    {/* Dynamic Image Gallery Inputs */}
@@ -1640,6 +1690,45 @@ const AdminDashboard: React.FC = () => {
                         ))}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-1">The first image will be used as the main product thumbnail.</p>
+                   </div>
+
+                   {/* Specs Section */}
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <h4 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
+                        <Settings size={16} /> Technical Specifications
+                      </h4>
+                      <div className="space-y-2 mb-3">
+                         {Object.entries(newProductForm.specs || {}).map(([key, val]) => (
+                            <div key={key} className="flex gap-2 items-center">
+                               <div className="w-1/3 bg-white border rounded px-2 py-1.5 text-xs font-bold text-gray-600 truncate">{key}</div>
+                               <div className="flex-1 bg-white border rounded px-2 py-1.5 text-xs text-gray-800">{val as string}</div>
+                               <button onClick={() => handleRemoveSpec(key)} className="text-red-400 hover:text-red-600 p-1">
+                                  <XCircle size={14} />
+                               </button>
+                            </div>
+                         ))}
+                         {Object.keys(newProductForm.specs || {}).length === 0 && (
+                            <p className="text-xs text-gray-400 italic text-center py-2">No specifications added.</p>
+                         )}
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2 border-t border-gray-200">
+                         <input 
+                           value={specInput.key}
+                           onChange={(e) => setSpecInput({...specInput, key: e.target.value})}
+                           placeholder="Spec Name (e.g. Battery)" 
+                           className="w-1/3 border rounded p-1.5 text-xs" 
+                         />
+                         <input 
+                           value={specInput.value}
+                           onChange={(e) => setSpecInput({...specInput, value: e.target.value})}
+                           placeholder="Value (e.g. 5000mAh)" 
+                           className="flex-1 border rounded p-1.5 text-xs" 
+                         />
+                         <button onClick={handleAddSpec} className="bg-gray-900 text-white px-3 rounded text-xs font-bold hover:bg-black">
+                            Add
+                         </button>
+                      </div>
                    </div>
 
                    {/* Inventory Management Section */}
