@@ -1,4 +1,5 @@
 
+
 import { Product, Order, LandingPageSettings, PaymentSettings } from './types';
 
 export const HERO_PRODUCT: Product = {
@@ -30,6 +31,13 @@ export const HERO_PRODUCT: Product = {
     'No Monthly Bill (Prepaid)',
     'Load via DITO App',
     'Includes 50GB Bonus Data'
+  ],
+  sku: 'DITO-MOD-001',
+  stock: 150,
+  minStockLevel: 20,
+  bulkDiscounts: [
+    { minQty: 3, percentage: 5 }, // Buy 3 get 5% off
+    { minQty: 10, percentage: 12 } // Buy 10 get 12% off
   ]
 };
 
@@ -46,7 +54,10 @@ export const RELATED_PRODUCTS: Product[] = [
     specs: { 'Speed': 'Up to 100 Mbps', 'Battery': '12 Hours' },
     rating: 4.5,
     reviews: 85,
-    features: ['Pocket Sized', 'All-day Battery']
+    features: ['Pocket Sized', 'All-day Battery'],
+    sku: 'DITO-PKT-002',
+    stock: 45,
+    minStockLevel: 10
   },
   {
     id: 'dito-sim-starter',
@@ -60,7 +71,13 @@ export const RELATED_PRODUCTS: Product[] = [
     specs: { 'Data': '3GB Included', 'Calls': 'Unlimited DITO-to-DITO' },
     rating: 4.9,
     reviews: 3000,
-    features: ['Triple Cut SIM', '4G/5G Ready']
+    features: ['Triple Cut SIM', '4G/5G Ready'],
+    sku: 'DITO-SIM-001',
+    stock: 500,
+    minStockLevel: 100,
+    bulkDiscounts: [
+      { minQty: 5, percentage: 10 }
+    ]
   }
 ];
 

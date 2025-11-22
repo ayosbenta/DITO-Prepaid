@@ -167,6 +167,12 @@ const CheckoutPage: React.FC = () => {
       total: cartTotal,
       status: 'Pending',
       items: items.reduce((acc, item) => acc + item.quantity, 0),
+      orderItems: items.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+      })),
       referralId: referralId || '',
       commission: totalCommission,
       paymentMethod: selectedMethod === 'cod' ? 'COD' : selectedMethod === 'gcash' ? 'GCash' : 'Bank Transfer',

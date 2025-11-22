@@ -1,4 +1,3 @@
-
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
@@ -69,7 +68,7 @@ export const SheetsService = {
 
       // 1. Parse Products
       let products: Product[] = (data.Products || []).map((p: any) => {
-        let details = {};
+        let details: any = {};
         try {
           if (p.json_data) details = JSON.parse(p.json_data);
         } catch (e) { /* ignore */ }
@@ -88,6 +87,12 @@ export const SheetsService = {
           rating: 5, 
           reviews: 0,
           ...details,
+          // Ensure core fields are typed correctly
+          stock: details.stock ? Number(details.stock) : 0,
+          minStockLevel: details.minStockLevel ? Number(details.minStockLevel) : 0,
+          bulkDiscounts: details.bulkDiscounts || [],
+          sku: details.sku || '',
+          
           commissionType: p.commissionType,
           commissionValue: Number(p.commissionValue)
         };
@@ -116,7 +121,8 @@ export const SheetsService = {
           commission: o.commission ? Number(o.commission) : 0,
           paymentMethod: o.paymentMethod || 'COD',
           proofOfPayment: o.proofOfPayment || '',
-          shippingDetails: details.shippingDetails || undefined
+          shippingDetails: details.shippingDetails || undefined,
+          orderItems: details.orderItems || undefined
         };
       });
 
@@ -234,21 +240,42 @@ export const SheetsService = {
   },
 
   saveSettings: async (settings: any): Promise<ApiResponse> => SheetsService.sendData('SAVE_SETTINGS', settings),
-  syncProducts: async (products: Product[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PRODUCTS', products),
+  
+  syncProducts: async (products: Product[]): Promise<ApiResponse> => {
+    const payload = products.map(p => {
+      // Destructure to separate standard columns from detailed JSON data
+      const { id, name, category, price, image, description, commissionType, commissionValue, ...rest } = p;
+      // Everything else goes into json_data to preserve schema flexibility (including stock, discounts)
+      return {
+        id, name, category, price, image, description, commissionType, commissionValue,
+        json_data: JSON.stringify(rest)
+      };
+    });
+    return SheetsService.sendData('SYNC_PRODUCTS', payload);
+  },
   
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
-    // Flatten shippingDetails into json_data before sending
+    // Flatten shippingDetails for top-level columns, AND store everything in json_data for retrieval
     const payload = orders.map(o => {
+      const shipping = o.shippingDetails;
+      const address = shipping ? `${shipping.street}, ${shipping.barangay}, ${shipping.city}, ${shipping.province} ${shipping.zipCode}` : '';
+      
       return {
         ...o,
-        // Store complex object in json_data to persist structure without needing new columns
-        json_data: JSON.stringify({ shippingDetails: o.shippingDetails })
+        // Flattened fields for direct Sheet visibility (The "Header" request)
+        shipping_name: shipping ? `${shipping.firstName} ${shipping.lastName}` : '',
+        shipping_phone: shipping ? shipping.mobile : '',
+        shipping_address: address,
+        // Store complex objects in json_data
+        json_data: JSON.stringify({ 
+           shippingDetails: o.shippingDetails,
+           orderItems: o.orderItems 
+        })
       };
     });
     return SheetsService.sendData('SYNC_ORDERS', payload);
   },
   
-  // Updated syncAffiliates to send all fields explicitly + json_data backup
   syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
     const payload = affiliates.map(aff => {
       // Extract standard fields

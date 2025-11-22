@@ -1,10 +1,9 @@
-
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield, Printer
+  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -184,13 +183,45 @@ const AdminDashboard: React.FC = () => {
                <div class="value">${order.id}</div>
             </div>
             <div class="detail-box">
-               <div class="label">Items</div>
+               <div class="label">Items Count</div>
                <div class="value">${order.items} Item(s)</div>
             </div>
             <div class="detail-box">
                <div class="label">Declared Value</div>
                <div class="value">₱${order.total.toLocaleString()}</div>
             </div>
+          </div>
+          
+          <!-- Items Table -->
+          <div style="padding: 20px; border-bottom: 2px solid #000;">
+             <div class="label" style="margin-bottom: 10px;">Detailed Order Items</div>
+             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+               <thead>
+                 <tr style="border-bottom: 1px solid #000; background: #f9fafb;">
+                   <th style="text-align: left; padding: 8px;">Product Name</th>
+                   <th style="text-align: center; padding: 8px;">Qty</th>
+                   <th style="text-align: right; padding: 8px;">Unit Price</th>
+                   <th style="text-align: right; padding: 8px;">Subtotal</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 ${order.orderItems && order.orderItems.length > 0 ? order.orderItems.map(item => `
+                   <tr>
+                     <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
+                     <td style="text-align: center; padding: 8px; border-bottom: 1px solid #eee;">${item.quantity}</td>
+                     <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">₱${item.price.toLocaleString()}</td>
+                     <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">₱${(item.price * item.quantity).toLocaleString()}</td>
+                   </tr>
+                 `).join('') : `
+                   <tr>
+                     <td colspan="4" style="padding: 15px; text-align: center; color: #666;">
+                       Detailed item list not available for this order.<br/>
+                       <span style="font-size: 10px;">(Total Items Count: ${order.items})</span>
+                     </td>
+                   </tr>
+                 `}
+               </tbody>
+             </table>
           </div>
           
           <div style="padding: 20px; border-bottom: 2px solid #000;">
@@ -288,6 +319,7 @@ const AdminDashboard: React.FC = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
     { icon: Package, label: 'Products' },
+    { icon: Boxes, label: 'Inventory' },
     { icon: ShoppingBag, label: 'Orders' },
     { icon: CreditCard, label: 'Payment Gateway' },
     { icon: Briefcase, label: 'Affiliates' },
@@ -300,7 +332,11 @@ const AdminDashboard: React.FC = () => {
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
-    setNewProductForm(product);
+    setNewProductForm({
+      ...product,
+      // Ensure defaults for inventory fields
+      bulkDiscounts: product.bulkDiscounts || []
+    });
     setIsProductModalOpen(true);
   };
 
@@ -315,7 +351,10 @@ const AdminDashboard: React.FC = () => {
       specs: {},
       features: [],
       commissionType: 'percentage',
-      commissionValue: 5
+      commissionValue: 5,
+      stock: 0,
+      minStockLevel: 10,
+      bulkDiscounts: []
     });
     setIsProductModalOpen(true);
   };
@@ -336,6 +375,26 @@ const AdminDashboard: React.FC = () => {
       addProduct(productToSave);
     }
     setIsProductModalOpen(false);
+  };
+  
+  const addDiscountTier = () => {
+    const currentDiscounts = newProductForm.bulkDiscounts || [];
+    setNewProductForm({
+      ...newProductForm,
+      bulkDiscounts: [...currentDiscounts, { minQty: 3, percentage: 5 }]
+    });
+  };
+
+  const removeDiscountTier = (index: number) => {
+    const currentDiscounts = [...(newProductForm.bulkDiscounts || [])];
+    currentDiscounts.splice(index, 1);
+    setNewProductForm({ ...newProductForm, bulkDiscounts: currentDiscounts });
+  };
+
+  const updateDiscountTier = (index: number, field: 'minQty' | 'percentage', value: number) => {
+    const currentDiscounts = [...(newProductForm.bulkDiscounts || [])];
+    currentDiscounts[index] = { ...currentDiscounts[index], [field]: value };
+    setNewProductForm({ ...newProductForm, bulkDiscounts: currentDiscounts });
   };
 
   const handleEditAffiliate = (aff: Affiliate) => {
@@ -412,6 +471,14 @@ const AdminDashboard: React.FC = () => {
     updatePaymentSettings(paymentSettingsForm);
   };
 
+  const handleStockChange = (id: string, change: number) => {
+    const product = products.find(p => p.id === id);
+    if (product) {
+       const newStock = Math.max(0, (product.stock || 0) + change);
+       updateProduct(id, { ...product, stock: newStock });
+    }
+  };
+
   // Calculations for new cards
   const totalClicks = affiliates.reduce((acc, a) => acc + (a.clicks || 0), 0);
   const totalPendingPayout = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
@@ -446,9 +513,9 @@ const AdminDashboard: React.FC = () => {
       bg: 'bg-emerald-50' 
     },
     { 
-      label: 'Low Stock', 
-      value: stats.lowStock.toString(), 
-      trend: 'Urgent', 
+      label: 'Low Stock Items', 
+      value: products.filter(p => (p.stock || 0) <= (p.minStockLevel || 10)).length.toString(), 
+      trend: 'Needs Action', 
       trendUp: false, 
       icon: AlertCircle, 
       color: 'text-orange-600', 
@@ -491,6 +558,88 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Inventory':
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                 <h2 className="text-lg font-bold text-gray-900">Inventory Management</h2>
+                 <p className="text-sm text-gray-500">Track stock levels and SKUs.</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-500 font-medium">
+                  <tr>
+                    <th className="p-4">Product</th>
+                    <th className="p-4">SKU</th>
+                    <th className="p-4">Stock Level</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {products.map(p => {
+                    const stock = p.stock || 0;
+                    const minStock = p.minStockLevel || 10;
+                    const isLowStock = stock <= minStock;
+                    const isOutOfStock = stock === 0;
+
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="p-4 flex items-center gap-3">
+                          <img src={p.image} alt="" className="w-10 h-10 rounded-lg bg-gray-100 object-contain" />
+                          <div>
+                            <p className="font-bold text-gray-900">{p.name}</p>
+                            <p className="text-xs text-gray-500">Price: ₱{p.price.toLocaleString()}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 font-mono text-gray-600">{p.sku || '-'}</td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                             <span className="font-bold text-lg">{stock}</span>
+                             {isLowStock && !isOutOfStock && <AlertTriangle size={16} className="text-orange-500" />}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {isOutOfStock ? (
+                            <Badge color="red">Out of Stock</Badge>
+                          ) : isLowStock ? (
+                            <Badge color="yellow">Low Stock</Badge>
+                          ) : (
+                            <Badge color="green">In Stock</Badge>
+                          )}
+                        </td>
+                        <td className="p-4 flex justify-end gap-2">
+                          <button 
+                            onClick={() => handleStockChange(p.id, -1)}
+                            className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100"
+                          >
+                            <div className="w-3 h-0.5 bg-current"></div>
+                          </button>
+                          <button 
+                             onClick={() => handleEditProduct(p)}
+                             className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100"
+                             title="Edit Details"
+                          >
+                             <Edit2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleStockChange(p.id, 1)}
+                            className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+
       case 'Payouts':
         const totalPending = payouts.filter(p => p.status === 'Pending').reduce((acc, curr) => acc + curr.amount, 0);
         const totalPaid = payouts.filter(p => p.status === 'Approved').reduce((acc, curr) => acc + curr.amount, 0);
@@ -1433,6 +1582,83 @@ const AdminDashboard: React.FC = () => {
                        onChange={e => setNewProductForm({...newProductForm, image: e.target.value})}
                      />
                    </div>
+
+                   {/* Inventory Management Section */}
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <h4 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
+                        <Boxes size={16} /> Inventory & Stock
+                      </h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase">SKU</label>
+                          <input 
+                            className="w-full border rounded-lg p-2 mt-1 bg-white" 
+                            value={newProductForm.sku || ''} 
+                            onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})}
+                            placeholder="e.g. ITEM-001"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase">Stock</label>
+                          <input 
+                            type="number"
+                            className="w-full border rounded-lg p-2 mt-1 bg-white" 
+                            value={newProductForm.stock || 0} 
+                            onChange={e => setNewProductForm({...newProductForm, stock: Number(e.target.value)})}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase">Low Alert</label>
+                          <input 
+                            type="number"
+                            className="w-full border rounded-lg p-2 mt-1 bg-white" 
+                            value={newProductForm.minStockLevel || 10} 
+                            onChange={e => setNewProductForm({...newProductForm, minStockLevel: Number(e.target.value)})}
+                          />
+                        </div>
+                      </div>
+                   </div>
+
+                   {/* Bulk Discount Section */}
+                   <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-bold text-green-900 text-sm flex items-center gap-2">
+                          <Percent size={16} /> Bulk Discounts
+                        </h4>
+                        <button onClick={addDiscountTier} className="text-xs bg-white border border-green-200 text-green-700 px-2 py-1 rounded hover:bg-green-100">
+                          + Add Tier
+                        </button>
+                      </div>
+                      
+                      {newProductForm.bulkDiscounts && newProductForm.bulkDiscounts.length > 0 ? (
+                        <div className="space-y-2">
+                          {newProductForm.bulkDiscounts.map((d, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-xs text-green-800">Buy</span>
+                              <input 
+                                type="number"
+                                className="w-16 border border-green-200 rounded p-1 text-xs text-center"
+                                value={d.minQty}
+                                onChange={e => updateDiscountTier(idx, 'minQty', Number(e.target.value))}
+                              />
+                              <span className="text-xs text-green-800">Get</span>
+                              <input 
+                                type="number"
+                                className="w-16 border border-green-200 rounded p-1 text-xs text-center"
+                                value={d.percentage}
+                                onChange={e => updateDiscountTier(idx, 'percentage', Number(e.target.value))}
+                              />
+                              <span className="text-xs text-green-800">% Off</span>
+                              <button onClick={() => removeDiscountTier(idx)} className="ml-auto text-red-500 hover:text-red-700">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-green-600/60 italic">No discount rules set.</p>
+                      )}
+                   </div>
                    
                    {/* Commission Settings */}
                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -1461,12 +1687,6 @@ const AdminDashboard: React.FC = () => {
                           />
                         </div>
                      </div>
-                     <p className="text-xs text-blue-600 mt-2">
-                       {newProductForm.commissionType === 'fixed' 
-                         ? `Affiliates earn ₱${newProductForm.commissionValue} per sale.` 
-                         : `Affiliates earn ${newProductForm.commissionValue}% of the sale price.`
-                       }
-                     </p>
                    </div>
 
                 </div>

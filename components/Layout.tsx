@@ -1,7 +1,9 @@
 
+
+
 import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn } from 'lucide-react';
+import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { CartItem } from '../types';
 import { Button } from './UI';
@@ -223,9 +225,11 @@ export const Footer: React.FC = () => {
 };
 
 export const CartDrawer: React.FC = () => {
-  const { isCartOpen, setIsCartOpen, items, removeFromCart, updateQuantity, cartTotal } = useContext(CartContext);
+  const { isCartOpen, setIsCartOpen, items, removeFromCart, updateQuantity, cartTotal, discountAmount } = useContext(CartContext);
 
   if (!isCartOpen) return null;
+
+  const subTotal = cartTotal + discountAmount;
 
   return (
     <>
@@ -256,45 +260,68 @@ export const CartDrawer: React.FC = () => {
               <Button variant="outline" onClick={() => setIsCartOpen(false)}>Start Shopping</Button>
             </div>
           ) : (
-            items.map((item: CartItem) => (
-              <div key={item.id} className="flex gap-4 group">
-                <div className="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 p-2">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
-                </div>
-                <div className="flex-1 flex flex-col justify-between py-1">
-                  <div>
-                    <div className="flex justify-between items-start">
-                       <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
-                       <button 
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <p className="text-sm text-gray-500">Modem</p>
+            items.map((item: CartItem) => {
+              // Calculate individual item discount display
+              let discountPercent = 0;
+              if (item.bulkDiscounts) {
+                const applicable = item.bulkDiscounts
+                  .sort((a,b) => b.minQty - a.minQty)
+                  .find(d => item.quantity >= d.minQty);
+                if (applicable) discountPercent = applicable.percentage;
+              }
+
+              return (
+                <div key={item.id} className="flex gap-4 group relative">
+                  <div className="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 p-2">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center border border-gray-200 rounded-lg bg-white h-8">
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-full hover:bg-gray-50 rounded-l-lg flex items-center justify-center text-gray-500"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-full hover:bg-gray-50 rounded-r-lg flex items-center justify-center text-gray-500"
-                      >
-                        <Plus size={14} />
-                      </button>
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
+                        <button 
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      {discountPercent > 0 && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 w-fit px-1.5 py-0.5 rounded-md mb-1">
+                          <Tag size={10} /> {discountPercent}% Bulk Savings
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-500">Modem</p>
                     </div>
-                    <p className="font-bold text-gray-900">₱{(item.price * item.quantity).toLocaleString()}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center border border-gray-200 rounded-lg bg-white h-8">
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-full hover:bg-gray-50 rounded-l-lg flex items-center justify-center text-gray-500"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-full hover:bg-gray-50 rounded-r-lg flex items-center justify-center text-gray-500"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                      <div className="text-right">
+                         {discountPercent > 0 && (
+                            <p className="text-xs text-gray-400 line-through">₱{(item.price * item.quantity).toLocaleString()}</p>
+                         )}
+                         <p className="font-bold text-gray-900">
+                            ₱{Math.round((item.price * item.quantity) * (1 - discountPercent/100)).toLocaleString()}
+                         </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -303,8 +330,14 @@ export const CartDrawer: React.FC = () => {
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center text-gray-500 text-sm">
                 <span>Subtotal</span>
-                <span>₱{cartTotal.toLocaleString()}</span>
+                <span>₱{subTotal.toLocaleString()}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between items-center text-green-600 text-sm">
+                  <span className="flex items-center gap-1"><Tag size={14}/> Bulk Discount</span>
+                  <span>-₱{discountAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-gray-500 text-sm">
                 <span>Shipping</span>
                 <span className="text-green-600 font-medium">Free</span>

@@ -1,5 +1,3 @@
-
-
 export interface Product {
   id: string;
   name: string;
@@ -15,6 +13,15 @@ export interface Product {
   features: string[];
   commissionType?: 'fixed' | 'percentage';
   commissionValue?: number;
+  // Inventory Fields
+  sku?: string;
+  stock?: number;
+  minStockLevel?: number; // For low stock alerts
+  // Discount Fields
+  bulkDiscounts?: {
+    minQty: number;
+    percentage: number;
+  }[];
 }
 
 export interface CartItem extends Product {
@@ -65,6 +72,13 @@ export interface ShippingDetails {
   zipCode: string;
 }
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -72,6 +86,7 @@ export interface Order {
   total: number;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Pending';
   items: number;
+  orderItems?: OrderItem[]; // Detailed list of items purchased
   referralId?: string; // The affiliate ID who referred this order
   commission?: number; // The amount earned by the affiliate
   paymentMethod?: string;
@@ -141,6 +156,7 @@ export interface CartContextType {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, qty: number) => void;
   cartTotal: number;
+  discountAmount: number;
   itemCount: number;
   clearCart: () => void;
   isCartOpen: boolean;
@@ -152,6 +168,3 @@ export enum PaymentMethod {
   GCASH = 'GCash',
   BANK = 'Bank Transfer',
 }
-
-// Declaration to fix module resolution errors
-declare module 'react-router-dom';

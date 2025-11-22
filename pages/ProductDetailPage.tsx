@@ -1,6 +1,8 @@
+
+
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus } from 'lucide-react';
+import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag } from 'lucide-react';
 import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
@@ -29,6 +31,10 @@ const ProductDetailPage: React.FC = () => {
     setIsCartOpen(true);
   };
 
+  const stock = product.stock ?? 100; // Default to 100 if undefined (mock)
+  const isLowStock = stock <= (product.minStockLevel ?? 10);
+  const isOutOfStock = stock === 0;
+
   return (
     <div className="pt-28 pb-20 min-h-screen bg-white">
        {/* Breadcrumbs */}
@@ -52,8 +58,16 @@ const ProductDetailPage: React.FC = () => {
                 alt={product.name} 
                 className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" 
               />
-              <div className="absolute top-6 left-6 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-gray-900 border border-gray-100">
-                In Stock
+              <div className="absolute top-6 left-6">
+                 {isOutOfStock ? (
+                    <div className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-red-200">
+                       Out of Stock
+                    </div>
+                 ) : (
+                    <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-gray-900 border border-gray-100">
+                       In Stock
+                    </div>
+                 )}
               </div>
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -93,7 +107,29 @@ const ProductDetailPage: React.FC = () => {
                  <span className="text-gray-400 text-lg line-through">₱{(product.price * 1.2).toFixed(0).toLocaleString()}</span>
                </div>
                <p className="text-sm text-gray-500 mt-2">Inclusive of VAT. Free shipping nationwide.</p>
+               
+               {isLowStock && !isOutOfStock && (
+                 <p className="mt-4 flex items-center gap-2 text-orange-600 font-bold text-sm animate-pulse">
+                    <AlertTriangle size={16} /> Only {stock} units left!
+                 </p>
+               )}
             </div>
+
+            {/* Bulk Discounts Badge */}
+            {product.bulkDiscounts && product.bulkDiscounts.length > 0 && (
+              <div className="mb-8 p-4 bg-green-50 border border-green-100 rounded-xl">
+                <h4 className="text-sm font-bold text-green-800 flex items-center gap-2 mb-3">
+                   <Tag size={16} /> Bulk Savings Available
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {product.bulkDiscounts.sort((a,b) => a.minQty - b.minQty).map((d, idx) => (
+                    <div key={idx} className="bg-white border border-green-200 px-3 py-1 rounded-lg text-xs text-green-700 shadow-sm">
+                       Buy {d.minQty}+ get <strong>{d.percentage}% OFF</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mb-8">
                <p className="text-gray-600 leading-relaxed">{product.description}</p>
@@ -102,18 +138,32 @@ const ProductDetailPage: React.FC = () => {
             {/* Actions */}
             <div className="flex flex-col gap-4 mb-10">
                <div className="flex gap-4">
-                  <div className="flex items-center border border-gray-200 rounded-xl w-32">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500"><Minus size={16}/></button>
+                  <div className="flex items-center border border-gray-200 rounded-xl w-32 bg-white">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                      className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500"
+                      disabled={isOutOfStock}
+                    >
+                       <Minus size={16}/>
+                    </button>
                     <div className="flex-1 text-center font-bold text-gray-900">{quantity}</div>
-                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500"><Plus size={16}/></button>
+                    <button 
+                      onClick={() => setQuantity(Math.min(stock, quantity + 1))} 
+                      className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500"
+                      disabled={isOutOfStock || quantity >= stock}
+                    >
+                       <Plus size={16}/>
+                    </button>
                   </div>
-                  <Button onClick={handleAddToCart} className="flex-1 py-4 text-lg shadow-red-500/20 shadow-lg">
-                    Add to Cart
+                  <Button onClick={handleAddToCart} disabled={isOutOfStock} className="flex-1 py-4 text-lg shadow-red-500/20 shadow-lg">
+                    {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                   </Button>
                </div>
-               <Button variant="outline" className="w-full py-4">
-                  Buy Now
-               </Button>
+               {!isOutOfStock && (
+                 <Button variant="outline" className="w-full py-4">
+                    Buy Now
+                 </Button>
+               )}
             </div>
 
             {/* Trust Badges */}
