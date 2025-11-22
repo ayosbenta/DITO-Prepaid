@@ -366,8 +366,19 @@ export const SheetsService = {
     const payload = orders.map(o => {
       const shipping = o.shippingDetails;
       const address = shipping ? `${shipping.street}, ${shipping.barangay}, ${shipping.city}, ${shipping.province} ${shipping.zipCode}` : '';
+      
+      // FIX: Google Sheets Cell Limit Protection
+      // A cell cannot hold more than 50,000 characters.
+      // Base64 images can easily exceed this. If we send a huge string, the script crashes and corrupts the sheet.
+      // We must truncate if it is unsafe.
+      let safeProof = o.proofOfPayment || '';
+      if (safeProof.length > 45000) {
+         safeProof = "Image too large for Sheet (View in App only if cached)";
+      }
+
       return {
         ...o,
+        proofOfPayment: safeProof, // Use the safe version for the main column
         shipping_name: shipping ? `${shipping.firstName} ${shipping.lastName}` : '',
         shipping_phone: shipping ? shipping.mobile : '',
         shipping_address: address,
@@ -377,6 +388,7 @@ export const SheetsService = {
            shippingFee: o.shippingFee,
            courier: o.courier,
            trackingNumber: o.trackingNumber
+           // Note: We do NOT put proofOfPayment inside json_data to save space
         })
       };
     });

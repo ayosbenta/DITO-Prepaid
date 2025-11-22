@@ -164,9 +164,41 @@ const CheckoutPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      
+      // Compress Image to avoid hitting Google Sheets Cell Limit (50k chars)
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofOfPayment(reader.result as string);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Resize to max 600px to reduce data size significantly
+          const MAX_SIZE = 600;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+               height *= MAX_SIZE / width;
+               width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+               width *= MAX_SIZE / height;
+               height = MAX_SIZE;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Aggressive JPEG compression (0.6 quality)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          setProofOfPayment(dataUrl);
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -501,6 +533,7 @@ const CheckoutPage: React.FC = () => {
                                       {fileName ? <span className="text-primary font-bold">{fileName}</span> : "Click to upload Receipt"}
                                    </label>
                                 </div>
+                                <p className="text-[10px] text-gray-400 mt-1 text-center">Max size 2MB. Images are compressed automatically.</p>
                              </div>
                           </div>
                         )}
