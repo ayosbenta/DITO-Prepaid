@@ -1,9 +1,7 @@
 
-
-
 import React, { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag } from 'lucide-react';
+import { ShoppingCart, Menu, X, Wifi, Facebook, Twitter, Instagram, Trash2, Plus, Minus, ArrowRight, Lock, User, Shield, Users, LogIn, Tag, AlertTriangle } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { CartItem } from '../types';
 import { Button } from './UI';
@@ -270,6 +268,9 @@ export const CartDrawer: React.FC = () => {
                 if (applicable) discountPercent = applicable.percentage;
               }
 
+              const stock = item.stock ?? 0;
+              const isMaxStock = item.quantity >= stock;
+
               return (
                 <div key={item.id} className="flex gap-4 group relative">
                   <div className="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 p-2">
@@ -291,7 +292,11 @@ export const CartDrawer: React.FC = () => {
                           <Tag size={10} /> {discountPercent}% Bulk Savings
                         </div>
                       )}
-                      <p className="text-sm text-gray-500">Modem</p>
+                      {isMaxStock && (
+                         <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 w-fit px-1.5 py-0.5 rounded-md mb-1">
+                           <AlertTriangle size={10} /> Max Stock Reached
+                         </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center border border-gray-200 rounded-lg bg-white h-8">
@@ -303,8 +308,11 @@ export const CartDrawer: React.FC = () => {
                         </button>
                         <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-full hover:bg-gray-50 rounded-r-lg flex items-center justify-center text-gray-500"
+                          onClick={() => {
+                             if (!isMaxStock) updateQuantity(item.id, item.quantity + 1);
+                          }}
+                          disabled={isMaxStock}
+                          className="w-8 h-full hover:bg-gray-50 rounded-r-lg flex items-center justify-center text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Plus size={14} />
                         </button>

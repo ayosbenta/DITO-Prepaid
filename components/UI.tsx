@@ -1,3 +1,4 @@
+
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Eye } from 'lucide-react';
@@ -36,14 +37,19 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);
   const navigate = useNavigate();
 
+  // Stock Logic
+  const stock = product.stock ?? 0;
+  const isOutOfStock = stock === 0;
+
   const handleBuyNow = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent link navigation if wrapped
+    e.preventDefault(); 
+    if (isOutOfStock) return;
     addToCart(product);
     setIsCartOpen(true);
   };
 
   return (
-    <div className="group block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-1">
+    <div className={`group block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-1 ${isOutOfStock ? 'opacity-75 grayscale' : ''}`}>
       <Link to={`/product/${product.id}`}>
         <div className="relative aspect-square bg-gray-50 overflow-hidden flex items-center justify-center p-6">
           <img 
@@ -51,12 +57,24 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             alt={product.name} 
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
           />
-          {/* Optional Badge */}
-          {product.category === 'Modems' && (
-            <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-              Best Seller
-            </div>
-          )}
+          
+          {/* Stock Status Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2">
+            {product.category === 'Modems' && !isOutOfStock && (
+              <div className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider w-fit">
+                Best Seller
+              </div>
+            )}
+            {isOutOfStock ? (
+              <div className="bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider w-fit">
+                Out of Stock
+              </div>
+            ) : (
+              <div className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider w-fit border border-green-200">
+                {stock} In Stock
+              </div>
+            )}
+          </div>
         </div>
       </Link>
       
@@ -72,8 +90,13 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="primary" className="py-2 text-sm px-2" onClick={handleBuyNow}>
-            Buy Now
+          <Button 
+            variant="primary" 
+            className="py-2 text-sm px-2" 
+            onClick={handleBuyNow}
+            disabled={isOutOfStock}
+          >
+            {isOutOfStock ? 'No Stock' : 'Buy Now'}
           </Button>
           <Link to={`/product/${product.id}`} className="w-full">
              <Button variant="outline" fullWidth className="py-2 text-sm px-2">

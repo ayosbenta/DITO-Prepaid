@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useState } from 'react';
 import { CartContextType, CartItem, Product } from '../types';
 
@@ -42,9 +41,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addToCart = (product: Product) => {
     setCartItems(prev => {
       const existing = prev.find(item => item.id === product.id);
+      const stock = product.stock ?? 0;
+
+      if (stock <= 0) return prev; // Don't add if no stock
+
       if (existing) {
+        // Check if adding 1 more exceeds stock
+        if (existing.quantity + 1 > stock) {
+          return prev; // Do nothing (or optionally trigger a notification)
+        }
         return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
+      
+      // New Item
+      if (stock < 1) return prev;
       return [...prev, { ...product, quantity: 1 }];
     });
   };
@@ -55,7 +65,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateQuantity = (id: string, qty: number) => {
     if (qty < 1) return removeFromCart(id);
-    setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: qty } : item));
+    
+    setCartItems(prev => prev.map(item => {
+       if (item.id === id) {
+         // Check limit again just in case
+         const stock = item.stock ?? 0;
+         if (qty > stock) return { ...item, quantity: stock };
+         return { ...item, quantity: qty };
+       }
+       return item;
+    }));
   };
 
   const clearCart = () => setCartItems([]);
@@ -78,7 +97,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart, 
       updateQuantity, 
       cartTotal: total, 
-      discountAmount: totalDiscount,
+      discountAmount: totalDiscount, 
       itemCount, 
       clearCart,
       isCartOpen,

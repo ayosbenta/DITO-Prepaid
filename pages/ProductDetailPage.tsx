@@ -1,7 +1,7 @@
 
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag, Box } from 'lucide-react';
+import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag, Box, CheckCircle } from 'lucide-react';
 import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
@@ -25,14 +25,25 @@ const ProductDetailPage: React.FC = () => {
     return <div className="pt-40 text-center">Product not found</div>;
   }
 
+  const stock = product.stock ?? 0; 
+  const isLowStock = stock <= (product.minStockLevel ?? 10);
+  const isOutOfStock = stock === 0;
+
   const handleAddToCart = () => {
+    if (isOutOfStock) return;
+    // Logic to prevent adding more than stock is handled in Context, 
+    // but here we pass quantity relative to single add actions usually.
+    // However, context's addToCart adds 1 at a time or merges.
+    // Let's loop to add 'quantity' times or improve context later. 
+    // For safety, we check stock here too.
+    if (quantity > stock) {
+        alert(`Only ${stock} items available.`);
+        return;
+    }
+    
     for(let i=0; i<quantity; i++) addToCart(product);
     setIsCartOpen(true);
   };
-
-  const stock = product.stock ?? 100; // Default to 100 if undefined (mock)
-  const isLowStock = stock <= (product.minStockLevel ?? 10);
-  const isOutOfStock = stock === 0;
 
   return (
     <div className="pt-28 pb-20 min-h-screen bg-white">
@@ -55,16 +66,16 @@ const ProductDetailPage: React.FC = () => {
               <img 
                 src={activeImage} 
                 alt={product.name} 
-                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" 
+                className={`w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-60' : ''}`} 
               />
               <div className="absolute top-6 left-6">
                  {isOutOfStock ? (
-                    <div className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-red-200">
-                       Out of Stock
+                    <div className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-red-200 flex items-center gap-2">
+                       <AlertTriangle size={14} /> Out of Stock
                     </div>
                  ) : (
-                    <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-gray-900 border border-gray-100">
-                       In Stock
+                    <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-gray-900 border border-gray-100 flex items-center gap-2">
+                       <CheckCircle size={14} className="text-green-600" /> In Stock
                     </div>
                  )}
               </div>
@@ -107,9 +118,21 @@ const ProductDetailPage: React.FC = () => {
                </div>
                <p className="text-sm text-gray-500 mt-2">Inclusive of VAT. Free shipping nationwide.</p>
                
+               {/* Explicit Stock Display */}
+               <div className="mt-4 flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Availability:</span>
+                  {isOutOfStock ? (
+                    <span className="text-sm font-bold text-red-600">Sold Out</span>
+                  ) : (
+                    <span className={`text-sm font-bold ${isLowStock ? 'text-orange-600' : 'text-green-600'}`}>
+                      {stock} units available
+                    </span>
+                  )}
+               </div>
+               
                {isLowStock && !isOutOfStock && (
-                 <p className="mt-4 flex items-center gap-2 text-orange-600 font-bold text-sm animate-pulse">
-                    <AlertTriangle size={16} /> Only {stock} units left!
+                 <p className="mt-2 flex items-center gap-2 text-orange-600 font-bold text-xs animate-pulse">
+                    <AlertTriangle size={14} /> Low stock - Order soon!
                  </p>
                )}
             </div>
@@ -137,7 +160,7 @@ const ProductDetailPage: React.FC = () => {
             {/* Actions */}
             <div className="flex flex-col gap-4 mb-10">
                <div className="flex gap-4">
-                  <div className="flex items-center border border-gray-200 rounded-xl w-32 bg-white">
+                  <div className={`flex items-center border border-gray-200 rounded-xl w-32 bg-white ${isOutOfStock ? 'opacity-50 pointer-events-none' : ''}`}>
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))} 
                       className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500"
@@ -154,7 +177,7 @@ const ProductDetailPage: React.FC = () => {
                        <Plus size={16}/>
                     </button>
                   </div>
-                  <Button onClick={handleAddToCart} disabled={isOutOfStock} className="flex-1 py-4 text-lg shadow-red-500/20 shadow-lg">
+                  <Button onClick={handleAddToCart} disabled={isOutOfStock} className={`flex-1 py-4 text-lg shadow-red-500/20 shadow-lg ${isOutOfStock ? 'bg-gray-400 shadow-none cursor-not-allowed hover:bg-gray-400' : ''}`}>
                     {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                   </Button>
                </div>
