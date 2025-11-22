@@ -846,6 +846,7 @@ const AdminDashboard: React.FC = () => {
                     <th className="p-4">Date</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Total</th>
+                    <th className="p-4">MOP</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -876,6 +877,21 @@ const AdminDashboard: React.FC = () => {
                         </select>
                       </td>
                       <td className="p-4 font-bold">₱{order.total.toLocaleString()}</td>
+                      <td className="p-4">
+                         {order.paymentMethod === 'GCash' ? (
+                            <span className="flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                              <Smartphone size={12} /> GCash
+                            </span>
+                         ) : order.paymentMethod === 'Bank Transfer' ? (
+                            <span className="flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
+                              <Landmark size={12} /> Bank
+                            </span>
+                         ) : (
+                            <span className="flex items-center gap-1 text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                              <Truck size={12} /> COD
+                            </span>
+                         )}
+                      </td>
                       <td className="p-4 flex justify-end gap-2">
                         <button 
                           onClick={() => printWaybill(order)}
@@ -904,7 +920,7 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   ))}
                   {orders.length === 0 && (
-                    <tr><td colSpan={6} className="p-8 text-center text-gray-400">No orders found.</td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-gray-400">No orders found.</td></tr>
                   )}
                 </tbody>
               </table>
