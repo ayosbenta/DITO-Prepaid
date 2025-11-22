@@ -33,6 +33,7 @@ interface StoreContextType {
     revenue: number;
     netProfit: number;
     totalOrders: number;
+    totalItemsSold: number;
     totalCustomers: number;
     lowStock: number;
   };
@@ -67,7 +68,7 @@ export const StoreContext = createContext<StoreContextType>({
   updatePaymentSettings: () => {},
   updateSMTPSettings: () => {},
   forceInventorySync: async () => {},
-  stats: { revenue: 0, netProfit: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
+  stats: { revenue: 0, netProfit: 0, totalOrders: 0, totalItemsSold: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
   isLoading: true,
   isRefreshing: false,
@@ -232,7 +233,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
        if (affiliate) {
          const updatedAffiliates = affiliates.map(a => {
             if (a.id === order.referralId) {
-               return { ...a, totalSales: a.totalSales + order.total };
+               return { ...a, totalSales: a.totalSales + (order.total - (order.shippingFee || 0)) }; // Log net sales
             }
             return a;
          });
@@ -251,7 +252,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (oldOrder && oldOrder.status !== 'Delivered' && status === 'Delivered' && oldOrder.referralId) {
        const updatedAffiliates = affiliates.map(a => {
           if (a.id === oldOrder.referralId) {
-             const comm = oldOrder.commission || (oldOrder.total * 0.05);
+             // Use shipping excluded amount for commission calc if commission is percentage based logic elsewhere, 
+             // but here we use the pre-calculated commission stored on the order
+             const comm = oldOrder.commission || ((oldOrder.total - (oldOrder.shippingFee || 0)) * 0.05);
              return {
                ...a,
                walletBalance: a.walletBalance + comm,
@@ -370,7 +373,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     let totalCommissions = 0;
 
     orders.forEach(order => {
-      totalRevenue += order.total;
+      // Revenue for profit calc excludes shipping
+      const orderRevenue = order.total - (order.shippingFee || 0);
+      totalRevenue += orderRevenue;
       totalCommissions += (order.commission || 0);
 
       if (order.orderItems && order.orderItems.length > 0) {
@@ -388,9 +393,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const stats = {
-    revenue: orders.reduce((acc, o) => acc + o.total, 0),
+    // Exclude shipping fee from total revenue
+    revenue: orders.reduce((acc, o) => acc + (o.total - (o.shippingFee || 0)), 0),
     netProfit: calculateNetProfit(),
     totalOrders: orders.length,
+    // Sum of all items in all orders
+    totalItemsSold: orders.reduce((acc, o) => acc + (o.items || 0), 0),
     totalCustomers: customers.length,
     lowStock: products.filter(p => (p.stock || 0) <= (p.minStockLevel || 10)).length
   };

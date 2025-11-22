@@ -498,6 +498,7 @@ const AdminDashboard: React.FC = () => {
                       <div>
                         <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
                         <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.revenue.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400 mt-1">(Excl. Shipping)</p>
                       </div>
                       <div className="p-3 bg-red-50 text-primary rounded-2xl">
                         <TrendingUp size={24} />
@@ -521,6 +522,22 @@ const AdminDashboard: React.FC = () => {
                    </div>
                    <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
                       <ArrowUpRight size={16} /> Calculated
+                   </div>
+                </div>
+
+                {/* Total Items Sold */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Total Items Sold</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalItemsSold}</p>
+                      </div>
+                      <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                         <Package size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
+                      <ArrowUpRight size={16} /> Volume
                    </div>
                 </div>
 
