@@ -1,3 +1,4 @@
+
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
@@ -87,12 +88,13 @@ export const SheetsService = {
           rating: 5, 
           reviews: 0,
           ...details,
-          // Ensure core fields are typed correctly
-          stock: details.stock ? Number(details.stock) : 0,
-          minStockLevel: details.minStockLevel ? Number(details.minStockLevel) : 0,
+          // Ensure core fields are typed correctly. 
+          // Priority: Explicit Columns > json_data > default
+          sku: p.sku ? String(p.sku) : (details.sku || ''),
+          stock: (p.stock !== undefined && p.stock !== "") ? Number(p.stock) : (details.stock !== undefined ? Number(details.stock) : 0),
+          minStockLevel: (p.min_stock_level !== undefined && p.min_stock_level !== "") ? Number(p.min_stock_level) : (details.minStockLevel !== undefined ? Number(details.minStockLevel) : 10),
           bulkDiscounts: details.bulkDiscounts || [],
-          sku: details.sku || '',
-          
+
           commissionType: p.commissionType,
           commissionValue: Number(p.commissionValue)
         };
@@ -244,11 +246,30 @@ export const SheetsService = {
   syncProducts: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
       // Destructure to separate standard columns from detailed JSON data
-      const { id, name, category, price, image, description, commissionType, commissionValue, ...rest } = p;
-      // Everything else goes into json_data to preserve schema flexibility (including stock, discounts)
+      // We extract inventory fields to promote them to visible Columns (Headers) in Sheets
+      const { 
+        id, name, category, price, image, description, 
+        commissionType, commissionValue, 
+        sku, stock, minStockLevel, bulkDiscounts,
+        ...rest 
+      } = p;
+
+      // Create a readable summary string for bulk discounts in the Sheet
+      const discountSummary = bulkDiscounts 
+        ? bulkDiscounts.map(d => `Buy ${d.minQty} Get ${d.percentage}% Off`).join('; ') 
+        : '';
+
       return {
         id, name, category, price, image, description, commissionType, commissionValue,
-        json_data: JSON.stringify(rest)
+        
+        // Flattened Inventory Columns
+        sku: sku || '',
+        stock: stock || 0,
+        min_stock_level: minStockLevel || 10,
+        bulk_discounts_summary: discountSummary,
+
+        // Store everything in json_data as backup/complex object storage
+        json_data: JSON.stringify({ ...rest, sku, stock, minStockLevel, bulkDiscounts })
       };
     });
     return SheetsService.sendData('SYNC_PRODUCTS', payload);

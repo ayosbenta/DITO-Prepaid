@@ -1,3 +1,4 @@
+
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
@@ -352,6 +353,7 @@ const AdminDashboard: React.FC = () => {
       features: [],
       commissionType: 'percentage',
       commissionValue: 5,
+      sku: '', 
       stock: 0,
       minStockLevel: 10,
       bulkDiscounts: []
@@ -573,7 +575,8 @@ const AdminDashboard: React.FC = () => {
                   <tr>
                     <th className="p-4">Product</th>
                     <th className="p-4">SKU</th>
-                    <th className="p-4">Stock Level</th>
+                    <th className="p-4">Stock</th>
+                    <th className="p-4">Min Limit</th>
                     <th className="p-4">Status</th>
                     <th className="p-4 text-right">Quick Actions</th>
                   </tr>
@@ -601,6 +604,7 @@ const AdminDashboard: React.FC = () => {
                              {isLowStock && !isOutOfStock && <AlertTriangle size={16} className="text-orange-500" />}
                           </div>
                         </td>
+                        <td className="p-4 text-gray-500 font-medium">{minStock}</td>
                         <td className="p-4">
                           {isOutOfStock ? (
                             <Badge color="red">Out of Stock</Badge>
