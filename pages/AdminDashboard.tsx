@@ -235,6 +235,90 @@ const AdminDashboard: React.FC = () => {
     if (p) updateProduct(id, { ...p, stock: Math.max(0, (p.stock || 0) + change) });
   };
 
+  const handlePrintWaybill = (order: Order) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (printWindow) {
+      const html = `
+        <html>
+          <head>
+            <title>Waybill - ${order.id}</title>
+            <style>
+              body { font-family: 'Courier New', Courier, monospace; padding: 20px; border: 2px solid #000; max-width: 800px; margin: 0 auto; }
+              .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+              .row { display: flex; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+              .col { flex: 1; padding: 0 10px; }
+              .label { font-weight: bold; font-size: 10px; text-transform: uppercase; color: #555; margin-bottom: 4px; }
+              .value { font-size: 14px; font-weight: bold; }
+              .barcode-area { text-align: center; padding: 20px; border: 2px solid #000; margin: 20px 0; }
+              .footer { font-size: 10px; text-align: center; margin-top: 20px; }
+              @media print {
+                body { border: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>DITO HOME FULFILLMENT</h1>
+              <p>WAYBILL / PACKING LIST</p>
+            </div>
+            <div class="row">
+              <div class="col" style="border-right: 1px solid #000;">
+                <div class="label">Sender</div>
+                <div class="value">DITO Home Store<br>Manila Fulfillment Center<br>Philippines</div>
+              </div>
+              <div class="col">
+                <div class="label">Order ID</div>
+                <div class="value" style="font-size: 18px;">${order.id}</div>
+                <div class="label" style="margin-top: 10px;">Date</div>
+                <div class="value">${order.date}</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <div class="label">Ship To</div>
+                <div class="value">
+                  ${order.customer}<br>
+                  ${order.shippingDetails?.mobile || ''}<br>
+                  ${order.shippingDetails?.street || ''}<br>
+                  ${order.shippingDetails?.barangay || ''}, ${order.shippingDetails?.city || ''}<br>
+                  ${order.shippingDetails?.province || ''} ${order.shippingDetails?.zipCode || ''}
+                </div>
+              </div>
+            </div>
+            <div class="barcode-area">
+              <div class="label">Tracking Number</div>
+              <div style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${order.trackingNumber || 'PENDING'}</div>
+              <div style="margin-top: 10px; font-size: 12px;">${order.id}</div>
+            </div>
+            <div class="row" style="border: none;">
+              <div class="col">
+                <div class="label">Payment Method</div>
+                <div class="value">${order.paymentMethod}</div>
+              </div>
+              <div class="col" style="text-align: right;">
+                <div class="label">Amount to Collect</div>
+                <div class="value" style="font-size: 20px;">${order.paymentMethod === 'COD' ? 'P' + order.total.toLocaleString() : 'PAID'}</div>
+              </div>
+            </div>
+            <div class="row" style="border-top: 1px solid #000; padding-top: 10px;">
+               <div class="col">
+                  <div class="label">Items</div>
+                  ${order.orderItems?.map(item => `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                      <span>${item.quantity}x ${item.name}</span>
+                    </div>
+                  `).join('') || ''}
+               </div>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `;
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
+
   const pendingPayoutsCount = payouts.filter(p => p.status === 'Pending').length;
 
   if (!isAuthenticated) {
@@ -693,7 +777,7 @@ const AdminDashboard: React.FC = () => {
                                   <button onClick={() => setViewingOrder(order)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-full" title="View Details">
                                      <Eye size={16} />
                                   </button>
-                                  <button onClick={() => alert(`Printing Waybill for ${order.id}`)} className="p-2 hover:bg-gray-100 text-gray-600 rounded-full" title="Print Waybill">
+                                  <button onClick={() => handlePrintWaybill(order)} className="p-2 hover:bg-gray-100 text-gray-600 rounded-full" title="Print Waybill">
                                      <Printer size={16} />
                                   </button>
                                   <button onClick={() => deleteOrder(order.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-full">
