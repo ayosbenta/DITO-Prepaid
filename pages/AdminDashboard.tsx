@@ -5,7 +5,7 @@ import {
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -15,7 +15,7 @@ import {
 import { Badge, Button } from '../components/UI';
 import { Link } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Product, Order, Affiliate } from '../types';
+import { Product, Order, Affiliate, ShippingZone, Courier } from '../types';
 
 const AdminDashboard: React.FC = () => {
   // --- Authentication State ---
@@ -54,6 +54,11 @@ const AdminDashboard: React.FC = () => {
   // Local state for Settings Form
   const [settingsForm, setSettingsForm] = useState(settings);
   const [paymentSettingsForm, setPaymentSettingsForm] = useState(paymentSettings);
+
+  // Shipping specific local state
+  const [activeShippingTab, setActiveShippingTab] = useState<'general' | 'couriers' | 'zones' | 'reports'>('general');
+  const [newCourierName, setNewCourierName] = useState('');
+  const [newCourierUrl, setNewCourierUrl] = useState('');
 
   useEffect(() => {
     setSettingsForm(settings);
@@ -327,6 +332,7 @@ const AdminDashboard: React.FC = () => {
     { icon: Package, label: 'Products' },
     { icon: Boxes, label: 'Inventory' },
     { icon: ShoppingBag, label: 'Orders' },
+    { icon: Truck, label: 'Shipping' },
     { icon: CreditCard, label: 'Payment Gateway' },
     { icon: Briefcase, label: 'Affiliates' },
     { icon: DollarSign, label: 'Payouts' },
@@ -497,6 +503,58 @@ const AdminDashboard: React.FC = () => {
       }
     }));
   };
+
+  // Shipping Settings Handlers
+  const handleShippingChange = (key: string, value: any) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        [key]: value
+      }
+    }));
+  };
+
+  const handleAddCourier = () => {
+    if (!newCourierName || !newCourierUrl) return;
+    const newCourier: Courier = {
+      id: `cour-${Date.now()}`,
+      name: newCourierName,
+      trackingUrl: newCourierUrl,
+      status: 'active'
+    };
+    setSettingsForm(prev => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        couriers: [...prev.shipping.couriers, newCourier]
+      }
+    }));
+    setNewCourierName('');
+    setNewCourierUrl('');
+  };
+
+  const handleDeleteCourier = (id: string) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        couriers: prev.shipping.couriers.filter(c => c.id !== id)
+      }
+    }));
+  };
+
+  const handleUpdateZone = (idx: number, field: keyof ShippingZone, value: any) => {
+    const newZones = [...settingsForm.shipping.zones];
+    newZones[idx] = { ...newZones[idx], [field]: value };
+    setSettingsForm(prev => ({
+      ...prev,
+      shipping: {
+        ...prev.shipping,
+        zones: newZones
+      }
+    }));
+  };
   
   const handleQRUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -586,6 +644,277 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Shipping':
+        return (
+          <div className="max-w-6xl mx-auto space-y-8 pb-20">
+             {/* Shipping Header & Tabs */}
+             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                   <div>
+                      <h2 className="text-lg font-bold text-gray-900">Shipping Fee Management</h2>
+                      <p className="text-gray-500 text-sm">Configure zones, rates, and couriers.</p>
+                   </div>
+                   <Button onClick={saveSettings} disabled={isSyncing} className="flex items-center gap-2">
+                      <Save size={16} /> {isSyncing ? 'Saving...' : 'Save Changes'}
+                   </Button>
+                </div>
+                <div className="bg-gray-50 px-6 py-2 border-b border-gray-100 flex gap-2 overflow-x-auto">
+                   {[
+                     { id: 'general', label: 'General Settings', icon: Settings },
+                     { id: 'zones', label: 'Zones & Rates', icon: Map },
+                     { id: 'couriers', label: 'Courier Selection', icon: Truck },
+                     { id: 'reports', label: 'Shipping Reports', icon: FileSpreadsheet }
+                   ].map(tab => (
+                     <button 
+                       key={tab.id}
+                       onClick={() => setActiveShippingTab(tab.id as any)}
+                       className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeShippingTab === tab.id ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}
+                     >
+                        <tab.icon size={16} /> {tab.label}
+                     </button>
+                   ))}
+                </div>
+             
+                <div className="p-6">
+                   {/* 1. General Settings */}
+                   {activeShippingTab === 'general' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <div className="grid md:grid-cols-2 gap-6">
+                            <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
+                               <div className="flex items-center justify-between mb-4">
+                                 <h3 className="font-bold text-blue-900 flex items-center gap-2"><Truck size={18}/> Enable Shipping Module</h3>
+                                 <label className="relative inline-flex items-center cursor-pointer">
+                                   <input 
+                                      type="checkbox" 
+                                      className="sr-only peer" 
+                                      checked={settingsForm.shipping.enabled} 
+                                      onChange={e => handleShippingChange('enabled', e.target.checked)} 
+                                   />
+                                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                 </label>
+                               </div>
+                               <p className="text-xs text-blue-700/70">Toggle this to enable or disable shipping fee calculations at checkout.</p>
+                            </div>
+                            
+                            <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Fee Calculation Type</label>
+                               <select 
+                                 className="w-full border rounded-lg p-3 mt-1 bg-white"
+                                 value={settingsForm.shipping.calculationType}
+                                 onChange={e => handleShippingChange('calculationType', e.target.value)}
+                               >
+                                  <option value="flat">Flat Rate (Simple)</option>
+                                  <option value="zone">Zone Based (Recommended)</option>
+                               </select>
+                               <p className="text-[10px] text-gray-400 mt-1">
+                                  <strong>Flat Rate:</strong> Same fee for everyone. <br/>
+                                  <strong>Zone Based:</strong> Fee depends on customer's location.
+                               </p>
+                            </div>
+
+                            <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Base Shipping Fee (Flat Rate)</label>
+                               <div className="relative mt-1">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₱</span>
+                                  <input 
+                                    type="number"
+                                    className="w-full border rounded-lg pl-8 pr-3 py-2"
+                                    value={settingsForm.shipping.baseFee}
+                                    onChange={e => handleShippingChange('baseFee', Number(e.target.value))}
+                                  />
+                               </div>
+                            </div>
+
+                            <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Free Shipping Threshold</label>
+                               <div className="relative mt-1">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₱</span>
+                                  <input 
+                                    type="number"
+                                    className="w-full border rounded-lg pl-8 pr-3 py-2"
+                                    value={settingsForm.shipping.freeThreshold}
+                                    onChange={e => handleShippingChange('freeThreshold', Number(e.target.value))}
+                                  />
+                               </div>
+                               <p className="text-[10px] text-gray-400 mt-1">Orders above this amount get free shipping. Set to 0 to disable.</p>
+                            </div>
+                         </div>
+                      </div>
+                   )}
+
+                   {/* 2. Zones & Rates */}
+                   {activeShippingTab === 'zones' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <div className="flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Shipping Rules by Zone</h3>
+                            <p className="text-xs text-gray-500">Define custom rates for different regions.</p>
+                         </div>
+                         
+                         <div className="overflow-hidden border border-gray-200 rounded-xl">
+                            <table className="w-full text-sm text-left">
+                               <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-200">
+                                  <tr>
+                                     <th className="p-4">Zone Name</th>
+                                     <th className="p-4">Shipping Fee (₱)</th>
+                                     <th className="p-4">Est. Delivery Time</th>
+                                  </tr>
+                               </thead>
+                               <tbody className="divide-y divide-gray-100">
+                                  {settingsForm.shipping.zones.map((zone, idx) => (
+                                     <tr key={idx} className="hover:bg-gray-50">
+                                        <td className="p-4 font-bold text-gray-900 bg-gray-50/50">{zone.name}</td>
+                                        <td className="p-4">
+                                           <input 
+                                              type="number" 
+                                              className="border border-gray-300 rounded px-2 py-1 w-24"
+                                              value={zone.fee}
+                                              onChange={e => handleUpdateZone(idx, 'fee', Number(e.target.value))}
+                                           />
+                                        </td>
+                                        <td className="p-4">
+                                           <input 
+                                              type="text" 
+                                              className="border border-gray-300 rounded px-2 py-1 w-full max-w-xs"
+                                              value={zone.days}
+                                              onChange={e => handleUpdateZone(idx, 'days', e.target.value)}
+                                           />
+                                        </td>
+                                     </tr>
+                                  ))}
+                               </tbody>
+                            </table>
+                         </div>
+                         <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-xs text-yellow-800 flex gap-2">
+                            <AlertCircle size={16} className="shrink-0" />
+                            <p>Note: At checkout, the system will attempt to match the customer's Province/City to these zones. Ensure your zone naming covers major island groups (Luzon, Visayas, Mindanao) or specific regions (Metro Manila).</p>
+                         </div>
+                      </div>
+                   )}
+
+                   {/* 3. Couriers */}
+                   {activeShippingTab === 'couriers' && (
+                      <div className="space-y-6 animate-fade-in">
+                          <div className="grid md:grid-cols-3 gap-6">
+                             {/* Courier List */}
+                             <div className="md:col-span-2 space-y-4">
+                                <h3 className="font-bold text-gray-900">Active Couriers</h3>
+                                {settingsForm.shipping.couriers.map(c => (
+                                   <div key={c.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+                                      <div className="flex items-center gap-3">
+                                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                                            <Truck size={20} />
+                                         </div>
+                                         <div>
+                                            <p className="font-bold text-gray-900">{c.name}</p>
+                                            <p className="text-xs text-gray-400 truncate max-w-xs">{c.trackingUrl}</p>
+                                         </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                         <Badge color={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                                         <button onClick={() => handleDeleteCourier(c.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                            <Trash2 size={16} />
+                                         </button>
+                                      </div>
+                                   </div>
+                                ))}
+                                {settingsForm.shipping.couriers.length === 0 && (
+                                   <p className="text-sm text-gray-400 italic">No couriers added.</p>
+                                )}
+                             </div>
+
+                             {/* Add Courier Form */}
+                             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 h-fit">
+                                <h3 className="font-bold text-gray-900 mb-4">Add New Courier</h3>
+                                <div className="space-y-3">
+                                   <div>
+                                      <label className="text-xs font-bold text-gray-500 uppercase">Courier Name</label>
+                                      <input 
+                                        className="w-full border rounded-lg p-2 mt-1 text-sm" 
+                                        placeholder="e.g. J&T Express"
+                                        value={newCourierName}
+                                        onChange={e => setNewCourierName(e.target.value)}
+                                      />
+                                   </div>
+                                   <div>
+                                      <label className="text-xs font-bold text-gray-500 uppercase">Tracking URL Template</label>
+                                      <input 
+                                        className="w-full border rounded-lg p-2 mt-1 text-sm" 
+                                        placeholder="https://track.com?id={TRACKING}"
+                                        value={newCourierUrl}
+                                        onChange={e => setNewCourierUrl(e.target.value)}
+                                      />
+                                      <p className="text-[10px] text-gray-400 mt-1">Use <strong>{`{TRACKING}`}</strong> as placeholder.</p>
+                                   </div>
+                                   <Button fullWidth onClick={handleAddCourier} className="mt-2">
+                                      <Plus size={16} /> Add Courier
+                                   </Button>
+                                </div>
+                             </div>
+                          </div>
+                      </div>
+                   )}
+
+                   {/* 4. Reports */}
+                   {activeShippingTab === 'reports' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                               <p className="text-xs font-bold text-blue-500 uppercase mb-1">Total Shipping Collected</p>
+                               <h3 className="text-3xl font-black text-blue-900">₱{orders.reduce((acc, o) => acc + (o.shippingFee || 0), 0).toLocaleString()}</h3>
+                               <p className="text-xs text-blue-400 mt-2">Revenue from fees</p>
+                            </div>
+                            <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                               <p className="text-xs font-bold text-purple-500 uppercase mb-1">Orders with Free Shipping</p>
+                               <h3 className="text-3xl font-black text-purple-900">{orders.filter(o => (o.shippingFee || 0) === 0).length}</h3>
+                               <p className="text-xs text-purple-400 mt-2">Met threshold criteria</p>
+                            </div>
+                            <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                               <p className="text-xs font-bold text-orange-500 uppercase mb-1">Most Used Courier</p>
+                               <h3 className="text-xl font-black text-orange-900 truncate">
+                                  {
+                                    Object.entries(orders.reduce((acc: any, o) => {
+                                      const courier = o.courier || 'None';
+                                      acc[courier] = (acc[courier] || 0) + 1;
+                                      return acc;
+                                    }, {})).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'N/A'
+                                  }
+                               </h3>
+                               <p className="text-xs text-orange-400 mt-2">By volume</p>
+                            </div>
+                         </div>
+
+                         <div className="border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                               Recent Shipment Status
+                            </div>
+                            <table className="w-full text-sm text-left">
+                               <thead className="bg-white text-gray-500 font-medium border-b">
+                                  <tr>
+                                     <th className="p-4">Order ID</th>
+                                     <th className="p-4">Courier</th>
+                                     <th className="p-4">Fee</th>
+                                     <th className="p-4">Status</th>
+                                  </tr>
+                               </thead>
+                               <tbody className="divide-y divide-gray-100">
+                                  {orders.slice(0, 5).map(o => (
+                                     <tr key={o.id}>
+                                        <td className="p-4 font-bold">{o.id}</td>
+                                        <td className="p-4 text-gray-500">{o.courier || '-'}</td>
+                                        <td className="p-4">₱{(o.shippingFee || 0).toLocaleString()}</td>
+                                        <td className="p-4"><Badge color={o.status === 'Delivered' ? 'green' : 'yellow'}>{o.status}</Badge></td>
+                                     </tr>
+                                  ))}
+                               </tbody>
+                            </table>
+                         </div>
+                      </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        );
+
       case 'Inventory':
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1331,7 +1660,7 @@ const AdminDashboard: React.FC = () => {
              DITO Admin
            </Link>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map(item => (
             <button
               key={item.label}
@@ -1375,7 +1704,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-white z-10 pt-20 px-4 space-y-2">
+        <div className="md:hidden fixed inset-0 bg-white z-10 pt-20 px-4 space-y-2 overflow-y-auto">
            {menuItems.map(item => (
             <button
               key={item.label}
@@ -1393,7 +1722,7 @@ const AdminDashboard: React.FC = () => {
               )}
             </button>
           ))}
-           <div className="border-t pt-4 mt-4">
+           <div className="border-t pt-4 mt-4 pb-20">
              <button 
                onClick={handleLogout}
                className="w-full flex items-center gap-3 px-4 py-4 text-red-600 rounded-xl text-lg font-medium"

@@ -95,6 +95,9 @@ export interface Order {
   paymentMethod?: string;
   proofOfPayment?: string; // Base64 string or URL of the receipt
   shippingDetails?: ShippingDetails;
+  shippingFee?: number;
+  courier?: string;
+  trackingNumber?: string;
 }
 
 export interface PayoutRequest {
@@ -108,6 +111,29 @@ export interface PayoutRequest {
   status: 'Pending' | 'Approved' | 'Rejected';
   dateRequested: string;
   dateProcessed?: string;
+}
+
+// --- Shipping Interfaces ---
+export interface Courier {
+  id: string;
+  name: string;
+  trackingUrl: string; // URL template (e.g., https://track.jnt.com?no={TRACKING})
+  status: 'active' | 'inactive';
+}
+
+export interface ShippingZone {
+  name: string; // e.g., Metro Manila, Luzon, Visayas, Mindanao
+  fee: number;
+  days: string; // e.g., "1-3 Days"
+}
+
+export interface ShippingSettings {
+  enabled: boolean;
+  baseFee: number;
+  freeThreshold: number; // 0 to disable
+  calculationType: 'flat' | 'zone';
+  zones: ShippingZone[];
+  couriers: Courier[];
 }
 
 export interface LandingPageSettings {
@@ -133,6 +159,7 @@ export interface LandingPageSettings {
     subtitle: string;
     btnText: string;
   };
+  shipping: ShippingSettings;
 }
 
 export interface PaymentSettings {

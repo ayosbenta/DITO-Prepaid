@@ -1,4 +1,6 @@
 
+
+
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS } from '../constants';
 
@@ -134,7 +136,11 @@ export const SheetsService = {
           paymentMethod: o.paymentMethod || 'COD',
           proofOfPayment: o.proofOfPayment || '',
           shippingDetails: details.shippingDetails || undefined,
-          orderItems: details.orderItems || undefined
+          orderItems: details.orderItems || undefined,
+          // Shipping specific fields
+          shippingFee: details.shippingFee ? Number(details.shippingFee) : 0,
+          courier: details.courier || '',
+          trackingNumber: details.trackingNumber || ''
         };
       });
 
@@ -209,19 +215,43 @@ export const SheetsService = {
           if (!row.Key || row.Value === undefined) return;
           const keys = row.Key.split('.');
           let current: any = rawSettings;
+          
+          // Special handling for array/object keys stored as JSON strings
+          // e.g. shipping.couriers = "[{...}]"
+          
           for (let i = 0; i < keys.length - 1; i++) {
             if (!current[keys[i]]) current[keys[i]] = {};
             current = current[keys[i]];
           }
+          
           let val = row.Value;
+          // Parse Boolean
           if (val === 'true') val = true;
           if (val === 'false') val = false;
+          
+          // Parse JSON strings for arrays (e.g. zones, couriers)
+          if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+             try {
+                val = JSON.parse(val);
+             } catch (e) { /* keep as string */ }
+          }
+          
+          // Parse Numbers
+          if (!isNaN(Number(val)) && val !== '' && typeof val === 'string' && !val.startsWith('0')) { // Avoid parsing '0917' as number
+             val = Number(val);
+          }
+
           current[keys[keys.length - 1]] = val;
         });
       }
       
       const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
       const { payment: _, ...landingSettings } = rawSettings;
+
+      // Merge defaults for shipping if missing from sheet
+      if (!landingSettings.shipping) {
+         landingSettings.shipping = DEFAULT_SETTINGS.shipping;
+      }
 
       return { 
         products, orders, customers, affiliates, payouts,
@@ -251,7 +281,22 @@ export const SheetsService = {
     }
   },
 
-  saveSettings: async (settings: any): Promise<ApiResponse> => SheetsService.sendData('SAVE_SETTINGS', settings),
+  saveSettings: async (settings: any): Promise<ApiResponse> => {
+      // Pre-process arrays into JSON strings before sending to Sheet
+      // This ensures they are stored as a single value in the Key-Value sheet system
+      const processedSettings = JSON.parse(JSON.stringify(settings));
+      
+      if (processedSettings.shipping) {
+          if (processedSettings.shipping.zones) {
+              processedSettings.shipping.zones = JSON.stringify(processedSettings.shipping.zones);
+          }
+          if (processedSettings.shipping.couriers) {
+              processedSettings.shipping.couriers = JSON.stringify(processedSettings.shipping.couriers);
+          }
+      }
+      
+      return SheetsService.sendData('SAVE_SETTINGS', processedSettings);
+  },
   
   syncProducts: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
@@ -342,7 +387,11 @@ export const SheetsService = {
         shipping_address: address,
         json_data: JSON.stringify({ 
            shippingDetails: o.shippingDetails,
-           orderItems: o.orderItems 
+           orderItems: o.orderItems,
+           // Save new shipping info
+           shippingFee: o.shippingFee,
+           courier: o.courier,
+           trackingNumber: o.trackingNumber
         })
       };
     });

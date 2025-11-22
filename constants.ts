@@ -1,5 +1,6 @@
 
 
+
 import { Product, Order, LandingPageSettings, PaymentSettings } from './types';
 
 export const HERO_PRODUCT: Product = {
@@ -120,6 +121,23 @@ export const DEFAULT_SETTINGS: LandingPageSettings = {
     title: 'Ready to upgrade your home internet?',
     subtitle: 'Get the DITO Home WoWFi Pro today and experience the difference.',
     btnText: 'Get Started Now'
+  },
+  shipping: {
+    enabled: true,
+    baseFee: 150,
+    freeThreshold: 2000,
+    calculationType: 'zone',
+    zones: [
+      { name: 'Metro Manila', fee: 100, days: '1-3 Days' },
+      { name: 'Luzon', fee: 150, days: '3-5 Days' },
+      { name: 'Visayas', fee: 200, days: '5-7 Days' },
+      { name: 'Mindanao', fee: 250, days: '7-10 Days' }
+    ],
+    couriers: [
+      { id: 'jnt', name: 'J&T Express', trackingUrl: 'https://www.jtexpress.ph/index/query/gzquery.html?bills={TRACKING}', status: 'active' },
+      { id: 'lbc', name: 'LBC Express', trackingUrl: 'https://www.lbcexpress.com/track/?tracking_no={TRACKING}', status: 'active' },
+      { id: 'flash', name: 'Flash Express', trackingUrl: 'https://www.flashexpress.ph/tracking/?se={TRACKING}', status: 'inactive' }
+    ]
   }
 };
 
