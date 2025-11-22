@@ -336,7 +336,9 @@ const AdminDashboard: React.FC = () => {
     setNewProductForm({
       ...product,
       // Ensure defaults for inventory fields
-      bulkDiscounts: product.bulkDiscounts || []
+      bulkDiscounts: product.bulkDiscounts || [],
+      // Initialize gallery: use existing gallery OR fallback to single image in array OR empty array with one empty string for UI
+      gallery: (product.gallery && product.gallery.length > 0) ? product.gallery : (product.image ? [product.image] : [])
     });
     setIsProductModalOpen(true);
   };
@@ -348,7 +350,7 @@ const AdminDashboard: React.FC = () => {
       category: 'Modems',
       rating: 5,
       reviews: 0,
-      gallery: [],
+      gallery: [''], // Start with one empty input
       specs: {},
       features: [],
       commissionType: 'percentage',
@@ -364,9 +366,18 @@ const AdminDashboard: React.FC = () => {
   const saveProduct = () => {
     if (!newProductForm.name || !newProductForm.price) return alert("Name and Price required");
 
+    // Filter empty strings from gallery
+    const cleanGallery = (newProductForm.gallery || []).filter(url => url && url.trim() !== '');
+    
+    // Determine main image: First item in gallery, or image field, or placeholder
+    const mainImage = cleanGallery.length > 0 
+      ? cleanGallery[0] 
+      : (newProductForm.image || 'https://picsum.photos/200');
+
     const productToSave = {
       ...newProductForm,
-      image: newProductForm.image || 'https://picsum.photos/200',
+      image: mainImage,
+      gallery: cleanGallery.length > 0 ? cleanGallery : [mainImage],
       description: newProductForm.description || 'No description',
       subtitle: newProductForm.subtitle || 'New Product'
     } as Product;
@@ -1583,13 +1594,52 @@ const AdminDashboard: React.FC = () => {
                        </select>
                      </div>
                    </div>
+                   
+                   {/* Dynamic Image Gallery Inputs */}
                    <div>
-                     <label className="text-xs font-bold text-gray-500 uppercase">Image URL</label>
-                     <input 
-                       className="w-full border rounded-lg p-2 mt-1" 
-                       value={newProductForm.image || ''} 
-                       onChange={e => setNewProductForm({...newProductForm, image: e.target.value})}
-                     />
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Product Images</label>
+                        <button 
+                          type="button"
+                          onClick={() => setNewProductForm({
+                            ...newProductForm, 
+                            gallery: [...(newProductForm.gallery || []), '']
+                          })}
+                          className="text-xs text-primary font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <Plus size={14} /> Add URL
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {(newProductForm.gallery && newProductForm.gallery.length > 0 ? newProductForm.gallery : ['']).map((url, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                             <span className="text-xs text-gray-400 w-4">{idx + 1}.</span>
+                             <input 
+                               className="w-full border rounded-lg p-2 text-sm" 
+                               value={url} 
+                               onChange={e => {
+                                 const newGallery = [...(newProductForm.gallery || [''])];
+                                 newGallery[idx] = e.target.value;
+                                 setNewProductForm({...newProductForm, gallery: newGallery});
+                               }}
+                               placeholder="https://example.com/image.jpg"
+                             />
+                             <button 
+                               onClick={() => {
+                                 const newGallery = [...(newProductForm.gallery || [])];
+                                 newGallery.splice(idx, 1);
+                                 setNewProductForm({...newProductForm, gallery: newGallery});
+                               }}
+                               className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                               disabled={(newProductForm.gallery || []).length <= 1 && idx === 0 && !url}
+                               title="Remove Image"
+                             >
+                               <Trash2 size={16} />
+                             </button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">The first image will be used as the main product thumbnail.</p>
                    </div>
 
                    {/* Inventory Management Section */}
