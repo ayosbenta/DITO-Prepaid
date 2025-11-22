@@ -1,8 +1,6 @@
 
-
-
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartItem, Product } from './types';
 import { Navbar, Footer, CartDrawer } from './components/Layout';
 import AIChatBot from './components/AIChatBot';
@@ -21,23 +19,25 @@ import CustomerLoginPage from './pages/CustomerLoginPage';
 
 // Helper to capture ?ref=ID
 const ReferralHandler = () => {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { trackAffiliateClick, isLoading, affiliates } = useContext(StoreContext);
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // 1. Don't track until data is fully loaded, otherwise affiliate.find() fails
+    // 1. Don't track until data is fully loaded
     if (isLoading) return;
 
-    let refId = searchParams.get('ref');
+    const params = new URLSearchParams(location.search);
+    let refId = params.get('ref');
 
-    // Fallback 1: Check query params before the hash (common in some server configs /?ref=123#/)
+    // Fallback 1: Check query params before the hash
     if (!refId) {
-      const params = new URLSearchParams(window.location.search);
-      refId = params.get('ref');
+      const search = window.location.search;
+      const urlParams = new URLSearchParams(search);
+      refId = urlParams.get('ref');
     }
     
-    // Fallback 2: Manually parse hash string if Router misses it (e.g. /#/?ref=123)
+    // Fallback 2: Manually parse hash string
     if (!refId && window.location.hash.includes('ref=')) {
          const match = window.location.hash.match(/[?&]ref=([^&]+)/);
          if (match) refId = match[1];
@@ -55,13 +55,11 @@ const ReferralHandler = () => {
           trackAffiliateClick(refId);
           processedRef.current = refId;
       } else if (affiliates.length > 0) {
-          // If affiliates are loaded but ID is not found, it's invalid. 
-          // Mark as processed so we don't keep retrying.
           console.warn('Invalid Affiliate ID:', refId);
           processedRef.current = refId;
       }
     }
-  }, [searchParams, trackAffiliateClick, isLoading, affiliates]);
+  }, [location.search, trackAffiliateClick, isLoading, affiliates]);
 
   return null;
 };

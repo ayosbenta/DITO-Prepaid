@@ -103,7 +103,10 @@ export const SheetsService = {
           bulkDiscounts: details.bulkDiscounts || [],
 
           commissionType: p.commissionType,
-          commissionValue: Number(p.commissionValue)
+          commissionValue: Number(p.commissionValue),
+          
+          // Cost Price for Net Profit Calc
+          costPrice: details.costPrice ? Number(details.costPrice) : 0
         };
       });
 
@@ -257,7 +260,7 @@ export const SheetsService = {
         id, name, category, price, image, description, subtitle,
         commissionType, commissionValue, 
         sku, stock, minStockLevel, bulkDiscounts,
-        gallery, specs, features, inclusions,
+        gallery, specs, features, inclusions, costPrice,
         ...rest 
       } = p;
 
@@ -294,7 +297,8 @@ export const SheetsService = {
           features,
           inclusions,
           subtitle,
-          description
+          description,
+          costPrice // Save Purchase Price here
         })
       };
     });
@@ -315,6 +319,8 @@ export const SheetsService = {
         'Name': p.name,
         'SKU': p.sku || 'N/A',
         'Category': p.category,
+        'Cost Price': p.costPrice || 0,
+        'Selling Price': p.price,
         'Stock Level': stock,
         'Min Limit': minStock,
         'Status': status,

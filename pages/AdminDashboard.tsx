@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box
+  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
+  ChevronDown, Check, Truck, Smartphone, Landmark
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -308,7 +309,7 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // 2. Loading Check (Only show if authenticated)
+  // 2. Loading Check
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -341,12 +342,11 @@ const AdminDashboard: React.FC = () => {
       ...product,
       description: product.description || '',
       subtitle: product.subtitle || '',
-      // Ensure defaults for inventory fields
       bulkDiscounts: product.bulkDiscounts || [],
-      // Initialize gallery: use existing gallery OR fallback to single image in array OR empty array with one empty string for UI
       gallery: (product.gallery && product.gallery.length > 0) ? product.gallery : (product.image ? [product.image] : []),
       specs: product.specs || {},
-      inclusions: product.inclusions || []
+      inclusions: product.inclusions || [],
+      costPrice: product.costPrice || 0,
     });
     setSpecInput({ key: '', value: '' });
     setInclusionInput('');
@@ -360,7 +360,7 @@ const AdminDashboard: React.FC = () => {
       category: 'Modems',
       rating: 5,
       reviews: 0,
-      gallery: [''], // Start with one empty input
+      gallery: [''], 
       specs: {},
       inclusions: [],
       features: [],
@@ -371,7 +371,8 @@ const AdminDashboard: React.FC = () => {
       minStockLevel: 10,
       bulkDiscounts: [],
       description: '',
-      subtitle: ''
+      subtitle: '',
+      costPrice: 0
     });
     setSpecInput({ key: '', value: '' });
     setInclusionInput('');
@@ -381,13 +382,8 @@ const AdminDashboard: React.FC = () => {
   const saveProduct = () => {
     if (!newProductForm.name || !newProductForm.price) return alert("Name and Price required");
 
-    // Filter empty strings from gallery
     const cleanGallery = (newProductForm.gallery || []).filter(url => url && url.trim() !== '');
-    
-    // Determine main image: First item in gallery, or image field, or placeholder
-    const mainImage = cleanGallery.length > 0 
-      ? cleanGallery[0] 
-      : (newProductForm.image || 'https://picsum.photos/200');
+    const mainImage = cleanGallery.length > 0 ? cleanGallery[0] : (newProductForm.image || 'https://picsum.photos/200');
 
     const productToSave = {
       ...newProductForm,
@@ -396,7 +392,8 @@ const AdminDashboard: React.FC = () => {
       description: newProductForm.description || '',
       subtitle: newProductForm.subtitle || 'New Product',
       specs: newProductForm.specs || {},
-      inclusions: newProductForm.inclusions || []
+      inclusions: newProductForm.inclusions || [],
+      costPrice: newProductForm.costPrice || 0
     } as Product;
 
     if (editingProduct) {
@@ -427,7 +424,6 @@ const AdminDashboard: React.FC = () => {
     setNewProductForm({ ...newProductForm, bulkDiscounts: currentDiscounts });
   };
   
-  // Spec Helpers
   const handleAddSpec = () => {
     if (specInput.key && specInput.value) {
       setNewProductForm(prev => ({
@@ -444,7 +440,6 @@ const AdminDashboard: React.FC = () => {
      setNewProductForm(prev => ({ ...prev, specs: newSpecs }));
   };
 
-  // Inclusion Helpers
   const handleAddInclusion = () => {
     if (inclusionInput.trim()) {
       setNewProductForm(prev => ({
@@ -470,12 +465,9 @@ const AdminDashboard: React.FC = () => {
   const saveAffiliate = () => {
     if (editingAffiliate) {
       const updatedData = { ...editingAffiliate };
-      
-      // Handle Wallet Adjustment
       if (walletAdjustment !== 0) {
         updatedData.walletBalance = (updatedData.walletBalance || 0) + walletAdjustment;
       }
-
       updateAffiliate(editingAffiliate.id, updatedData);
       setIsAffiliateModalOpen(false);
     }
@@ -484,16 +476,6 @@ const AdminDashboard: React.FC = () => {
   const toggleAffiliateStatus = (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'banned' : 'active';
     updateAffiliate(id, { status: newStatus as 'active' | 'banned' });
-  };
-
-  const getAffiliateMetrics = (affId: string) => {
-    const affOrders = orders.filter(o => o.referralId === affId);
-    const successOrders = affOrders.filter(o => o.status === 'Delivered').length;
-    const pendingComm = affOrders
-      .filter(o => o.status !== 'Delivered')
-      .reduce((acc, o) => acc + (o.commission || (o.total * 0.05)), 0);
-    
-    return { successOrders, pendingComm };
   };
 
   const handleSettingsChange = (section: keyof typeof settings, key: string, value: string) => {
@@ -543,11 +525,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Calculations for new cards
-  const totalClicks = affiliates.reduce((acc, a) => acc + (a.clicks || 0), 0);
   const totalPendingPayout = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
-  const totalPaidOut = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
-
+  
+  // --- KPI Definitions ---
   const kpis = [
     { 
       label: 'Total Revenue', 
@@ -557,6 +537,15 @@ const AdminDashboard: React.FC = () => {
       icon: TrendingUp, 
       color: 'text-primary', 
       bg: 'bg-red-50' 
+    },
+    { 
+      label: 'Net Profit', 
+      value: `₱${stats.netProfit.toLocaleString()}`, 
+      trend: 'Calculated', 
+      trendUp: true, 
+      icon: Coins, 
+      color: 'text-green-600', 
+      bg: 'bg-green-50' 
     },
     { 
       label: 'Total Orders', 
@@ -585,23 +574,6 @@ const AdminDashboard: React.FC = () => {
       color: 'text-orange-600', 
       bg: 'bg-orange-50' 
     },
-    // New Affiliate KPIs
-    {
-      label: 'Total Affiliates',
-      value: affiliates.length.toString(),
-      description: 'Registered Partners',
-      icon: Briefcase,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50'
-    },
-    {
-      label: 'Total Clicks',
-      value: totalClicks.toLocaleString(),
-      description: 'All-time link clicks',
-      icon: MousePointer,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50'
-    },
     {
       label: 'Pending Payout',
       value: `₱${totalPendingPayout.toLocaleString()}`,
@@ -609,14 +581,6 @@ const AdminDashboard: React.FC = () => {
       icon: Clock,
       color: 'text-amber-600',
       bg: 'bg-amber-50'
-    },
-    {
-      label: 'Total Paid Outs',
-      value: `₱${totalPaidOut.toLocaleString()}`,
-      description: 'Successfully processed',
-      icon: CheckCircle,
-      color: 'text-teal-600',
-      bg: 'bg-teal-50'
     }
   ];
 
@@ -642,6 +606,7 @@ const AdminDashboard: React.FC = () => {
                   <tr>
                     <th className="p-4">Product</th>
                     <th className="p-4">SKU</th>
+                    <th className="p-4">Cost Price</th>
                     <th className="p-4">Stock</th>
                     <th className="p-4">Min Limit</th>
                     <th className="p-4">Status</th>
@@ -661,10 +626,11 @@ const AdminDashboard: React.FC = () => {
                           <img src={p.image} alt="" className="w-10 h-10 rounded-lg bg-gray-100 object-contain" />
                           <div>
                             <p className="font-bold text-gray-900">{p.name}</p>
-                            <p className="text-xs text-gray-500">Price: ₱{p.price.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">Sell: ₱{p.price.toLocaleString()}</p>
                           </div>
                         </td>
                         <td className="p-4 font-mono text-gray-600">{p.sku || '-'}</td>
+                        <td className="p-4 font-mono text-gray-600">₱{(p.costPrice || 0).toLocaleString()}</td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                              <span className="font-bold text-lg">{stock}</span>
@@ -812,364 +778,6 @@ const AdminDashboard: React.FC = () => {
           </div>
         );
 
-      case 'Payment Gateway':
-        return (
-          <div className="max-w-4xl mx-auto space-y-8 pb-20">
-             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-               <div className="p-6 border-b border-gray-100">
-                 <h2 className="text-lg font-bold text-gray-900">Payment Methods Configuration</h2>
-                 <p className="text-sm text-gray-500">Configure how customers pay at checkout.</p>
-               </div>
-
-               <div className="divide-y divide-gray-100">
-                  {/* COD Section */}
-                  <div className="p-6">
-                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                           <div className="p-3 bg-green-50 text-green-600 rounded-xl"><CreditCard size={24}/></div>
-                           <div>
-                              <h3 className="font-bold text-gray-900">Cash on Delivery (COD)</h3>
-                              <p className="text-sm text-gray-500">Enable or disable cash payment upon delivery.</p>
-                           </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={paymentSettingsForm.cod.enabled}
-                            onChange={e => handlePaymentSettingsChange('cod', 'enabled', e.target.checked)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                     </div>
-                  </div>
-
-                  {/* GCash Section */}
-                  <div className="p-6">
-                     <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><CreditCard size={24}/></div>
-                           <div>
-                              <h3 className="font-bold text-gray-900">GCash Payment</h3>
-                              <p className="text-sm text-gray-500">Accept payments via GCash QR or Transfer.</p>
-                           </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={paymentSettingsForm.gcash.enabled}
-                            onChange={e => handlePaymentSettingsChange('gcash', 'enabled', e.target.checked)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                     </div>
-                     
-                     {paymentSettingsForm.gcash.enabled && (
-                        <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200 animate-fade-in">
-                           <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label>
-                                <input 
-                                   className="w-full border rounded-lg p-2 bg-white"
-                                   value={paymentSettingsForm.gcash.accountName}
-                                   onChange={e => handlePaymentSettingsChange('gcash', 'accountName', e.target.value)}
-                                   placeholder="e.g. Juan Dela Cruz"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number</label>
-                                <input 
-                                   className="w-full border rounded-lg p-2 bg-white"
-                                   value={paymentSettingsForm.gcash.accountNumber}
-                                   onChange={e => handlePaymentSettingsChange('gcash', 'accountNumber', e.target.value)}
-                                   placeholder="0917 123 4567"
-                                />
-                              </div>
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">QR Code Image</label>
-                              <div className="flex gap-4 items-start">
-                                <div className="flex-1 space-y-2">
-                                  <div className="relative">
-                                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                    <input 
-                                      className="w-full border rounded-lg p-2 pl-9 bg-white"
-                                      value={paymentSettingsForm.gcash.qrImage}
-                                      onChange={e => handlePaymentSettingsChange('gcash', 'qrImage', e.target.value)}
-                                      placeholder="Paste Image URL here"
-                                    />
-                                  </div>
-                                  <div className="text-xs text-gray-500 text-center">- OR -</div>
-                                  <input 
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleQRUpload}
-                                    className="block w-full text-sm text-gray-500
-                                      file:mr-4 file:py-2 file:px-4
-                                      file:rounded-full file:border-0
-                                      file:text-xs file:font-semibold
-                                      file:bg-blue-50 file:text-blue-700
-                                      hover:file:bg-blue-100
-                                    "
-                                  />
-                                </div>
-                                {paymentSettingsForm.gcash.qrImage && (
-                                   <div className="w-24 h-24 border rounded-lg p-1 bg-white shrink-0">
-                                     <img src={paymentSettingsForm.gcash.qrImage} alt="Preview" className="w-full h-full object-contain" />
-                                   </div>
-                                )}
-                              </div>
-                           </div>
-                        </div>
-                     )}
-                  </div>
-
-                  {/* Bank Transfer Section */}
-                  <div className="p-6">
-                     <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><CreditCard size={24}/></div>
-                           <div>
-                              <h3 className="font-bold text-gray-900">Bank Transfer</h3>
-                              <p className="text-sm text-gray-500">Direct bank deposit instructions.</p>
-                           </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={paymentSettingsForm.bank.enabled}
-                            onChange={e => handlePaymentSettingsChange('bank', 'enabled', e.target.checked)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                     </div>
-
-                     {paymentSettingsForm.bank.enabled && (
-                        <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200 animate-fade-in">
-                           <div>
-                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bank Name</label>
-                             <input 
-                                className="w-full border rounded-lg p-2 bg-white"
-                                value={paymentSettingsForm.bank.bankName}
-                                onChange={e => handlePaymentSettingsChange('bank', 'bankName', e.target.value)}
-                                placeholder="e.g. BDO / BPI / Metrobank"
-                             />
-                           </div>
-                           <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label>
-                                <input 
-                                   className="w-full border rounded-lg p-2 bg-white"
-                                   value={paymentSettingsForm.bank.accountName}
-                                   onChange={e => handlePaymentSettingsChange('bank', 'accountName', e.target.value)}
-                                   placeholder="e.g. DITO Telecom Inc."
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number</label>
-                                <input 
-                                   className="w-full border rounded-lg p-2 bg-white"
-                                   value={paymentSettingsForm.bank.accountNumber}
-                                   onChange={e => handlePaymentSettingsChange('bank', 'accountNumber', e.target.value)}
-                                   placeholder="0000 1234 5678"
-                                />
-                              </div>
-                           </div>
-                        </div>
-                     )}
-                  </div>
-               </div>
-               
-               <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <Button 
-                    onClick={savePaymentSettings} 
-                    className="shadow-lg flex items-center gap-2"
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                    {isSyncing ? 'Saving...' : 'Save Payment Settings'}
-                  </Button>
-               </div>
-             </div>
-          </div>
-        );
-
-      case 'Settings':
-        return (
-          <div className="max-w-4xl mx-auto space-y-8 pb-20">
-            {/* Hero Settings */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Hero Section Configuration</h3>
-                <p className="text-sm text-gray-500 mt-1">Customize the main banner on the homepage.</p>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Headline Prefix</label>
-                    <input 
-                      value={settingsForm.hero.titlePrefix}
-                      onChange={(e) => handleSettingsChange('hero', 'titlePrefix', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Highlighted Text (Red)</label>
-                    <input 
-                      value={settingsForm.hero.titleHighlight}
-                      onChange={(e) => handleSettingsChange('hero', 'titleHighlight', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-primary font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Headline Suffix</label>
-                    <input 
-                      value={settingsForm.hero.titleSuffix}
-                      onChange={(e) => handleSettingsChange('hero', 'titleSuffix', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subtitle</label>
-                    <textarea 
-                      rows={3}
-                      value={settingsForm.hero.subtitle}
-                      onChange={(e) => handleSettingsChange('hero', 'subtitle', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hero Image URL</label>
-                    <input 
-                      value={settingsForm.hero.heroImage}
-                      onChange={(e) => handleSettingsChange('hero', 'heroImage', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                      placeholder="https://example.com/image.png"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primary Button</label>
-                      <input 
-                        value={settingsForm.hero.btnPrimary}
-                        onChange={(e) => handleSettingsChange('hero', 'btnPrimary', e.target.value)}
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Secondary Button</label>
-                      <input 
-                        value={settingsForm.hero.btnSecondary}
-                        onChange={(e) => handleSettingsChange('hero', 'btnSecondary', e.target.value)}
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Features Settings */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Features Section</h3>
-              </div>
-              <div className="p-6 grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Section Title</label>
-                  <input 
-                    value={settingsForm.features.title}
-                    onChange={(e) => handleSettingsChange('features', 'title', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Section Subtitle</label>
-                  <input 
-                    value={settingsForm.features.subtitle}
-                    onChange={(e) => handleSettingsChange('features', 'subtitle', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonials Settings */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Testimonials Section</h3>
-              </div>
-              <div className="p-6 grid md:grid-cols-2 gap-6">
-                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Section Title</label>
-                  <input 
-                    value={settingsForm.testimonials.title}
-                    onChange={(e) => handleSettingsChange('testimonials', 'title', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Section Subtitle</label>
-                  <input 
-                    value={settingsForm.testimonials.subtitle}
-                    onChange={(e) => handleSettingsChange('testimonials', 'subtitle', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* CTA Settings */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">Call to Action</h3>
-              </div>
-              <div className="p-6 space-y-4">
-                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Main Title</label>
-                  <input 
-                    value={settingsForm.cta.title}
-                    onChange={(e) => handleSettingsChange('cta', 'title', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subtitle</label>
-                  <input 
-                    value={settingsForm.cta.subtitle}
-                    onChange={(e) => handleSettingsChange('cta', 'subtitle', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Button Text</label>
-                  <input 
-                    value={settingsForm.cta.btnText}
-                    onChange={(e) => handleSettingsChange('cta', 'btnText', e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="fixed bottom-6 right-6 z-30">
-              <Button 
-                onClick={saveSettings} 
-                className="shadow-2xl py-4 px-8 text-lg flex items-center gap-2"
-                disabled={isSyncing}
-              >
-                {isSyncing ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                {isSyncing ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        );
-
       case 'Products':
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1223,8 +831,11 @@ const AdminDashboard: React.FC = () => {
       case 'Orders':
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-               <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                 <h2 className="text-lg font-bold text-gray-900">Orders</h2>
+                 <p className="text-sm text-gray-500">Track and manage customer orders.</p>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -1235,7 +846,6 @@ const AdminDashboard: React.FC = () => {
                     <th className="p-4">Date</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Total</th>
-                    <th className="p-4">Payment</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -1243,36 +853,59 @@ const AdminDashboard: React.FC = () => {
                   {orders.map(order => (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{order.id}</td>
-                      <td className="p-4 text-gray-600">{order.customer}</td>
+                      <td className="p-4">
+                        <p className="font-bold text-gray-900">{order.customer}</p>
+                        {order.referralId && <p className="text-xs text-blue-500">Ref: {order.referralId}</p>}
+                      </td>
                       <td className="p-4 text-gray-500">{order.date}</td>
                       <td className="p-4">
-                        <Badge color={order.status === 'Delivered' ? 'green' : order.status === 'Pending' ? 'yellow' : 'blue'}>
-                          {order.status}
-                        </Badge>
+                        <select 
+                          value={order.status} 
+                          onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
+                          className={`px-2 py-1 rounded-full text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer ${
+                            order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                            order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                            order.status === 'Processing' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                        </select>
                       </td>
                       <td className="p-4 font-bold">₱{order.total.toLocaleString()}</td>
-                      <td className="p-4 text-xs">
-                        <div className="font-bold">{order.paymentMethod || 'COD'}</div>
-                        {order.proofOfPayment && (
-                           <a href={order.proofOfPayment} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800 mt-1 block">View Receipt</a>
-                        )}
-                      </td>
                       <td className="p-4 flex justify-end gap-2">
-                        {/* Print Waybill Button */}
                         <button 
-                          onClick={() => printWaybill(order)} 
-                          className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg"
+                          onClick={() => printWaybill(order)}
+                          className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center gap-1 text-xs font-medium border"
                           title="Print Waybill"
                         >
-                          <Printer size={16}/>
+                          <Printer size={14} /> Print
                         </button>
-                        {order.status !== 'Delivered' && (
-                          <button onClick={() => updateOrderStatus(order.id, 'Delivered')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100">Mark Delivered</button>
+                        <button 
+                          onClick={() => deleteOrder(order.id)}
+                          className="p-2 hover:bg-red-50 text-red-600 rounded-lg border border-transparent hover:border-red-100"
+                          title="Delete Order"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        {order.proofOfPayment && (
+                          <button 
+                            onClick={() => window.open(order.proofOfPayment)}
+                            className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg border border-transparent hover:border-blue-100"
+                            title="View Receipt"
+                          >
+                             <ImageIcon size={16} />
+                          </button>
                         )}
-                        <button onClick={() => deleteOrder(order.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={16}/></button>
                       </td>
                     </tr>
                   ))}
+                  {orders.length === 0 && (
+                    <tr><td colSpan={6} className="p-8 text-center text-gray-400">No orders found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1282,123 +915,314 @@ const AdminDashboard: React.FC = () => {
       case 'Affiliates':
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">Affiliate Management</h2>
-              <p className="text-sm text-gray-500">Manage partners and commissions.</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
-                  <tr>
-                    <th className="p-4">Affiliate</th>
-                    <th className="p-4">Stats (Clicks/Orders)</th>
-                    <th className="p-4">Wallet / Pending</th>
-                    <th className="p-4">Total Earned</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {affiliates.map(aff => {
-                    const metrics = getAffiliateMetrics(aff.id);
-                    return (
-                      <tr key={aff.id} className="hover:bg-gray-50">
-                        <td className="p-4">
-                           <div>
-                              <p className="font-bold text-gray-900">{aff.name}</p>
-                              <p className="text-xs text-gray-500">{aff.email}</p>
-                              <p className="text-[10px] text-gray-400 font-mono mt-1">ID: {aff.id}</p>
-                           </div>
-                        </td>
-                        <td className="p-4">
-                           <div className="flex items-center gap-4">
-                              <div className="text-center">
-                                 <p className="font-bold">{aff.clicks || 0}</p>
-                                 <p className="text-[10px] text-gray-400 uppercase">Clicks</p>
-                              </div>
-                              <div className="h-8 w-px bg-gray-200"></div>
-                              <div className="text-center">
-                                 <p className="font-bold text-green-600">{metrics.successOrders}</p>
-                                 <p className="text-[10px] text-gray-400 uppercase">Orders</p>
-                              </div>
-                           </div>
-                        </td>
-                        <td className="p-4">
-                           <div>
-                              <p className="font-bold text-gray-900">₱{aff.walletBalance.toLocaleString()}</p>
-                              {metrics.pendingComm > 0 && (
-                                <p className="text-xs text-orange-500 font-medium flex items-center gap-1">
-                                  <RotateCcw size={10} /> +₱{metrics.pendingComm.toLocaleString()} pending
-                                </p>
-                              )}
-                           </div>
-                        </td>
-                        <td className="p-4 font-medium text-gray-600">
-                           ₱{aff.lifetimeEarnings?.toLocaleString() || aff.walletBalance.toLocaleString()}
-                        </td>
-                        <td className="p-4">
-                           <Badge color={aff.status === 'active' ? 'green' : aff.status === 'banned' ? 'red' : 'gray'}>
-                              {aff.status || 'active'}
-                           </Badge>
-                        </td>
-                        <td className="p-4 flex justify-end gap-2">
-                           <button onClick={() => handleEditAffiliate(aff)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg" title="Edit & Adjust Wallet">
-                             <Edit2 size={16} />
-                           </button>
-                           <button 
-                             onClick={() => toggleAffiliateStatus(aff.id, aff.status || 'active')} 
-                             className={`p-2 rounded-lg ${aff.status === 'banned' ? 'hover:bg-green-50 text-green-600' : 'hover:bg-red-50 text-red-600'}`}
-                             title={aff.status === 'banned' ? "Activate" : "Ban"}
-                           >
-                             {aff.status === 'banned' ? <CheckCircle size={16} /> : <Ban size={16} />}
-                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                   <h2 className="text-lg font-bold text-gray-900">Affiliate Partners</h2>
+                   <p className="text-sm text-gray-500">Manage your sales force.</p>
+                </div>
+             </div>
+             <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 font-medium">
+                    <tr>
+                      <th className="p-4">Affiliate</th>
+                      <th className="p-4">Earnings</th>
+                      <th className="p-4">Total Sales</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {affiliates.map(aff => (
+                       <tr key={aff.id} className="hover:bg-gray-50">
+                          <td className="p-4">
+                             <p className="font-bold text-gray-900">{aff.name}</p>
+                             <p className="text-xs text-gray-500">{aff.email}</p>
+                             <p className="text-[10px] text-gray-400">ID: {aff.id}</p>
+                          </td>
+                          <td className="p-4">
+                             <p className="font-bold text-green-600">₱{aff.walletBalance.toLocaleString()}</p>
+                             <p className="text-xs text-gray-400">Lifetime: ₱{aff.lifetimeEarnings?.toLocaleString()}</p>
+                          </td>
+                          <td className="p-4 font-medium">₱{aff.totalSales.toLocaleString()}</td>
+                          <td className="p-4">
+                             <Badge color={aff.status === 'active' ? 'green' : 'red'}>
+                                {aff.status?.toUpperCase() || 'ACTIVE'}
+                             </Badge>
+                          </td>
+                          <td className="p-4 flex justify-end gap-2">
+                             <Button 
+                               variant="outline" 
+                               className="p-2 h-8 w-8 flex items-center justify-center"
+                               onClick={() => handleEditAffiliate(aff)}
+                             >
+                               <Edit2 size={14} />
+                             </Button>
+                             <Button 
+                               variant={aff.status === 'active' ? 'outline' : 'primary'}
+                               className={`p-2 h-8 w-8 flex items-center justify-center ${aff.status === 'active' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                               onClick={() => toggleAffiliateStatus(aff.id, aff.status || 'active')}
+                               title={aff.status === 'active' ? 'Ban Affiliate' : 'Activate Affiliate'}
+                             >
+                               {aff.status === 'active' ? <Ban size={14} /> : <CheckCircle size={14} />}
+                             </Button>
+                          </td>
+                       </tr>
+                    ))}
+                  </tbody>
+                </table>
+             </div>
           </div>
         );
-        
+
       case 'Customers':
         return (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-               <h2 className="text-lg font-bold text-gray-900">Registered Customers</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
-                  <tr>
-                    <th className="p-4">Name</th>
-                    <th className="p-4">Email</th>
-                    <th className="p-4">Phone</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {customers.map(c => (
-                    <tr key={c.email} className="hover:bg-gray-50">
-                      <td className="p-4 font-bold text-gray-900 flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                            <img src={`https://ui-avatars.com/api/?name=${c.name}&background=random`} alt="" />
-                         </div>
-                         {c.name}
-                      </td>
-                      <td className="p-4 text-gray-500">{c.email}</td>
-                      <td className="p-4 text-gray-500">{c.phone}</td>
-                      <td className="p-4 flex justify-end">
-                        <button onClick={() => deleteCustomer(c.email)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={16}/></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+             <div className="p-6 border-b border-gray-100">
+                <h2 className="text-lg font-bold text-gray-900">Customer Database</h2>
+                <p className="text-sm text-gray-500">Registered users and buyers.</p>
+             </div>
+             <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                   <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                         <th className="p-4">Name</th>
+                         <th className="p-4">Email</th>
+                         <th className="p-4">Phone</th>
+                         <th className="p-4 text-right">Actions</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-100">
+                      {customers.map((c, i) => (
+                         <tr key={i} className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-gray-900">{c.name}</td>
+                            <td className="p-4 text-gray-500">{c.email}</td>
+                            <td className="p-4 text-gray-500">{c.phone}</td>
+                            <td className="p-4 text-right">
+                               <button 
+                                 onClick={() => deleteCustomer(c.email)}
+                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                               >
+                                  <Trash2 size={16} />
+                               </button>
+                            </td>
+                         </tr>
+                      ))}
+                      {customers.length === 0 && (
+                         <tr><td colSpan={4} className="p-8 text-center text-gray-400">No registered customers yet.</td></tr>
+                      )}
+                   </tbody>
+                </table>
+             </div>
+           </div>
         );
+
+      case 'Settings':
+        return (
+           <div className="max-w-4xl mx-auto space-y-8 pb-20">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                       <h2 className="text-lg font-bold text-gray-900">Landing Page Settings</h2>
+                       <p className="text-gray-500 text-sm">Customize your storefront appearance.</p>
+                    </div>
+                    <Button onClick={saveSettings} disabled={isSyncing} className="flex items-center gap-2">
+                       <Save size={16} /> {isSyncing ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                 </div>
+                 <div className="p-6 space-y-8">
+                    {/* Hero Section */}
+                    <div className="space-y-4">
+                       <h3 className="font-bold text-gray-900 border-b pb-2">Hero Section</h3>
+                       <div className="grid md:grid-cols-3 gap-4">
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Title Prefix</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.hero.titlePrefix}
+                               onChange={e => handleSettingsChange('hero', 'titlePrefix', e.target.value)}
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Highlight Text</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1 text-primary font-bold"
+                               value={settingsForm.hero.titleHighlight}
+                               onChange={e => handleSettingsChange('hero', 'titleHighlight', e.target.value)}
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Title Suffix</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.hero.titleSuffix}
+                               onChange={e => handleSettingsChange('hero', 'titleSuffix', e.target.value)}
+                             />
+                          </div>
+                          <div className="md:col-span-3">
+                             <label className="text-xs font-bold text-gray-500 uppercase">Subtitle</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.hero.subtitle}
+                               onChange={e => handleSettingsChange('hero', 'subtitle', e.target.value)}
+                             />
+                          </div>
+                          <div className="md:col-span-3">
+                             <label className="text-xs font-bold text-gray-500 uppercase">Hero Image URL</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.hero.heroImage}
+                               onChange={e => handleSettingsChange('hero', 'heroImage', e.target.value)}
+                               placeholder="https://..."
+                             />
+                          </div>
+                       </div>
+                    </div>
+                    
+                    {/* Features Section */}
+                    <div className="space-y-4">
+                       <h3 className="font-bold text-gray-900 border-b pb-2">Features Section</h3>
+                       <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Section Title</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.features.title}
+                               onChange={e => handleSettingsChange('features', 'title', e.target.value)}
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Section Subtitle</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.features.subtitle}
+                               onChange={e => handleSettingsChange('features', 'subtitle', e.target.value)}
+                             />
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* CTA Section */}
+                    <div className="space-y-4">
+                       <h3 className="font-bold text-gray-900 border-b pb-2">Call to Action (Bottom)</h3>
+                       <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">CTA Title</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.cta.title}
+                               onChange={e => handleSettingsChange('cta', 'title', e.target.value)}
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-gray-500 uppercase">Button Text</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.cta.btnText}
+                               onChange={e => handleSettingsChange('cta', 'btnText', e.target.value)}
+                             />
+                          </div>
+                          <div className="md:col-span-2">
+                             <label className="text-xs font-bold text-gray-500 uppercase">CTA Subtitle</label>
+                             <input 
+                               className="w-full border rounded-lg p-2 mt-1"
+                               value={settingsForm.cta.subtitle}
+                               onChange={e => handleSettingsChange('cta', 'subtitle', e.target.value)}
+                             />
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        );
+
+      case 'Payment Gateway':
+         return (
+             <div className="max-w-4xl mx-auto space-y-8 pb-20">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-lg font-bold text-gray-900">Payment Configuration</h2>
+                        <p className="text-gray-500 text-sm">Settings for checkout payment methods.</p>
+                    </div>
+                    
+                    <div className="p-6 space-y-8">
+                       {/* Cash On Delivery */}
+                       <div className="p-4 border rounded-xl bg-gray-50">
+                          <div className="flex items-center justify-between mb-4">
+                             <h3 className="font-bold text-gray-900 flex items-center gap-2"><Truck size={18}/> Cash on Delivery</h3>
+                             <label className="relative inline-flex items-center cursor-pointer">
+                               <input type="checkbox" className="sr-only peer" checked={paymentSettingsForm.cod.enabled} onChange={e => handlePaymentSettingsChange('cod', 'enabled', e.target.checked)} />
+                               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                             </label>
+                          </div>
+                          <p className="text-xs text-gray-500">Enable customers to pay when they receive the item.</p>
+                       </div>
+
+                       {/* GCash */}
+                       <div className="p-4 border rounded-xl bg-blue-50 border-blue-100">
+                          <div className="flex items-center justify-between mb-4">
+                             <h3 className="font-bold text-blue-900 flex items-center gap-2"><Smartphone size={18}/> GCash Payment</h3>
+                             <label className="relative inline-flex items-center cursor-pointer">
+                               <input type="checkbox" className="sr-only peer" checked={paymentSettingsForm.gcash.enabled} onChange={e => handlePaymentSettingsChange('gcash', 'enabled', e.target.checked)} />
+                               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                             </label>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4">
+                             <div>
+                                <label className="text-xs font-bold text-blue-800 uppercase">Account Name</label>
+                                <input className="w-full border rounded-lg p-2 mt-1" value={paymentSettingsForm.gcash.accountName} onChange={e => handlePaymentSettingsChange('gcash', 'accountName', e.target.value)} />
+                             </div>
+                             <div>
+                                <label className="text-xs font-bold text-blue-800 uppercase">Account Number</label>
+                                <input className="w-full border rounded-lg p-2 mt-1" value={paymentSettingsForm.gcash.accountNumber} onChange={e => handlePaymentSettingsChange('gcash', 'accountNumber', e.target.value)} />
+                             </div>
+                             <div className="md:col-span-2">
+                                <label className="text-xs font-bold text-blue-800 uppercase">QR Code (Image)</label>
+                                <div className="flex items-center gap-4 mt-1">
+                                   {paymentSettingsForm.gcash.qrImage && (
+                                      <img src={paymentSettingsForm.gcash.qrImage} alt="QR" className="h-20 w-20 object-contain border rounded-lg bg-white" />
+                                   )}
+                                   <input type="file" accept="image/*" onChange={handleQRUpload} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Bank Transfer */}
+                       <div className="p-4 border rounded-xl bg-gray-50">
+                          <div className="flex items-center justify-between mb-4">
+                             <h3 className="font-bold text-gray-900 flex items-center gap-2"><Landmark size={18}/> Bank Transfer</h3>
+                             <label className="relative inline-flex items-center cursor-pointer">
+                               <input type="checkbox" className="sr-only peer" checked={paymentSettingsForm.bank.enabled} onChange={e => handlePaymentSettingsChange('bank', 'enabled', e.target.checked)} />
+                               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-800"></div>
+                             </label>
+                          </div>
+                          <div className="grid md:grid-cols-3 gap-4">
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Bank Name</label>
+                                <input className="w-full border rounded-lg p-2 mt-1" value={paymentSettingsForm.bank.bankName} onChange={e => handlePaymentSettingsChange('bank', 'bankName', e.target.value)} />
+                             </div>
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Account Name</label>
+                                <input className="w-full border rounded-lg p-2 mt-1" value={paymentSettingsForm.bank.accountName} onChange={e => handlePaymentSettingsChange('bank', 'accountName', e.target.value)} />
+                             </div>
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Account Number</label>
+                                <input className="w-full border rounded-lg p-2 mt-1" value={paymentSettingsForm.bank.accountNumber} onChange={e => handlePaymentSettingsChange('bank', 'accountNumber', e.target.value)} />
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="p-6 flex justify-end border-t border-gray-100">
+                         <Button onClick={savePaymentSettings} disabled={isSyncing}>
+                            {isSyncing ? 'Saving...' : 'Save Payment Settings'}
+                         </Button>
+                    </div>
+                </div>
+             </div>
+         );
 
       default: // Dashboard
         return (
@@ -1502,7 +1326,7 @@ const AdminDashboard: React.FC = () => {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-3">
                 <item.icon size={18} />
                 {item.label}
               </div>
@@ -1633,15 +1457,26 @@ const AdminDashboard: React.FC = () => {
                       />
                    </div>
 
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-3 gap-4">
                      <div>
-                       <label className="text-xs font-bold text-gray-500 uppercase">Price (₱)</label>
+                       <label className="text-xs font-bold text-gray-500 uppercase">Selling Price (₱)</label>
                        <input 
                          type="number"
-                         className="w-full border rounded-lg p-2 mt-1" 
+                         className="w-full border rounded-lg p-2 mt-1 font-bold text-gray-900" 
                          value={newProductForm.price || 0} 
                          onChange={e => setNewProductForm({...newProductForm, price: Number(e.target.value)})}
                        />
+                     </div>
+                     <div>
+                       <label className="text-xs font-bold text-gray-500 uppercase">Purchase Cost (₱)</label>
+                       <input 
+                         type="number"
+                         className="w-full border rounded-lg p-2 mt-1 bg-gray-50" 
+                         value={newProductForm.costPrice || 0} 
+                         onChange={e => setNewProductForm({...newProductForm, costPrice: Number(e.target.value)})}
+                         placeholder="0"
+                       />
+                       <p className="text-[10px] text-gray-400 mt-1">Used for Net Profit calculation.</p>
                      </div>
                      <div>
                        <label className="text-xs font-bold text-gray-500 uppercase">Category</label>

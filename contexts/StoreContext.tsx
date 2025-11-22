@@ -29,6 +29,7 @@ interface StoreContextType {
   forceInventorySync: () => Promise<void>;
   stats: {
     revenue: number;
+    netProfit: number;
     totalOrders: number;
     totalCustomers: number;
     lowStock: number;
@@ -62,7 +63,7 @@ export const StoreContext = createContext<StoreContextType>({
   updateSettings: () => {},
   updatePaymentSettings: () => {},
   forceInventorySync: async () => {},
-  stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
+  stats: { revenue: 0, netProfit: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
   isLoading: true,
   isRefreshing: false,
@@ -350,8 +351,40 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.sendData('SAVE_PAYMENT_SETTINGS', newSettings).finally(() => setSyncCount(c => c - 1));
   };
 
+  // Calculate Net Profit
+  // Revenue = Total Order Value
+  // COGS = Sum(Quantity * Cost Price)
+  // Commissions = Sum(Order Commissions)
+  // Net Profit = Revenue - COGS - Commissions
+  const calculateNetProfit = () => {
+    let totalRevenue = 0;
+    let totalCOGS = 0;
+    let totalCommissions = 0;
+
+    orders.forEach(order => {
+      totalRevenue += order.total;
+      totalCommissions += (order.commission || 0);
+
+      if (order.orderItems && order.orderItems.length > 0) {
+        order.orderItems.forEach(item => {
+           const product = products.find(p => p.id === item.id);
+           if (product) {
+             const cost = product.costPrice || 0;
+             totalCOGS += (cost * item.quantity);
+           }
+        });
+      } else {
+        // Fallback logic if detailed items are missing (estimates based on order total vs avg margin, optional)
+        // For now, we assume all recent orders have orderItems.
+      }
+    });
+
+    return totalRevenue - totalCOGS - totalCommissions;
+  };
+
   const stats = {
     revenue: orders.reduce((acc, o) => acc + o.total, 0),
+    netProfit: calculateNetProfit(),
     totalOrders: orders.length,
     totalCustomers: customers.length,
     lowStock: products.filter(p => (p.stock || 0) <= (p.minStockLevel || 10)).length

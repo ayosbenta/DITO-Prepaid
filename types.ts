@@ -5,6 +5,7 @@ export interface Product {
   subtitle: string;
   description: string;
   price: number;
+  costPrice?: number; // Purchase/Acquisition Price
   category: string;
   image: string;
   gallery: string[];
