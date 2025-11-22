@@ -26,6 +26,7 @@ interface StoreContextType {
   updatePayoutStatus: (id: string, status: PayoutRequest['status']) => void;
   updateSettings: (settings: LandingPageSettings) => void;
   updatePaymentSettings: (settings: PaymentSettings) => void;
+  forceInventorySync: () => Promise<void>;
   stats: {
     revenue: number;
     totalOrders: number;
@@ -60,6 +61,7 @@ export const StoreContext = createContext<StoreContextType>({
   updatePayoutStatus: () => {},
   updateSettings: () => {},
   updatePaymentSettings: () => {},
+  forceInventorySync: async () => {},
   stats: { revenue: 0, totalOrders: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
   isLoading: true,
@@ -143,7 +145,21 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const triggerProductSync = (newProducts: Product[]) => {
     setSyncCount(c => c + 1);
-    SheetsService.syncProducts(newProducts).finally(() => setSyncCount(c => c - 1));
+    // Sync BOTH the main Product Catalog AND the Inventory Sheet
+    Promise.all([
+        SheetsService.syncProducts(newProducts),
+        SheetsService.syncInventory(newProducts)
+    ]).finally(() => setSyncCount(c => c - 1));
+  };
+
+  // Explicitly exposed for manual triggering via Dashboard
+  const forceInventorySync = async () => {
+    setSyncCount(c => c + 1);
+    try {
+      await SheetsService.syncInventory(products);
+    } finally {
+      setSyncCount(c => c - 1);
+    }
   };
 
   const triggerOrderSync = (newOrders: Order[]) => {
@@ -180,10 +196,31 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const addOrder = (order: Order) => {
+    // 1. Add to Orders
     const updatedOrders = [order, ...orders];
     setOrders(updatedOrders);
     triggerOrderSync(updatedOrders);
 
+    // 2. Deduct Stock from Inventory
+    if (order.orderItems && order.orderItems.length > 0) {
+      let inventoryChanged = false;
+      const updatedProducts = products.map(p => {
+        const soldItem = order.orderItems?.find(i => i.id === p.id);
+        if (soldItem) {
+          inventoryChanged = true;
+          // Prevent negative stock
+          return { ...p, stock: Math.max(0, (p.stock || 0) - soldItem.quantity) };
+        }
+        return p;
+      });
+
+      if (inventoryChanged) {
+        setProducts(updatedProducts);
+        triggerProductSync(updatedProducts);
+      }
+    }
+
+    // 3. Affiliate Commission Logic
     if (order.referralId) {
        const affiliate = affiliates.find(a => a.id === order.referralId);
        if (affiliate) {
@@ -317,7 +354,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     revenue: orders.reduce((acc, o) => acc + o.total, 0),
     totalOrders: orders.length,
     totalCustomers: customers.length,
-    lowStock: products.filter(p => Math.random() > 0.8).length
+    lowStock: products.filter(p => (p.stock || 0) <= (p.minStockLevel || 10)).length
   };
 
   return (
@@ -329,6 +366,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       registerAffiliate, updateAffiliate, trackAffiliateClick,
       requestPayout, updatePayoutStatus,
       updateSettings, updatePaymentSettings,
+      forceInventorySync,
       stats,
       isSyncing, isLoading, isRefreshing, refreshData: () => loadData(false)
     }}>

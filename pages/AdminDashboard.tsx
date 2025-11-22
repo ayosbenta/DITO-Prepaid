@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
-  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent
+  Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -33,7 +33,7 @@ const AdminDashboard: React.FC = () => {
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
     deleteCustomer, updateSettings, updatePaymentSettings, isSyncing, isLoading, isRefreshing, refreshData,
-    updateAffiliate, updatePayoutStatus
+    updateAffiliate, updatePayoutStatus, forceInventorySync
   } = useContext(StoreContext);
 
   // Local state for Forms/Modals
@@ -567,6 +567,11 @@ const AdminDashboard: React.FC = () => {
               <div>
                  <h2 className="text-lg font-bold text-gray-900">Inventory Management</h2>
                  <p className="text-sm text-gray-500">Track stock levels and SKUs.</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                  <Cloud size={14} className="text-green-500"/> Auto-Sync Active
+                </div>
               </div>
             </div>
             <div className="overflow-x-auto">

@@ -275,6 +275,29 @@ export const SheetsService = {
     return SheetsService.sendData('SYNC_PRODUCTS', payload);
   },
   
+  // NEW: Sync dedicated Inventory Sheet
+  syncInventory: async (products: Product[]): Promise<ApiResponse> => {
+    const payload = products.map(p => {
+      const stock = p.stock || 0;
+      const minStock = p.minStockLevel || 10;
+      let status = 'In Stock';
+      if (stock === 0) status = 'Out of Stock';
+      else if (stock <= minStock) status = 'Low Stock';
+
+      return {
+        'Product ID': p.id,
+        'Name': p.name,
+        'SKU': p.sku || 'N/A',
+        'Category': p.category,
+        'Stock Level': stock,
+        'Min Limit': minStock,
+        'Status': status,
+        'Last Updated': new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })
+      };
+    });
+    return SheetsService.sendData('SYNC_INVENTORY', payload);
+  },
+
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
     // Flatten shippingDetails for top-level columns, AND store everything in json_data for retrieval
     const payload = orders.map(o => {
