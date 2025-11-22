@@ -401,29 +401,107 @@ const AdminDashboard: React.FC = () => {
           </div>
         );
 
-      case 'Dashboard': return (
+      case 'Dashboard': 
+        const pendingPayoutTotal = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
+        
+        return (
           <div className="space-y-6">
              {/* KPI Cards */}
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                   <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
-                   <p className="text-2xl font-bold text-gray-900 mt-2">₱{stats.revenue.toLocaleString()}</p>
-                   <div className="flex items-center gap-1 mt-1 text-green-500 text-xs font-bold"><TrendingUp size={14} /> +12.5%</div>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Total Revenue */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full relative overflow-hidden">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.revenue.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-red-50 text-primary rounded-2xl">
+                        <TrendingUp size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
+                     <ArrowUpRight size={16} /> +12.5%
+                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                   <h3 className="text-gray-500 text-sm font-medium">Net Profit</h3>
-                   <p className="text-2xl font-bold text-gray-900 mt-2">₱{stats.netProfit.toLocaleString()}</p>
-                   <div className="flex items-center gap-1 mt-1 text-green-500 text-xs font-bold"><TrendingUp size={14} /> +8.2%</div>
+
+                {/* Net Profit */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Net Profit</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.netProfit.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
+                        <Coins size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
+                      <ArrowUpRight size={16} /> Calculated
+                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                   <h3 className="text-gray-500 text-sm font-medium">Total Orders</h3>
-                   <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalOrders}</p>
-                   <div className="flex items-center gap-1 mt-1 text-blue-500 text-xs font-bold"><ShoppingBag size={14} /> New</div>
+
+                {/* Total Orders */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Total Orders</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalOrders}</p>
+                      </div>
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                         <ShoppingBag size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
+                     <ArrowUpRight size={16} /> +4.2%
+                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                   <h3 className="text-gray-500 text-sm font-medium">Active Customers</h3>
-                   <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalCustomers}</p>
-                   <div className="flex items-center gap-1 mt-1 text-orange-500 text-xs font-bold"><Users size={14} /> +24</div>
+
+                {/* Customers */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Customers</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalCustomers}</p>
+                      </div>
+                      <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
+                         <Users size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-red-500 text-sm font-bold">
+                      <ArrowDownRight size={16} /> -2.1%
+                   </div>
+                </div>
+                
+                {/* Low Stock */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Low Stock Items</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.lowStock}</p>
+                      </div>
+                      <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
+                         <AlertCircle size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-red-500 text-sm font-bold">
+                      <ArrowDownRight size={16} /> Needs Action
+                   </div>
+                </div>
+
+                {/* Pending Payout */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Pending Payout</h3>
+                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">₱{pendingPayoutTotal.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-yellow-50 text-yellow-600 rounded-2xl">
+                         <Clock size={24} />
+                      </div>
+                   </div>
+                   <div className="mt-4 flex items-center gap-2 text-gray-400 text-sm font-medium">
+                      Waiting approval
+                   </div>
                 </div>
              </div>
 
@@ -877,7 +955,7 @@ const AdminDashboard: React.FC = () => {
                          </div>
                          <div><label className="text-xs font-bold text-gray-500 uppercase">Default Base Fee (₱)</label><input type="number" className="w-full border rounded-lg p-2 mt-1" value={settingsForm.shipping.baseFee} onChange={e => handleShippingChange('baseFee', Number(e.target.value))} /></div>
                          <div><label className="text-xs font-bold text-gray-500 uppercase">Free Shipping Threshold (₱)</label><input type="number" className="w-full border rounded-lg p-2 mt-1" value={settingsForm.shipping.freeThreshold} onChange={e => handleShippingChange('freeThreshold', Number(e.target.value))} /><p className="text-[10px] text-gray-400 mt-1">Set to 0 to disable free shipping.</p></div>
-                         <div><label className="text-xs font-bold text-gray-500 uppercase">Calculation Mode</label><select className="w-full border rounded-lg p-2 mt-1 bg-white" value={settingsForm.shipping.calculationType} onChange={e => handleShippingChange('calculationType', e.target.value)}><option value="flat">Flat Rate (Base Fee Only)</option><option value="zone">Zone Based (Location Dependent)</option></select></div>
+                         <div><label className="text-xs font-bold text-gray-500 uppercase">Calculation Mode</label><select className="w-full border rounded-lg p-2 mt-1" value={settingsForm.shipping.calculationType} onChange={e => handleShippingChange('calculationType', e.target.value)}><option value="flat">Flat Rate (Base Fee Only)</option><option value="zone">Zone Based (Location Dependent)</option></select></div>
                       </div>
                    )}
                    {activeShippingTab === 'couriers' && (
@@ -892,7 +970,7 @@ const AdminDashboard: React.FC = () => {
                    )}
                    {activeShippingTab === 'zones' && (
                       <div className="space-y-4">
-                         {settingsForm.shipping.zones.map((zone, idx) => (<div key={idx} className="flex gap-4 items-center p-4 border rounded-xl bg-gray-50"><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Zone Name</label><input className="w-full border rounded-lg p-2 mt-1 font-bold text-gray-900" value={zone.name} onChange={e => handleUpdateZone(idx, 'name', e.target.value)} /></div><div className="w-32"><label className="text-xs font-bold text-gray-400 uppercase">Fee (₱)</label><input type="number" className="w-full border rounded-lg p-2 mt-1" value={zone.fee} onChange={e => handleUpdateZone(idx, 'fee', Number(e.target.value))} /></div><div className="w-40"><label className="text-xs font-bold text-gray-400 uppercase">Est. Days</label><input className="w-full border rounded-lg p-2 mt-1" value={zone.days} onChange={e => handleUpdateZone(idx, 'days', e.target.value)} /></div></div>))}
+                         {settingsForm.shipping.zones.map((zone, idx) => (<div key={idx} className="flex gap-4 items-center p-4 border rounded-xl bg-gray-50"><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Zone Name</label><input className="w-full border rounded-lg p-2 mt-1" value={zone.name} onChange={e => handleUpdateZone(idx, 'name', e.target.value)} /></div><div className="w-32"><label className="text-xs font-bold text-gray-400 uppercase">Fee (₱)</label><input type="number" className="w-full border rounded-lg p-2 mt-1" value={zone.fee} onChange={e => handleUpdateZone(idx, 'fee', Number(e.target.value))} /></div><div className="w-40"><label className="text-xs font-bold text-gray-400 uppercase">Est. Days</label><input className="w-full border rounded-lg p-2 mt-1" value={zone.days} onChange={e => handleUpdateZone(idx, 'days', e.target.value)} /></div></div>))}
                          <p className="text-xs text-gray-400 text-center pt-2">Note: Zone names (e.g. "Metro Manila", "Luzon") are matched against customer addresses.</p>
                       </div>
                    )}
