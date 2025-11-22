@@ -80,14 +80,20 @@ export const SheetsService = {
           category: String(p.category),
           price: Number(p.price),
           image: String(p.image),
-          description: String(p.description),
-          gallery: [], 
-          specs: {}, 
-          features: [],
-          subtitle: '', 
+          
+          // Explicitly read description and subtitle from columns, fallback to json_data
+          description: String(p.description || details.description || ''),
+          subtitle: String(p.subtitle || details.subtitle || ''),
+          
+          // Complex objects usually in json_data
+          gallery: details.gallery || (p.image ? [p.image] : []), 
+          specs: details.specs || {}, 
+          features: details.features || [],
+          
           rating: 5, 
           reviews: 0,
-          ...details,
+          ...details, // Spread details to catch anything else
+          
           // Ensure core fields are typed correctly. 
           // Priority: Explicit Columns > json_data > default
           sku: p.sku ? String(p.sku) : (details.sku || ''),
@@ -246,11 +252,11 @@ export const SheetsService = {
   syncProducts: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
       // Destructure to separate standard columns from detailed JSON data
-      // We extract inventory fields to promote them to visible Columns (Headers) in Sheets
       const { 
-        id, name, category, price, image, description, 
+        id, name, category, price, image, description, subtitle,
         commissionType, commissionValue, 
         sku, stock, minStockLevel, bulkDiscounts,
+        gallery, specs, features,
         ...rest 
       } = p;
 
@@ -260,22 +266,40 @@ export const SheetsService = {
         : '';
 
       return {
-        id, name, category, price, image, description, commissionType, commissionValue,
-        
-        // Flattened Inventory Columns
+        // Explicit Columns for better Sheet readability
+        id, 
+        name, 
+        subtitle: subtitle || '', 
+        description: description || '',
+        category, 
+        price, 
+        image, 
+        commissionType, 
+        commissionValue,
         sku: sku || '',
         stock: stock || 0,
         min_stock_level: minStockLevel || 10,
         bulk_discounts_summary: discountSummary,
 
-        // Store everything in json_data as backup/complex object storage
-        json_data: JSON.stringify({ ...rest, sku, stock, minStockLevel, bulkDiscounts })
+        // Pack complex nested structures (specs, gallery, etc.) into json_data
+        json_data: JSON.stringify({ 
+          ...rest, 
+          sku, 
+          stock, 
+          minStockLevel, 
+          bulkDiscounts, 
+          gallery, 
+          specs, 
+          features,
+          subtitle,
+          description
+        })
       };
     });
     return SheetsService.sendData('SYNC_PRODUCTS', payload);
   },
   
-  // NEW: Sync dedicated Inventory Sheet
+  // Sync dedicated Inventory Sheet
   syncInventory: async (products: Product[]): Promise<ApiResponse> => {
     const payload = products.map(p => {
       const stock = p.stock || 0;
@@ -299,18 +323,15 @@ export const SheetsService = {
   },
 
   syncOrders: async (orders: Order[]): Promise<ApiResponse> => {
-    // Flatten shippingDetails for top-level columns, AND store everything in json_data for retrieval
     const payload = orders.map(o => {
       const shipping = o.shippingDetails;
       const address = shipping ? `${shipping.street}, ${shipping.barangay}, ${shipping.city}, ${shipping.province} ${shipping.zipCode}` : '';
       
       return {
         ...o,
-        // Flattened fields for direct Sheet visibility (The "Header" request)
         shipping_name: shipping ? `${shipping.firstName} ${shipping.lastName}` : '',
         shipping_phone: shipping ? shipping.mobile : '',
         shipping_address: address,
-        // Store complex objects in json_data
         json_data: JSON.stringify({ 
            shippingDetails: o.shippingDetails,
            orderItems: o.orderItems 
@@ -322,15 +343,12 @@ export const SheetsService = {
   
   syncAffiliates: async (affiliates: Affiliate[]): Promise<ApiResponse> => {
     const payload = affiliates.map(aff => {
-      // Extract standard fields
       const { 
         id, name, email, walletBalance, totalSales, joinDate, status, clicks, lifetimeEarnings,
-        // Extract extended fields to put in json_data AND as columns
         username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
         gcashName, gcashNumber
       } = aff;
 
-      // Create details object for json_data
       const details = {
          username, password, firstName, middleName, lastName, birthDate, gender, mobile, address, agencyName, govtId,
          gcashName, gcashNumber

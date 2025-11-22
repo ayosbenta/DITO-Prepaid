@@ -1,5 +1,4 @@
 
-
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, Truck, Shield, Wifi, ChevronRight, Info, Minus, Plus, AlertTriangle, Tag } from 'lucide-react';
@@ -71,7 +70,7 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 gap-4">
-              {product.gallery.map((img, idx) => (
+              {product.gallery && product.gallery.map((img, idx) => (
                 <button 
                   key={idx} 
                   onClick={() => setActiveImage(img)}
@@ -132,7 +131,7 @@ const ProductDetailPage: React.FC = () => {
             )}
 
             <div className="mb-8">
-               <p className="text-gray-600 leading-relaxed">{product.description}</p>
+               <p className="text-gray-600 leading-relaxed whitespace-pre-line">{product.description}</p>
             </div>
 
             {/* Actions */}
@@ -185,37 +184,46 @@ const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* Specifications Section */}
-        <div className="mt-24 max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold text-gray-900">Technical Specifications</h2>
-            <div className="w-12 h-1 bg-primary mx-auto mt-4 rounded-full"></div>
+        {product.specs && Object.keys(product.specs).length > 0 && (
+          <div className="mt-24 max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-bold text-gray-900">Technical Specifications</h2>
+              <div className="w-12 h-1 bg-primary mx-auto mt-4 rounded-full"></div>
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+              <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border-gray-200">
+                  {/* We split specs into two columns dynamically */}
+                  <div className="p-8 space-y-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <Wifi size={20} className="text-primary" /> General Specs
+                    </h3>
+                    <ul className="space-y-4">
+                        {Object.entries(product.specs).slice(0, Math.ceil(Object.keys(product.specs).length / 2)).map(([key, value]) => (
+                          <li key={key} className="flex justify-between text-sm border-b border-gray-50 pb-2 last:border-0">
+                            <span className="text-gray-500">{key}</span> 
+                            <span className="font-medium text-gray-900">{value}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                  <div className="p-8 space-y-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <Info size={20} className="text-primary" /> Additional Info
+                    </h3>
+                    <ul className="space-y-4">
+                        {Object.entries(product.specs).slice(Math.ceil(Object.keys(product.specs).length / 2)).map(([key, value]) => (
+                          <li key={key} className="flex justify-between text-sm border-b border-gray-50 pb-2 last:border-0">
+                            <span className="text-gray-500">{key}</span> 
+                            <span className="font-medium text-gray-900">{value}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+              </div>
+            </div>
           </div>
-          
-          <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-             <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border-gray-200">
-                <div className="p-8 space-y-6">
-                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                     <Wifi size={20} className="text-primary" /> Connectivity
-                   </h3>
-                   <ul className="space-y-4">
-                      {product.specs && Object.entries(product.specs).slice(0, 3).map(([key, value]) => (
-                         <li key={key} className="flex justify-between text-sm"><span className="text-gray-500">{key}</span> <span className="font-medium text-gray-900">{value}</span></li>
-                      ))}
-                   </ul>
-                </div>
-                <div className="p-8 space-y-6">
-                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                     <Info size={20} className="text-primary" /> Hardware
-                   </h3>
-                   <ul className="space-y-4">
-                      {product.specs && Object.entries(product.specs).slice(3).map(([key, value]) => (
-                         <li key={key} className="flex justify-between text-sm"><span className="text-gray-500">{key}</span> <span className="font-medium text-gray-900">{value}</span></li>
-                      ))}
-                   </ul>
-                </div>
-             </div>
-          </div>
-        </div>
+        )}
 
       </div>
     </div>
