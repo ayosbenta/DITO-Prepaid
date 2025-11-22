@@ -5,7 +5,7 @@ import {
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -401,89 +401,188 @@ const AdminDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'SMTP Email':
-        // ... (Same as existing)
-        return (
-          <div className="max-w-4xl mx-auto space-y-8 pb-20">
-             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                   <div>
-                      <h2 className="text-lg font-bold text-gray-900">SMTP Email Setup</h2>
-                      <p className="text-gray-500 text-sm">Configure settings for sending system emails.</p>
-                   </div>
-                   <Button onClick={saveSmtpSettings} disabled={isSyncing} className="flex items-center gap-2">
-                      <Save size={16} /> {isSyncing ? 'Saving...' : 'Save Configuration'}
-                   </Button>
-                </div>
-                {/* ... existing SMTP UI code ... */}
-             </div>
-          </div>
-        );
-
       case 'Dashboard': 
-        // ... (Same as existing)
         const pendingPayoutTotal = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
+        const totalPaidOut = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
+        
         return (
           <div className="space-y-6">
-            {/* KPI Cards ... (Same as existing) */}
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Total Revenue */}
+                {/* 1. Total Revenue */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full relative overflow-hidden">
                    <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.revenue.toLocaleString()}</p>
-                        <p className="text-xs text-gray-400 mt-1">(Excl. Shipping)</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.revenue.toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">(Excl. Shipping)</p>
                       </div>
                       <div className="p-3 bg-red-50 text-primary rounded-2xl">
                         <TrendingUp size={24} />
                       </div>
                    </div>
-                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
-                     <ArrowUpRight size={16} /> +12.5%
+                </div>
+                
+                {/* 2. Net Profit */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Net Profit</h3>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.netProfit.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
+                        <DollarSign size={24} />
+                      </div>
                    </div>
                 </div>
-                {/* Total Items Sold */}
+
+                {/* 3. Total Items Sold */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
                    <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-gray-500 text-sm font-medium">Total Items Sold</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalItemsSold}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalItemsSold}</p>
                       </div>
                       <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
                          <Package size={24} />
                       </div>
                    </div>
-                   <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-bold">
-                      <ArrowUpRight size={16} /> Volume
-                   </div>
                 </div>
-                {/* Total Orders */}
+                
+                {/* 4. Total Orders */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
                    <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-gray-500 text-sm font-medium">Total Orders</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalOrders}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalOrders}</p>
                       </div>
                       <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                          <ShoppingBag size={24} />
                       </div>
                    </div>
                 </div>
-                {/* Customers */}
+
+                {/* 5. Affiliates */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Affiliates</h3>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">{affiliates.length}</p>
+                      </div>
+                      <div className="p-3 bg-teal-50 text-teal-600 rounded-2xl">
+                         <Briefcase size={24} />
+                      </div>
+                   </div>
+                </div>
+
+                {/* 6. Customers */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
                    <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-gray-500 text-sm font-medium">Customers</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalCustomers}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalCustomers}</p>
                       </div>
-                      <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
+                      <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
                          <Users size={24} />
                       </div>
                    </div>
                 </div>
+                
+                {/* 7. Pending Payout */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Pending Payout</h3>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">₱{pendingPayoutTotal.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-yellow-50 text-yellow-600 rounded-2xl">
+                         <Clock size={24} />
+                      </div>
+                   </div>
+                </div>
+                
+                {/* 8. Total Paid Out */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                   <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-gray-500 text-sm font-medium">Total Paid Out</h3>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">₱{totalPaidOut.toLocaleString()}</p>
+                      </div>
+                      <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                         <CheckCircle size={24} />
+                      </div>
+                   </div>
+                </div>
              </div>
-             {/* Charts ... (Same as existing) */}
+             
+             {/* Charts and Activity */}
+             <div className="grid lg:grid-cols-3 gap-6">
+                {/* Sales Chart */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                   <div className="flex justify-between items-center mb-6">
+                      <div>
+                         <h3 className="font-bold text-gray-900">Revenue Analytics</h3>
+                         <p className="text-sm text-gray-500">Sales performance trends</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Filter size={18} /></button>
+                      </div>
+                   </div>
+                   <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                         <AreaChart data={SALES_DATA}>
+                            <defs>
+                               <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#C8102E" stopOpacity={0.1}/>
+                                  <stop offset="95%" stopColor="#C8102E" stopOpacity={0}/>
+                               </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} tickFormatter={(value) => `₱${value/1000}k`} />
+                            <Tooltip 
+                               contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                               formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Sales']}
+                            />
+                            <Area type="monotone" dataKey="sales" stroke="#C8102E" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                         </AreaChart>
+                      </ResponsiveContainer>
+                   </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
+                   <div className="flex justify-between items-center mb-6">
+                      <h3 className="font-bold text-gray-900">Recent Activity</h3>
+                      <button onClick={() => setActiveTab('Orders')} className="text-xs font-bold text-primary hover:underline">View All</button>
+                   </div>
+                   <div className="space-y-4 overflow-y-auto flex-1 pr-2 max-h-[300px]">
+                      {orders.slice(0, 6).map(order => (
+                         <div key={order.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100 cursor-pointer" onClick={() => setViewingOrder(order)}>
+                            <div className="flex items-center gap-3">
+                               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
+                                  order.status === 'Delivered' ? 'bg-green-500' : 
+                                  order.status === 'Processing' ? 'bg-blue-500' : 'bg-orange-400'
+                               }`}>
+                                  {order.customer.substring(0, 2).toUpperCase()}
+                               </div>
+                               <div>
+                                  <p className="text-sm font-bold text-gray-900 line-clamp-1">{order.customer}</p>
+                                  <p className="text-[10px] text-gray-400">{new Date(order.date).toLocaleDateString()}</p>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-sm font-bold text-gray-900">₱{order.total.toLocaleString()}</p>
+                               <p className={`text-[10px] font-bold uppercase ${
+                                  order.status === 'Delivered' ? 'text-green-600' : 
+                                  order.status === 'Processing' ? 'text-blue-600' : 'text-orange-500'
+                               }`}>{order.status}</p>
+                            </div>
+                         </div>
+                      ))}
+                      {orders.length === 0 && <p className="text-center text-gray-400 text-sm py-4">No recent orders</p>}
+                   </div>
+                </div>
+             </div>
           </div>
         );
 
@@ -540,7 +639,6 @@ const AdminDashboard: React.FC = () => {
       );
 
       case 'Inventory': 
-        // ... (Same as existing)
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -549,7 +647,6 @@ const AdminDashboard: React.FC = () => {
                   <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''}/> Sync Sheet
                 </Button>
              </div>
-             {/* ... Table ... */}
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                    <thead className="bg-gray-50 text-gray-500 font-medium">
@@ -585,7 +682,6 @@ const AdminDashboard: React.FC = () => {
         );
 
       case 'Orders': 
-        // ... (Same as existing)
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
              <div className="p-6 border-b border-gray-100">
@@ -593,7 +689,6 @@ const AdminDashboard: React.FC = () => {
              </div>
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                   {/* ... Table Content ... */}
                    <thead className="bg-gray-50 text-gray-500 font-medium">
                       <tr>
                          <th className="p-4">Order ID</th>
@@ -655,9 +750,7 @@ const AdminDashboard: React.FC = () => {
         );
 
       case 'Affiliates': 
-        // ... (Same as existing)
         return (
-           /* ... existing Affiliate Table Code ... */
            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
              <div className="p-6 border-b border-gray-100">
                 <h2 className="font-bold text-gray-900">Partner Management</h2>
@@ -699,7 +792,6 @@ const AdminDashboard: React.FC = () => {
         );
 
       case 'Payouts': 
-        // ... (Same as existing)
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100">
@@ -778,7 +870,7 @@ const AdminDashboard: React.FC = () => {
                                   <button onClick={() => deleteCustomer(c.email)} className="text-red-500 hover:bg-red-50 p-2 rounded-full" title="Delete">
                                      <Trash2 size={16}/>
                                   </button>
-                               </div>
+                                </div>
                             </td>
                          </tr>
                       ))}
@@ -789,16 +881,13 @@ const AdminDashboard: React.FC = () => {
       );
 
       case 'Settings': 
-        // ... (Same as existing)
         return (
           <div className="max-w-4xl mx-auto space-y-8 pb-20">
-             {/* ... Settings UI ... */}
              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                    <h2 className="text-lg font-bold text-gray-900">Landing Page Configuration</h2>
                    <Button onClick={saveSettings} disabled={isSyncing} className="flex items-center gap-2"><Save size={16} /> {isSyncing ? 'Saving...' : 'Save Changes'}</Button>
                 </div>
-                {/* ... Fields ... */}
                 <div className="p-6 space-y-6">
                    <div className="p-4 border rounded-xl bg-gray-50">
                       <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><LayoutDashboard size={18}/> Hero Section</h3>
@@ -810,25 +899,169 @@ const AdminDashboard: React.FC = () => {
                       <div className="mb-4"><label className="text-xs font-bold text-gray-500 uppercase">Subtitle</label><textarea className="w-full border rounded-lg p-2 mt-1" rows={2} value={settingsForm.hero.subtitle} onChange={e => handleSettingsChange('hero', 'subtitle', e.target.value)} /></div>
                       <div><label className="text-xs font-bold text-gray-500 uppercase">Hero Image URL</label><input className="w-full border rounded-lg p-2 mt-1" value={settingsForm.hero.heroImage} onChange={e => handleSettingsChange('hero', 'heroImage', e.target.value)} /></div>
                    </div>
-                   {/* ... Features, Testimonials, CTA ... */}
                 </div>
              </div>
           </div>
         );
 
       case 'Payment Gateway': return (
-          /* ... Existing Payment UI ... */
           <div className="max-w-4xl mx-auto space-y-8 pb-20">
-              {/* ... */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                       <h2 className="text-lg font-bold text-gray-900">Payment Methods</h2>
+                       <p className="text-gray-500 text-sm">Configure accepted payment options.</p>
+                    </div>
+                    <Button onClick={savePaymentSettings} disabled={isSyncing} className="flex items-center gap-2"><Save size={16} /> Save</Button>
+                 </div>
+                 <div className="p-6 space-y-6">
+                    {/* COD */}
+                    <div className="p-4 border rounded-xl bg-gray-50 flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg shadow-sm"><DollarSign size={20} className="text-green-600"/></div>
+                          <div><h4 className="font-bold text-gray-900">Cash on Delivery</h4><p className="text-xs text-gray-500">Allow customers to pay upon receipt.</p></div>
+                       </div>
+                       <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={paymentSettingsForm.cod.enabled} onChange={e => handlePaymentSettingsChange('cod', 'enabled', e.target.checked)} />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                       </label>
+                    </div>
+                    {/* GCash */}
+                    <div className="p-4 border rounded-xl bg-blue-50 border-blue-100">
+                       <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                             <div className="p-2 bg-white rounded-lg shadow-sm text-blue-600 font-bold text-xs">GC</div>
+                             <div><h4 className="font-bold text-gray-900">GCash Payment</h4><p className="text-xs text-gray-500">Manual transfer verification.</p></div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={paymentSettingsForm.gcash.enabled} onChange={e => handlePaymentSettingsChange('gcash', 'enabled', e.target.checked)} />
+                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                          </label>
+                       </div>
+                       {paymentSettingsForm.gcash.enabled && (
+                          <div className="grid md:grid-cols-2 gap-4 animate-fade-in">
+                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label><input className="w-full border rounded-lg p-2" value={paymentSettingsForm.gcash.accountName} onChange={e => handlePaymentSettingsChange('gcash', 'accountName', e.target.value)} /></div>
+                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number</label><input className="w-full border rounded-lg p-2" value={paymentSettingsForm.gcash.accountNumber} onChange={e => handlePaymentSettingsChange('gcash', 'accountNumber', e.target.value)} /></div>
+                             <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">QR Code Image URL</label><input className="w-full border rounded-lg p-2" value={paymentSettingsForm.gcash.qrImage} onChange={e => handlePaymentSettingsChange('gcash', 'qrImage', e.target.value)} /></div>
+                          </div>
+                       )}
+                    </div>
+                 </div>
+              </div>
           </div>
       );
 
       case 'Shipping': return (
-          /* ... Existing Shipping UI ... */
           <div className="max-w-6xl mx-auto space-y-8 pb-20">
-             {/* ... */}
+             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                   <div className="flex gap-4">
+                      <button onClick={() => setActiveShippingTab('general')} className={`text-sm font-bold pb-1 border-b-2 transition-colors ${activeShippingTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Settings</button>
+                      <button onClick={() => setActiveShippingTab('couriers')} className={`text-sm font-bold pb-1 border-b-2 transition-colors ${activeShippingTab === 'couriers' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Couriers</button>
+                      <button onClick={() => setActiveShippingTab('zones')} className={`text-sm font-bold pb-1 border-b-2 transition-colors ${activeShippingTab === 'zones' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Zones & Rates</button>
+                   </div>
+                   <Button onClick={saveSettings} disabled={isSyncing} size="sm"><Save size={14}/> Save</Button>
+                </div>
+                <div className="p-6">
+                   {activeShippingTab === 'general' && (
+                      <div className="max-w-lg space-y-4">
+                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                            <span className="font-bold text-gray-900">Enable Shipping Module</span>
+                            <input type="checkbox" checked={settingsForm.shipping.enabled} onChange={e => handleShippingChange('enabled', e.target.checked)} className="w-5 h-5 accent-primary" />
+                         </div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Base Shipping Fee</label><input type="number" className="w-full border rounded-lg p-2" value={settingsForm.shipping.baseFee} onChange={e => handleShippingChange('baseFee', Number(e.target.value))} /></div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Free Shipping Threshold (Amount)</label><input type="number" className="w-full border rounded-lg p-2" value={settingsForm.shipping.freeThreshold} onChange={e => handleShippingChange('freeThreshold', Number(e.target.value))} /></div>
+                      </div>
+                   )}
+                   {activeShippingTab === 'couriers' && (
+                      <div>
+                         <div className="flex gap-2 mb-4">
+                            <input className="border rounded-lg p-2 text-sm flex-1" placeholder="Courier Name" value={newCourierName} onChange={e => setNewCourierName(e.target.value)} />
+                            <input className="border rounded-lg p-2 text-sm flex-1" placeholder="Tracking URL ({TRACKING})" value={newCourierUrl} onChange={e => setNewCourierUrl(e.target.value)} />
+                            <Button onClick={handleAddCourier} size="sm">Add</Button>
+                         </div>
+                         <div className="space-y-2">
+                            {settingsForm.shipping.couriers.map(c => (
+                               <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                  <div><p className="font-bold text-sm">{c.name}</p><p className="text-xs text-gray-400 truncate w-64">{c.trackingUrl}</p></div>
+                                  <button onClick={() => handleDeleteCourier(c.id)} className="text-red-500 p-1"><Trash2 size={14}/></button>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                   )}
+                   {activeShippingTab === 'zones' && (
+                      <div className="space-y-2">
+                         <div className="grid grid-cols-3 gap-4 mb-2 text-xs font-bold text-gray-500 uppercase"><div>Zone Name</div><div>Fee</div><div>Delivery Days</div></div>
+                         {settingsForm.shipping.zones.map((z, i) => (
+                            <div key={i} className="grid grid-cols-3 gap-4">
+                               <input className="border rounded-lg p-2 text-sm bg-gray-50" value={z.name} disabled />
+                               <input type="number" className="border rounded-lg p-2 text-sm" value={z.fee} onChange={e => handleUpdateZone(i, 'fee', Number(e.target.value))} />
+                               <input className="border rounded-lg p-2 text-sm" value={z.days} onChange={e => handleUpdateZone(i, 'days', e.target.value)} />
+                            </div>
+                         ))}
+                      </div>
+                   )}
+                </div>
+             </div>
           </div>
       );
+
+      case 'SMTP Email':
+        return (
+          <div className="max-w-4xl mx-auto space-y-8 pb-20">
+             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                   <div>
+                      <h2 className="text-lg font-bold text-gray-900">SMTP Email Setup</h2>
+                      <p className="text-gray-500 text-sm">Configure settings for sending system emails.</p>
+                   </div>
+                   <Button onClick={saveSmtpSettings} disabled={isSyncing} className="flex items-center gap-2">
+                      <Save size={16} /> {isSyncing ? 'Saving...' : 'Save Configuration'}
+                   </Button>
+                </div>
+                
+                <div className="flex border-b bg-gray-50 px-6">
+                   <button onClick={() => setActiveSMTPTab('server')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeSMTPTab === 'server' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Server Config</button>
+                   <button onClick={() => setActiveSMTPTab('templates')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeSMTPTab === 'templates' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Templates</button>
+                </div>
+
+                <div className="p-6">
+                   {activeSMTPTab === 'server' && (
+                      <div className="space-y-4 max-w-lg">
+                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-6">
+                            <span className="font-bold text-gray-900">Enable Email Notifications</span>
+                            <input type="checkbox" checked={smtpSettingsForm.enabled} onChange={e => handleSmtpSettingsChange('enabled', e.target.checked)} className="w-5 h-5 accent-primary" />
+                         </div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">SMTP Host</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.host} onChange={e => handleSmtpSettingsChange('host', e.target.value)} placeholder="smtp.gmail.com" /></div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Port</label><input type="number" className="w-full border rounded-lg p-2" value={smtpSettingsForm.port} onChange={e => handleSmtpSettingsChange('port', Number(e.target.value))} placeholder="587" /></div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Username / Email</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.username} onChange={e => handleSmtpSettingsChange('username', e.target.value)} /></div>
+                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password / App Key</label><input type="password" className="w-full border rounded-lg p-2" value={smtpSettingsForm.password} onChange={e => handleSmtpSettingsChange('password', e.target.value)} /></div>
+                         <div className="flex items-center gap-2 mt-2"><input type="checkbox" checked={smtpSettingsForm.secure} onChange={e => handleSmtpSettingsChange('secure', e.target.checked)} /><span className="text-sm text-gray-600">Use Secure Connection (SSL/TLS)</span></div>
+                      </div>
+                   )}
+                   {activeSMTPTab === 'templates' && (
+                      <div className="space-y-6">
+                         {Object.entries(smtpSettingsForm.templates).map(([key, tpl]) => {
+                            const template = tpl as EmailTemplate;
+                            return (
+                            <div key={key} className="p-4 border rounded-xl bg-gray-50">
+                               <div className="flex justify-between items-center mb-4">
+                                  <h4 className="font-bold text-gray-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h4>
+                                  <input type="checkbox" checked={template.enabled} onChange={e => handleTemplateChange(key, 'enabled', e.target.checked)} />
+                               </div>
+                               <div className="space-y-3">
+                                  <div><label className="text-xs font-bold text-gray-400">Subject</label><input className="w-full border rounded p-2 text-sm" value={template.subject} onChange={e => handleTemplateChange(key, 'subject', e.target.value)} /></div>
+                                  <div><label className="text-xs font-bold text-gray-400">Body</label><textarea className="w-full border rounded p-2 text-sm h-24" value={template.body} onChange={e => handleTemplateChange(key, 'body', e.target.value)} /></div>
+                               </div>
+                            </div>
+                         )})}
+                      </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        );
 
       default: return <div className="p-10 text-center text-gray-500">Module {activeTab} loaded.</div>;
     }
