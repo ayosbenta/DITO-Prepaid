@@ -141,7 +141,7 @@ const CheckoutPage: React.FC = () => {
         const data = await LocationService.getBarangays(selectedCityCode);
         setBarangays(data);
         
-        // Auto-fill Zip Code
+        // Auto-fill Zip Code (User can still edit this)
         const zip = LocationService.getZipCode(shippingDetails.city, shippingDetails.province);
         setShippingDetails(prev => ({ ...prev, zipCode: zip, barangay: '' }));
         
@@ -417,12 +417,12 @@ const CheckoutPage: React.FC = () => {
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Zip Code</label>
                       <input 
                         required 
-                        readOnly
                         type="text" 
                         name="zipCode"
                         value={shippingDetails.zipCode}
-                        className="w-full border-gray-200 bg-gray-100 rounded-xl p-3 border outline-none text-gray-600 font-bold cursor-not-allowed" 
-                        placeholder="Auto-filled"
+                        onChange={handleInputChange}
+                        className="w-full border-gray-200 bg-white rounded-xl p-3 border outline-none text-gray-900 font-bold" 
+                        placeholder="Zip Code"
                       />
                     </div>
                   </div>
