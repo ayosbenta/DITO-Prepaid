@@ -8,6 +8,25 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/UI';
 import { LocationService, LocationOption } from '../services/locationService';
 
+// Helper to categorize provinces into Island Groups/Regions for Zone Matching
+const getRegion = (province: string): string => {
+  const p = province.toLowerCase();
+  if (!p) return '';
+
+  if (p.includes('metro manila') || p === 'manila') return 'metro manila';
+  
+  const luzon = ['abra','albay','aurora','bataan','batanes','batangas','benguet','bulacan','cagayan','camarines','catanduanes','cavite','ifugao','ilocos','isabela','kalinga','la union','laguna','marinduque','masbate','mindoro','mountain province','nueva','palawan','pampanga','pangasinan','quezon','quirino','rizal','romblon','sorsogon','tarlac','zambales'];
+  if (luzon.some(l => p.includes(l))) return 'luzon';
+  
+  const visayas = ['aklan','antique','biliran','bohol','capiz','cebu','guimaras','iloilo','leyte','negros','samar','siquijor'];
+  if (visayas.some(v => p.includes(v))) return 'visayas';
+  
+  const mindanao = ['agusan','basilan','bukidnon','camiguin','compostela','cotabato','davao','dinagat','lanao','maguindanao','misamis','sarangani','sultan kudarat','sulu','surigao','tawi-tawi','zamboanga'];
+  if (mindanao.some(m => p.includes(m))) return 'mindanao';
+  
+  return '';
+};
+
 const CheckoutPage: React.FC = () => {
   const { items, cartTotal, clearCart } = useContext(CartContext);
   const { addOrder, paymentSettings, settings } = useContext(StoreContext);
@@ -63,19 +82,25 @@ const CheckoutPage: React.FC = () => {
         // Zone Logic
         const userProvince = shippingDetails.province?.trim().toLowerCase() || '';
         const userCity = shippingDetails.city?.trim().toLowerCase() || '';
+        const userRegion = getRegion(userProvince);
         
-        // Attempt to find a matching zone
-        // We check if the Zone Name is included in Province or City, or vice versa
-        const matchedZone = settings.shipping.zones.find(z => {
+        // Priority 1: Specific Zone Match (e.g., "Cavite" defined in zones)
+        let matchedZone = settings.shipping.zones.find(z => {
             const zoneName = z.name.toLowerCase();
+            // Check if User Province/City contains Zone Name OR Zone Name contains User Province
             return userProvince && (userProvince.includes(zoneName) || zoneName.includes(userProvince) || userCity.includes(zoneName));
         });
+
+        // Priority 2: Broad Region Match (e.g., "Luzon" defined in zones, but user selected "Cavite")
+        if (!matchedZone && userRegion) {
+            matchedZone = settings.shipping.zones.find(z => z.name.toLowerCase() === userRegion);
+        }
 
         if (matchedZone) {
             setShippingFee(matchedZone.fee);
         } else {
             // Fallback to Base Fee if no specific zone match found
-            // This ensures the user sees a cost if their specific province isn't zoned but they are outside
+            // This ensures the user sees a cost if their specific province isn't zoned but they are outside known regions
             setShippingFee(settings.shipping.baseFee); 
         }
     }
