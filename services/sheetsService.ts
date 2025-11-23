@@ -1,4 +1,5 @@
 
+
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS } from '../constants';
 
@@ -149,7 +150,8 @@ export const SheetsService = {
           username: String(details.username || ''),
           password: String(details.password || ''),
           joinDate: String(details.joinDate || new Date().toISOString()),
-          role: 'customer'
+          role: 'customer',
+          shippingDetails: details.shippingDetails
         };
       });
 
@@ -374,9 +376,9 @@ export const SheetsService = {
   // New Customer Sync
   syncCustomers: async (customers: User[]): Promise<ApiResponse> => {
     const payload = customers.map(c => {
-      const { name, email, id, firstName, lastName, username, password, joinDate, mobile } = c;
+      const { name, email, id, firstName, lastName, username, password, joinDate, mobile, shippingDetails } = c;
       // Store extended fields in json_data
-      const details = { id, firstName, lastName, username, password, joinDate, mobile };
+      const details = { id, firstName, lastName, username, password, joinDate, mobile, shippingDetails };
       
       return {
         name, 

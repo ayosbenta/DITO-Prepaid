@@ -1,8 +1,9 @@
 
+
 import React, { useContext, useState, useEffect } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { StoreContext } from '../contexts/StoreContext';
-import { Order, ShippingDetails } from '../types';
+import { Order, ShippingDetails, User } from '../types';
 import { CheckCircle, CreditCard, Truck, Lock, Upload, Landmark, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/UI';
@@ -59,6 +60,42 @@ const CheckoutPage: React.FC = () => {
 
   // Shipping Fee State
   const [shippingFee, setShippingFee] = useState(0);
+
+  // Auto-fill Logic for Logged-In User
+  useEffect(() => {
+    const checkUser = async () => {
+       const storedUser = localStorage.getItem('dito_customer_user');
+       if (storedUser) {
+         try {
+           const user: User = JSON.parse(storedUser);
+           if (user.shippingDetails) {
+             setShippingDetails(user.shippingDetails);
+             
+             // Trigger location cascade to ensure codes are set for dropdowns
+             if (user.shippingDetails.province && provinces.length > 0) {
+               const p = provinces.find(prov => prov.name === user.shippingDetails?.province);
+               if (p) setSelectedProvinceCode(p.code);
+             }
+           }
+         } catch (e) {
+           console.error("Error parsing user data", e);
+         }
+       }
+    };
+    
+    // Only run this check after provinces have loaded to match codes
+    if (provinces.length > 0 && !shippingDetails.province) {
+       checkUser();
+    }
+  }, [provinces]);
+
+  // Handle City Code match after Cities Load
+  useEffect(() => {
+    if (cities.length > 0 && shippingDetails.city && !selectedCityCode) {
+       const c = cities.find(city => city.name === shippingDetails.city);
+       if (c) setSelectedCityCode(c.code);
+    }
+  }, [cities, shippingDetails.city]);
 
   // Effect to calculate fee based on settings and address
   useEffect(() => {
@@ -124,9 +161,8 @@ const CheckoutPage: React.FC = () => {
         setIsLoadingLocations(true);
         const data = await LocationService.getCities(selectedProvinceCode);
         setCities(data);
-        setBarangays([]);
-        setShippingDetails(prev => ({ ...prev, city: '', barangay: '', zipCode: '' }));
-        setSelectedCityCode('');
+        // Only reset if it's a manual change, not an auto-fill
+        // We handle this by checking if the current city matches the new list
         setIsLoadingLocations(false);
       };
       fetchCities();
@@ -141,15 +177,17 @@ const CheckoutPage: React.FC = () => {
         const data = await LocationService.getBarangays(selectedCityCode);
         setBarangays(data);
         
-        // Auto-fill Zip Code (User can still edit this)
-        const zip = LocationService.getZipCode(shippingDetails.city, shippingDetails.province);
-        setShippingDetails(prev => ({ ...prev, zipCode: zip, barangay: '' }));
+        // Auto-fill Zip Code if empty or mismatched (User can still edit this)
+        if (!shippingDetails.zipCode) {
+           const zip = LocationService.getZipCode(shippingDetails.city, shippingDetails.province);
+           setShippingDetails(prev => ({ ...prev, zipCode: zip }));
+        }
         
         setIsLoadingLocations(false);
       };
       fetchBarangays();
     }
-  }, [selectedCityCode, shippingDetails.city, shippingDetails.province]);
+  }, [selectedCityCode]);
 
   // Set default selected method based on enabled settings
   React.useEffect(() => {
@@ -211,11 +249,23 @@ const CheckoutPage: React.FC = () => {
     // Handle specialized dropdown logic for names/codes
     if (name === 'province') {
       const province = provinces.find(p => p.name === value);
-      if (province) setSelectedProvinceCode(province.code);
+      if (province) {
+         setSelectedProvinceCode(province.code);
+         // Reset city/barangay on province change
+         setShippingDetails(prev => ({ ...prev, city: '', barangay: '', zipCode: '' }));
+         setCities([]);
+         setBarangays([]);
+         setSelectedCityCode('');
+      }
     }
     if (name === 'city') {
       const city = cities.find(c => c.name === value);
-      if (city) setSelectedCityCode(city.code);
+      if (city) {
+         setSelectedCityCode(city.code);
+         // Reset barangay on city change
+         setShippingDetails(prev => ({ ...prev, barangay: '' }));
+         setBarangays([]);
+      }
     }
   };
 

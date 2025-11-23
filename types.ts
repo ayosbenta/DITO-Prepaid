@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -31,6 +32,17 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface ShippingDetails {
+  firstName: string;
+  lastName: string;
+  mobile: string;
+  street: string;
+  province: string;
+  city: string;
+  barangay: string;
+  zipCode: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -42,6 +54,7 @@ export interface User {
   mobile: string;
   joinDate?: string;
   role?: 'customer';
+  shippingDetails?: ShippingDetails;
 }
 
 export interface Affiliate {
@@ -69,17 +82,6 @@ export interface Affiliate {
   // Payment Settings
   gcashName?: string;
   gcashNumber?: string;
-}
-
-export interface ShippingDetails {
-  firstName: string;
-  lastName: string;
-  mobile: string;
-  street: string;
-  province: string;
-  city: string;
-  barangay: string;
-  zipCode: string;
 }
 
 export interface OrderItem {
