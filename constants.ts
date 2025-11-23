@@ -37,7 +37,16 @@ export const HERO_PRODUCT: Product = {
   bulkDiscounts: [
     { minQty: 3, percentage: 5 }, // Buy 3 get 5% off
     { minQty: 10, percentage: 12 } // Buy 10 get 12% off
-  ]
+  ],
+  seo: {
+    metaTitle: 'DITO Home WoWFi Pro - Unlimited 4G/5G Home WiFi',
+    metaDescription: 'Experience ultra-fast 4G/5G home internet up to 100Mbps with the DITO Home WoWFi Pro. No data caps, plug & play installation. Order now!',
+    keywords: 'DITO, Home WiFi, 5G Internet, 4G Internet, Prepaid WiFi, DITO Home',
+    slug: 'dito-home-wowfi-pro',
+    ogTitle: 'DITO Home WoWFi Pro - Get Yours Today!',
+    ogDescription: 'Unlimited 4G/5G Home WiFi for streaming, gaming, and working from home.',
+    ogImage: 'https://picsum.photos/seed/routerblue/1200/630'
+  }
 };
 
 export const RELATED_PRODUCTS: Product[] = [
@@ -56,7 +65,16 @@ export const RELATED_PRODUCTS: Product[] = [
     features: ['Pocket Sized', 'All-day Battery'],
     sku: 'DITO-PKT-002',
     stock: 45,
-    minStockLevel: 10
+    minStockLevel: 10,
+    seo: {
+      metaTitle: 'DITO Flash 4G/5G Pocket WiFi',
+      metaDescription: 'Get high-speed internet on the go with the DITO Flash 4G/5g Pocket WiFi. Compact and powerful.',
+      keywords: 'DITO, Pocket WiFi, Portable WiFi',
+      slug: 'dito-flash-5g-pocket',
+      ogTitle: 'DITO Flash 4G/5G Pocket WiFi',
+      ogDescription: 'Portable high-speed internet for your travels.',
+      ogImage: ''
+    }
   },
   {
     id: 'dito-sim-starter',
@@ -76,7 +94,16 @@ export const RELATED_PRODUCTS: Product[] = [
     minStockLevel: 100,
     bulkDiscounts: [
       { minQty: 5, percentage: 10 }
-    ]
+    ],
+    seo: {
+      metaTitle: 'DITO 4G/5G SIM Starter Pack',
+      metaDescription: 'Upgrade your phone to the DITO network with our 4G/5G SIM starter pack. Includes bonus data.',
+      keywords: 'DITO, SIM Card, 5G SIM',
+      slug: 'dito-sim-starter',
+      ogTitle: 'DITO 4G/5G SIM Starter Pack',
+      ogDescription: 'Get your DITO SIM today!',
+      ogImage: ''
+    }
   }
 ];
 
@@ -136,6 +163,13 @@ export const DEFAULT_SETTINGS: LandingPageSettings = {
       { id: 'lbc', name: 'LBC Express', trackingUrl: 'https://www.lbcexpress.com/track/?tracking_no={TRACKING}', status: 'active' },
       { id: 'flash', name: 'Flash Express', trackingUrl: 'https://www.flashexpress.ph/tracking/?se={TRACKING}', status: 'inactive' }
     ]
+  },
+  seo: {
+    metaTitle: 'DITO Home WoWFi Pro Store - Official Online Shop',
+    metaDescription: 'Official online store for the DITO Home WoWFi Pro. Get unlimited 4G/5G home internet, prepaid with no monthly bills. Order yours now!',
+    ogTitle: 'DITO Home WoWFi Pro Store',
+    ogDescription: 'The future of home internet is here. Ultra-fast 4G/5G speeds up to 100Mbps.',
+    ogImage: 'https://picsum.photos/seed/dito-og/1200/630'
   }
 };
 

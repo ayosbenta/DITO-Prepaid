@@ -1,5 +1,16 @@
 
 
+
+export interface SeoData {
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string; // Comma-separated
+  slug: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -26,6 +37,8 @@ export interface Product {
     minQty: number;
     percentage: number;
   }[];
+  // SEO Fields
+  seo?: SeoData;
 }
 
 export interface CartItem extends Product {
@@ -145,6 +158,14 @@ export interface ShippingSettings {
   couriers: Courier[];
 }
 
+export interface PageSeoData {
+  metaTitle: string;
+  metaDescription: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+}
+
 export interface LandingPageSettings {
   hero: {
     titlePrefix: string;
@@ -169,6 +190,7 @@ export interface LandingPageSettings {
     btnText: string;
   };
   shipping: ShippingSettings;
+  seo?: PageSeoData;
 }
 
 export interface PaymentSettings {

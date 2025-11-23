@@ -1,6 +1,6 @@
 
 
-import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData } from '../types';
 import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS } from '../constants';
 
 // Updated URL
@@ -97,7 +97,8 @@ export const SheetsService = {
           bulkDiscounts: details.bulkDiscounts || [],
           commissionType: p.commissionType,
           commissionValue: Number(p.commissionValue),
-          costPrice: details.costPrice ? Number(details.costPrice) : 0
+          costPrice: details.costPrice ? Number(details.costPrice) : 0,
+          seo: details.seo || undefined,
         };
       });
 
@@ -235,6 +236,8 @@ export const SheetsService = {
       if (!smtp.templates) smtp.templates = DEFAULT_SMTP_SETTINGS.templates;
       const { payment: _, smtp: __, ...landingSettings } = rawSettings;
       if (!landingSettings.shipping) landingSettings.shipping = DEFAULT_SETTINGS.shipping;
+      if (!landingSettings.seo) landingSettings.seo = DEFAULT_SETTINGS.seo;
+
 
       return { 
         products, orders, customers, affiliates, payouts,
@@ -270,6 +273,9 @@ export const SheetsService = {
           if (processedSettings.shipping.zones) processedSettings.shipping.zones = JSON.stringify(processedSettings.shipping.zones);
           if (processedSettings.shipping.couriers) processedSettings.shipping.couriers = JSON.stringify(processedSettings.shipping.couriers);
       }
+      if (processedSettings.seo) {
+        processedSettings.seo = JSON.stringify(processedSettings.seo);
+      }
       return SheetsService.sendData('SAVE_SETTINGS', processedSettings);
   },
 
@@ -285,7 +291,7 @@ export const SheetsService = {
         id, name, category, price, image, description, subtitle,
         commissionType, commissionValue, 
         sku, stock, minStockLevel, bulkDiscounts,
-        gallery, specs, features, inclusions, costPrice,
+        gallery, specs, features, inclusions, costPrice, seo,
         ...rest 
       } = p;
 
@@ -297,7 +303,7 @@ export const SheetsService = {
         id, name, subtitle: subtitle || '', description: description || '', category, price, image, commissionType, commissionValue,
         sku: sku || '', stock: stock || 0, min_stock_level: minStockLevel || 10, bulk_discounts_summary: discountSummary,
         json_data: JSON.stringify({ 
-          ...rest, sku, stock, minStockLevel, bulkDiscounts, gallery, specs, features, inclusions, subtitle, description, costPrice
+          ...rest, sku, stock, minStockLevel, bulkDiscounts, gallery, specs, features, inclusions, subtitle, description, costPrice, seo
         })
       };
     });

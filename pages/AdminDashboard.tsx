@@ -1,11 +1,14 @@
 
+
+
+
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy, PenLine, Code, Share2
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -15,7 +18,7 @@ import {
 import { Badge, Button } from '../components/UI';
 import { Link } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User } from '../types';
+import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User, PageSeoData, SeoData } from '../types';
 
 const AdminDashboard: React.FC = () => {
   // --- Authentication State ---
@@ -36,6 +39,23 @@ const AdminDashboard: React.FC = () => {
     deleteCustomer, updateSettings, updatePaymentSettings, updateSMTPSettings, isSyncing, isLoading, isRefreshing, refreshData,
     updateAffiliate, updatePayoutStatus, forceInventorySync
   } = useContext(StoreContext);
+
+  // --- Auto-refresh logic for Dashboard only ---
+  useEffect(() => {
+    let intervalId: number | undefined;
+    if (activeTab === 'Dashboard') {
+      intervalId = window.setInterval(() => {
+        if (!isSyncing && !isRefreshing) {
+          refreshData();
+        }
+      }, 15000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [activeTab, isSyncing, isRefreshing, refreshData]);
 
   // --- Product Modal State ---
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -61,6 +81,14 @@ const AdminDashboard: React.FC = () => {
   const [walletAdjustment, setWalletAdjustment] = useState(0);
   const [activeAffiliateTab, setActiveAffiliateTab] = useState<'wallet' | 'profile'>('wallet');
 
+  // --- SEO State ---
+  const [activeSeoTab, setActiveSeoTab] = useState<'products' | 'pages'>('products');
+  const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
+  const [editingSeoProduct, setEditingSeoProduct] = useState<Product | null>(null);
+  const [seoForm, setSeoForm] = useState<Partial<SeoData>>({});
+  const [pageSeoForm, setPageSeoForm] = useState<Partial<PageSeoData>>(settings.seo || {});
+
+
   // --- Settings Forms ---
   const [settingsForm, setSettingsForm] = useState(settings);
   const [paymentSettingsForm, setPaymentSettingsForm] = useState(paymentSettings);
@@ -76,6 +104,8 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => { setSettingsForm(settings); }, [settings]);
   useEffect(() => { setPaymentSettingsForm(paymentSettings); }, [paymentSettings]);
   useEffect(() => { setSmtpSettingsForm(smtpSettings); }, [smtpSettings]);
+  useEffect(() => { setPageSeoForm(settings.seo || {}); }, [settings.seo]);
+
 
   // --- Auth Handlers ---
   const handleLogin = (e: React.FormEvent) => {
@@ -171,6 +201,61 @@ const AdminDashboard: React.FC = () => {
   const removeBulkDiscount = (i: number) => {
     setNewProductForm(p => ({ ...p, bulkDiscounts: p.bulkDiscounts?.filter((_, idx) => idx !== i) }));
   };
+
+  // --- SEO Logic ---
+  const handleEditSeo = (product: Product) => {
+    setEditingSeoProduct(product);
+    setSeoForm(product.seo || {
+      metaTitle: product.name,
+      metaDescription: product.description?.substring(0, 160) || '',
+      keywords: product.category,
+      slug: product.id,
+      ogTitle: product.name,
+      ogDescription: product.description?.substring(0, 160) || '',
+      ogImage: product.image,
+    });
+    setIsSeoModalOpen(true);
+  };
+  
+  const saveProductSeo = () => {
+    if (editingSeoProduct) {
+      updateProduct(editingSeoProduct.id, { ...editingSeoProduct, seo: seoForm as SeoData });
+    }
+    setIsSeoModalOpen(false);
+  };
+
+  const savePageSeo = () => {
+    updateSettings({ ...settings, seo: pageSeoForm as PageSeoData });
+    alert('Homepage SEO settings saved!');
+  };
+
+  const generateSchemaMarkup = (product: Product | null, form: Partial<SeoData>) => {
+    if (!product) return '';
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": form.metaTitle || product.name,
+      "image": form.ogImage || product.image,
+      "description": form.metaDescription || product.description,
+      "sku": product.sku,
+      "brand": { "@type": "Brand", "name": "DITO Home" },
+      "offers": {
+        "@type": "Offer",
+        "url": `${window.location.origin}/#/product/${form.slug || product.id}`,
+        "priceCurrency": "PHP",
+        "price": product.price,
+        "availability": (product.stock || 0) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": product.rating,
+        "reviewCount": product.reviews
+      }
+    };
+    return JSON.stringify(schema, null, 2);
+  };
+
 
   // --- Affiliate Logic ---
   const handleEditAffiliate = (aff: Affiliate) => {
@@ -396,6 +481,7 @@ const AdminDashboard: React.FC = () => {
     { icon: Briefcase, label: 'Affiliates' },
     { icon: DollarSign, label: 'Payouts' },
     { icon: Users, label: 'Customers' },
+    { icon: Globe, label: 'SEO' },
     { icon: Settings, label: 'Settings' },
   ];
 
@@ -960,7 +1046,7 @@ const AdminDashboard: React.FC = () => {
                                {c.username && <div className="text-xs text-gray-400">@{c.username}</div>}
                             </td>
                             <td className="p-4 text-gray-600">{c.email}</td>
-                            <td className="p-4 text-gray-600">{c.phone || c.mobile}</td>
+                            <td className="p-4 text-gray-600">{c.mobile}</td>
                             <td className="p-4 text-gray-500">{c.joinDate ? new Date(c.joinDate).toLocaleDateString() : 'N/A'}</td>
                             <td className="p-4 text-right">
                                <div className="flex justify-end gap-2">
@@ -979,6 +1065,89 @@ const AdminDashboard: React.FC = () => {
              </div>
           </div>
       );
+
+      case 'SEO':
+        return (
+          <div className="space-y-6">
+            <div className="flex border-b bg-white rounded-t-2xl px-6 shadow-sm border-gray-100">
+              <button onClick={() => setActiveSeoTab('products')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeSeoTab === 'products' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                <Package size={16} /> Product SEO
+              </button>
+              <button onClick={() => setActiveSeoTab('pages')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeSeoTab === 'pages' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                <FileText size={16} /> Page SEO
+              </button>
+            </div>
+
+            {activeSeoTab === 'products' && (
+              <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="font-bold text-gray-900">Product SEO Management</h2>
+                  <p className="text-sm text-gray-500 mt-1">Optimize individual product pages for search engines.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="p-4">Product</th>
+                        <th className="p-4">Meta Title</th>
+                        <th className="p-4">Meta Description</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {products.map(product => (
+                        <tr key={product.id} className="hover:bg-gray-50">
+                          <td className="p-4 font-bold text-gray-900">{product.name}</td>
+                          <td className="p-4 text-gray-600 max-w-xs truncate">{product.seo?.metaTitle || 'Not set'}</td>
+                          <td className="p-4 text-gray-500 max-w-xs truncate">{product.seo?.metaDescription || 'Not set'}</td>
+                          <td className="p-4 text-right">
+                            <Button onClick={() => handleEditSeo(product)} variant="outline" className="py-1.5 px-3 text-xs flex items-center gap-1">
+                              <PenLine size={12}/> Edit SEO
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {activeSeoTab === 'pages' && (
+              <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100">
+                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                      <h2 className="font-bold text-gray-900">Static Page SEO</h2>
+                      <p className="text-sm text-gray-500 mt-1">Configure global SEO settings for main pages.</p>
+                    </div>
+                    <Button onClick={savePageSeo} disabled={isSyncing}>
+                      <Save size={16} /> {isSyncing ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                 </div>
+                 <div className="p-6 space-y-6">
+                    <div className="p-4 border rounded-xl bg-gray-50">
+                      <h3 className="font-bold text-gray-900 mb-4">Home Page</h3>
+                      <div className="space-y-4">
+                        <div>
+                           <label className="text-xs font-bold text-gray-500 uppercase">Meta Title</label>
+                           <input className="w-full border rounded-lg p-2 mt-1" value={pageSeoForm.metaTitle} onChange={e => setPageSeoForm({...pageSeoForm, metaTitle: e.target.value})} />
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-gray-500 uppercase">Meta Description</label>
+                           <textarea className="w-full border rounded-lg p-2 mt-1 h-24" value={pageSeoForm.metaDescription} onChange={e => setPageSeoForm({...pageSeoForm, metaDescription: e.target.value})} />
+                        </div>
+                         <div>
+                           <label className="text-xs font-bold text-gray-500 uppercase">OG Image URL</label>
+                           <input className="w-full border rounded-lg p-2 mt-1" value={pageSeoForm.ogImage} onChange={e => setPageSeoForm({...pageSeoForm, ogImage: e.target.value})} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center text-sm text-gray-400">More pages (About, Contact, etc.) will appear here as they are created.</div>
+                 </div>
+              </div>
+            )}
+          </div>
+        );
 
       case 'Settings': 
         return (
@@ -1060,7 +1229,7 @@ const AdminDashboard: React.FC = () => {
                       <button onClick={() => setActiveShippingTab('couriers')} className={`text-sm font-bold pb-1 border-b-2 transition-colors ${activeShippingTab === 'couriers' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Couriers</button>
                       <button onClick={() => setActiveShippingTab('zones')} className={`text-sm font-bold pb-1 border-b-2 transition-colors ${activeShippingTab === 'zones' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Zones & Rates</button>
                    </div>
-                   <Button onClick={saveSettings} disabled={isSyncing} size="sm"><Save size={14}/> Save</Button>
+                   <Button onClick={saveSettings} disabled={isSyncing} className="py-2 px-4 text-sm"><Save size={14}/> Save</Button>
                 </div>
                 <div className="p-6">
                    {activeShippingTab === 'general' && (
@@ -1078,7 +1247,7 @@ const AdminDashboard: React.FC = () => {
                          <div className="flex gap-2 mb-4">
                             <input className="border rounded-lg p-2 text-sm flex-1" placeholder="Courier Name" value={newCourierName} onChange={e => setNewCourierName(e.target.value)} />
                             <input className="border rounded-lg p-2 text-sm flex-1" placeholder="Tracking URL ({TRACKING})" value={newCourierUrl} onChange={e => setNewCourierUrl(e.target.value)} />
-                            <Button onClick={handleAddCourier} size="sm">Add</Button>
+                            <Button onClick={handleAddCourier} className="py-2 px-4 text-sm">Add</Button>
                          </div>
                          <div className="space-y-2">
                             {settingsForm.shipping.couriers.map(c => (
@@ -1167,6 +1336,12 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const CharCounter: React.FC<{ value: string; limit: number }> = ({ value, limit }) => (
+    <span className={`text-xs ${value.length > limit ? 'text-red-500' : 'text-gray-400'}`}>
+      {value.length}/{limit}
+    </span>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar ... */}
@@ -1208,6 +1383,100 @@ const AdminDashboard: React.FC = () => {
 
         {/* --- Modals --- */}
         
+        {/* SEO Modal */}
+        {isSeoModalOpen && editingSeoProduct && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl animate-fade-in-up max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Edit SEO for: {editingSeoProduct.name}</h3>
+                  <p className="text-sm text-gray-500">Optimize how this product appears on search engines.</p>
+                </div>
+                <button onClick={() => setIsSeoModalOpen(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column: Forms */}
+                <div className="space-y-6">
+                  {/* Meta Tags */}
+                  <div className="p-4 border rounded-xl bg-gray-50/50">
+                    <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><PenLine size={16}/> Meta Tags</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">Meta Title <CharCounter value={seoForm.metaTitle || ''} limit={60} /></label>
+                        <input className="form-input" value={seoForm.metaTitle} onChange={e => setSeoForm({...seoForm, metaTitle: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">Meta Description <CharCounter value={seoForm.metaDescription || ''} limit={160} /></label>
+                        <textarea className="form-input h-24" value={seoForm.metaDescription} onChange={e => setSeoForm({...seoForm, metaDescription: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Keywords</label>
+                        <input className="form-input" placeholder="e.g. DITO, Home WiFi, 5G" value={seoForm.keywords} onChange={e => setSeoForm({...seoForm, keywords: e.target.value})} />
+                        <p className="text-xs text-gray-400 mt-1">Comma-separated tags.</p>
+                      </div>
+                       <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">URL Slug</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">.../product/</span>
+                          <input className="form-input pl-[85px]" value={seoForm.slug} onChange={e => setSeoForm({...seoForm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Open Graph */}
+                  <div className="p-4 border rounded-xl bg-gray-50/50">
+                    <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><Share2 size={16}/> Open Graph (Social Sharing)</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">OG Title <CharCounter value={seoForm.ogTitle || ''} limit={90} /></label>
+                        <input className="form-input" value={seoForm.ogTitle} onChange={e => setSeoForm({...seoForm, ogTitle: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">OG Description <CharCounter value={seoForm.ogDescription || ''} limit={200} /></label>
+                        <textarea className="form-input h-20" value={seoForm.ogDescription} onChange={e => setSeoForm({...seoForm, ogDescription: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">OG Image URL</label>
+                        <input className="form-input" value={seoForm.ogImage} onChange={e => setSeoForm({...seoForm, ogImage: e.target.value})} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Previews */}
+                <div className="space-y-6">
+                   {/* Google Preview */}
+                   <div className="p-4 border rounded-xl">
+                      <h4 className="font-bold text-gray-900 mb-3 text-sm">Google Search Preview</h4>
+                      <div className="p-3 bg-white rounded-lg">
+                          <p className="text-sm text-gray-600 truncate">https://ditohome.ph/#/product/{seoForm.slug || editingSeoProduct.id}</p>
+                          <h3 className="text-blue-800 text-xl font-medium truncate hover:underline cursor-pointer">{seoForm.metaTitle || editingSeoProduct.name}</h3>
+                          <p className="text-sm text-gray-700 mt-1 line-clamp-2">{seoForm.metaDescription || editingSeoProduct.description}</p>
+                      </div>
+                   </div>
+                   {/* Schema Markup */}
+                   <div className="p-4 border rounded-xl">
+                      <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm"><Code size={16}/> Schema Markup (JSON-LD)</h4>
+                      <p className="text-xs text-gray-500 mb-3">This structured data is auto-generated to help Google understand your product information.</p>
+                      <pre className="bg-gray-900 text-white p-4 rounded-lg text-xs overflow-auto h-64 font-mono">
+                        <code>{generateSchemaMarkup(editingSeoProduct, seoForm)}</code>
+                      </pre>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                 <Button variant="ghost" onClick={() => setIsSeoModalOpen(false)}>Cancel</Button>
+                 <Button onClick={saveProductSeo} disabled={isSyncing}>
+                   <Save size={16}/> {isSyncing ? 'Saving...' : 'Save SEO Changes'}
+                 </Button>
+              </div>
+            </div>
+            <style>{`.form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; }`}</style>
+          </div>
+        )}
+
         {/* Product Modal (Existing) */}
         {isProductModalOpen && (
            /* ... Product Modal Code ... */
@@ -1317,7 +1586,7 @@ const AdminDashboard: React.FC = () => {
                       </div>
                       <div className="flex justify-between border-b border-gray-100 pb-2">
                          <span className="text-gray-500">Mobile</span>
-                         <span className="font-medium">{viewingCustomer.mobile || viewingCustomer.phone}</span>
+                         <span className="font-medium">{viewingCustomer.mobile}</span>
                       </div>
                       <div className="flex justify-between border-b border-gray-100 pb-2">
                          <span className="text-gray-500">Join Date</span>

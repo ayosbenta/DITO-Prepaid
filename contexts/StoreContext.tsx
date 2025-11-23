@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
 import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SMTP_SETTINGS } from '../constants';
@@ -138,13 +139,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (!isSyncing) loadData(true);
-    }, 15000);
-    return () => clearInterval(intervalId);
-  }, [isSyncing]); 
 
   const triggerProductSync = (newProducts: Product[]) => {
     setSyncCount(c => c + 1);
@@ -410,7 +404,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       updateSettings, updatePaymentSettings, updateSMTPSettings,
       forceInventorySync,
       stats,
-      isSyncing, isLoading, isRefreshing, refreshData: () => loadData(false)
+      isSyncing, isLoading, isRefreshing, refreshData: () => loadData(true)
     }}>
       {children}
     </StoreContext.Provider>
