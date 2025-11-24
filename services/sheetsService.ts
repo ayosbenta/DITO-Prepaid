@@ -1,5 +1,3 @@
-
-
 // --- Developer Note ---
 // This service assumes a Google Apps Script backend is deployed at the GOOGLE_SCRIPT_URL.
 // The script must handle various 'action' parameters sent in POST requests.
@@ -220,36 +218,17 @@ export const SheetsService = {
         dateProcessed: p.dateProcessed || ''
       }));
 
-      // 6. Parse Settings
-      const rawSettings: any = { ...DEFAULT_SETTINGS, payment: DEFAULT_PAYMENT_SETTINGS, smtp: DEFAULT_SMTP_SETTINGS };
-      if (data.Settings && Array.isArray(data.Settings)) {
-        data.Settings.forEach((row: any) => {
-          if (!row.Key || row.Value === undefined) return;
-          const keys = row.Key.split('.');
-          let current: any = rawSettings;
-          for (let i = 0; i < keys.length - 1; i++) {
-            if (!current[keys[i]]) current[keys[i]] = {};
-            current = current[keys[i]];
-          }
-          let val = row.Value;
-          if (val === 'true') val = true;
-          if (val === 'false') val = false;
-          if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
-             try { val = JSON.parse(val); } catch (e) { /* keep as string */ }
-          }
-          if (!isNaN(Number(val)) && val !== '' && typeof val === 'string' && !val.startsWith('0')) {
-             val = Number(val);
-          }
-          current[keys[keys.length - 1]] = val;
-        });
-      }
-      
-      const payment = rawSettings.payment || DEFAULT_PAYMENT_SETTINGS;
-      const smtp = rawSettings.smtp || DEFAULT_SMTP_SETTINGS;
-      if (!smtp.templates) smtp.templates = DEFAULT_SMTP_SETTINGS.templates;
-      const { payment: _, smtp: __, ...landingSettings } = rawSettings;
-      if (!landingSettings.shipping) landingSettings.shipping = DEFAULT_SETTINGS.shipping;
-      if (!landingSettings.seo) landingSettings.seo = DEFAULT_SETTINGS.seo;
+      // 6. Get pre-parsed settings from backend
+      // The backend now structures the settings object, so we just use it directly.
+      // We provide fallbacks to the default constants in case the backend fails to provide them.
+      const settings = data.settings || DEFAULT_SETTINGS;
+      const paymentSettings = data.paymentSettings || DEFAULT_PAYMENT_SETTINGS;
+      const smtpSettings = data.smtpSettings || DEFAULT_SMTP_SETTINGS;
+
+      // Ensure nested objects exist to prevent runtime errors
+      if (!settings.shipping) settings.shipping = DEFAULT_SETTINGS.shipping;
+      if (!settings.seo) settings.seo = DEFAULT_SETTINGS.seo;
+      if (!smtpSettings.templates) smtpSettings.templates = DEFAULT_SMTP_SETTINGS.templates;
 
       // 7. Parse Bot Brain
       const botBrain: BotBrainEntry[] = (data.BotBrain || []).map((b: any) => ({
@@ -269,9 +248,9 @@ export const SheetsService = {
 
       return { 
         products, orders, customers, affiliates, payouts,
-        settings: landingSettings as LandingPageSettings, 
-        paymentSettings: payment as PaymentSettings, 
-        smtpSettings: smtp as SMTPSettings,
+        settings: settings as LandingPageSettings, 
+        paymentSettings: paymentSettings as PaymentSettings, 
+        smtpSettings: smtpSettings as SMTPSettings,
         botBrain: botBrain.length > 0 ? botBrain : DEFAULT_BOT_BRAIN,
         botKeywords: botKeywords.length > 0 ? botKeywords : DEFAULT_BOT_KEYWORDS,
       };

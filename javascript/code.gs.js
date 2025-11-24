@@ -26,16 +26,18 @@ function doGet(e) {
       };
       
       // Post-process settings from a key-value pair sheet into structured objects
-      const { settings, paymentSettings, smtpSettings } = parseSettings(data.Settings);
-      data.settings = settings;
-      data.paymentSettings = paymentSettings;
-      data.smtpSettings = smtpSettings;
+      const parsed = parseSettings(data.Settings || {});
+      data.settings = parsed.settings;
+      data.paymentSettings = parsed.paymentSettings;
+      data.smtpSettings = parsed.smtpSettings;
       
       // Remove the raw settings object as it's been replaced
       delete data.Settings;
 
+      // Return the data successfully if the action is 'read'
       return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
     }
+    // If the action is not 'read', then it's an invalid action for a GET request.
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Invalid action' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     Logger.log('doGet Error: ' + err.stack);
