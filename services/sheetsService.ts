@@ -1,5 +1,14 @@
 
 
+// --- Developer Note ---
+// This service assumes a Google Apps Script backend is deployed at the GOOGLE_SCRIPT_URL.
+// The script must handle various 'action' parameters sent in POST requests.
+// For the AI Chatbot module to save correctly, the Apps Script needs to be updated
+// to handle the 'SYNC_BOT_BRAIN' and 'SYNC_BOT_KEYWORDS' actions. This typically
+// involves creating two new sheets named "BotBrain" and "BotKeywords" in the
+// connected Google Sheet and implementing logic to clear and write data to them.
+// All other module actions (e.g., SYNC_PRODUCTS) must remain unaffected.
+// --- End Developer Note ---
 
 
 import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData, BotBrainEntry, BotKeywordTrigger } from '../types';

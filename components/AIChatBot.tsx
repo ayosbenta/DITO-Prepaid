@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { MessageCircle, X, Send, Bot, Loader2 } from 'lucide-react';
 import { generateChatResponse } from '../services/geminiService';
+import { StoreContext } from '../contexts/StoreContext';
 
 interface Message {
   id: string;
@@ -16,6 +18,7 @@ const AIChatBot: React.FC = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { botBrain, botKeywords } = useContext(StoreContext);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,9 +33,30 @@ const AIChatBot: React.FC = () => {
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
+    const lowerInput = input.toLowerCase().trim();
     setInput('');
     setIsLoading(true);
 
+    // First, check for a keyword match for an instant response
+    let keywordResponse: string | null = null;
+    for (const trigger of botKeywords) {
+      const keywords = trigger.keywords.toLowerCase().split(',').map(k => k.trim());
+      if (keywords.some(k => lowerInput.includes(k))) {
+        keywordResponse = trigger.response;
+        break;
+      }
+    }
+
+    if (keywordResponse) {
+      setMessages(prev => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'model', text: keywordResponse }
+      ]);
+      setIsLoading(false);
+      return;
+    }
+
+    // If no keyword match, proceed with Gemini AI using the bot brain
     try {
       // Format history for the API
       const history = messages.map(m => ({
@@ -40,7 +64,7 @@ const AIChatBot: React.FC = () => {
         parts: [{ text: m.text }]
       }));
 
-      const responseText = await generateChatResponse(history, userMessage.text);
+      const responseText = await generateChatResponse(history, userMessage.text, botBrain);
       
       setMessages(prev => [
         ...prev,
@@ -48,6 +72,10 @@ const AIChatBot: React.FC = () => {
       ]);
     } catch (error) {
       console.error("Chat error", error);
+       setMessages(prev => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'model', text: "Sorry, I'm having a bit of trouble connecting right now." }
+      ]);
     } finally {
       setIsLoading(false);
     }

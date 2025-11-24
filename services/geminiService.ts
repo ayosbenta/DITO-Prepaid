@@ -1,7 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { BotBrainEntry } from "../types";
 
-const SYSTEM_INSTRUCTION = `
+const BASE_SYSTEM_INSTRUCTION = `
 You are the DITO Home AI Assistant. You help customers with the DITO Home WoWFi Pro product.
 Key Product Info:
 - Name: DITO Home WoWFi Pro
@@ -14,13 +15,20 @@ Key Product Info:
 Tone: Friendly, helpful, concise, and professional. Use emojis occasionally.
 If asked about competitors, politely focus on DITO's benefits (speed, affordability).
 If asked about coverage, suggest checking the DITO website coverage map.
+
+Use the following knowledge base to answer specific questions. If the user's query doesn't match, use the general product info.
 `;
 
 export const generateChatResponse = async (
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
-  message: string
+  message: string,
+  botBrain: BotBrainEntry[]
 ): Promise<string> => {
   try {
+    // Dynamically construct the system instruction from the bot brain
+    const knowledgeBase = botBrain.map(entry => `- Topic: "${entry.topic}"\n  - Response: "${entry.response}"`).join('\n');
+    const fullSystemInstruction = `${BASE_SYSTEM_INSTRUCTION}\n--- KNOWLEDGE BASE ---\n${knowledgeBase}`;
+
     // Initialize Gemini API with key from environment variables
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
@@ -29,7 +37,7 @@ export const generateChatResponse = async (
     const chat = ai.chats.create({
       model: model,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: fullSystemInstruction,
         temperature: 0.7,
       },
       history: history,
