@@ -1,6 +1,8 @@
 
 
 
+
+
 export interface SeoData {
   metaTitle: string;
   metaDescription: string;
@@ -253,4 +255,19 @@ export enum PaymentMethod {
   COD = 'Cash on Delivery',
   GCASH = 'GCash',
   BANK = 'Bank Transfer',
+}
+
+// --- AI Chatbot Interfaces ---
+
+export interface BotBrainEntry {
+  id: string;
+  topic: string;
+  response: string;
+}
+
+export interface BotKeywordTrigger {
+  id: string;
+  keywords: string; // Comma-separated
+  category: string;
+  response: string;
 }

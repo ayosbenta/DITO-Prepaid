@@ -1,8 +1,10 @@
 
 
+
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
-import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings } from '../types';
-import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SMTP_SETTINGS } from '../constants';
+import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, BotBrainEntry, BotKeywordTrigger } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SMTP_SETTINGS, DEFAULT_BOT_BRAIN, DEFAULT_BOT_KEYWORDS } from '../constants';
 import { SheetsService, DEMO_AFFILIATE } from '../services/sheetsService';
 
 interface StoreContextType {
@@ -14,6 +16,8 @@ interface StoreContextType {
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
   smtpSettings: SMTPSettings;
+  botBrain: BotBrainEntry[];
+  botKeywords: BotKeywordTrigger[];
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updatedProduct: Product) => void;
   deleteProduct: (id: string) => void;
@@ -30,6 +34,8 @@ interface StoreContextType {
   updateSettings: (settings: LandingPageSettings) => void;
   updatePaymentSettings: (settings: PaymentSettings) => void;
   updateSMTPSettings: (settings: SMTPSettings) => void;
+  updateBotBrain: (entries: BotBrainEntry[]) => void;
+  updateBotKeywords: (triggers: BotKeywordTrigger[]) => void;
   forceInventorySync: () => Promise<void>;
   stats: {
     revenue: number;
@@ -54,6 +60,8 @@ export const StoreContext = createContext<StoreContextType>({
   settings: DEFAULT_SETTINGS,
   paymentSettings: DEFAULT_PAYMENT_SETTINGS,
   smtpSettings: DEFAULT_SMTP_SETTINGS,
+  botBrain: [],
+  botKeywords: [],
   addProduct: () => {},
   updateProduct: () => {},
   deleteProduct: () => {},
@@ -70,6 +78,8 @@ export const StoreContext = createContext<StoreContextType>({
   updateSettings: () => {},
   updatePaymentSettings: () => {},
   updateSMTPSettings: () => {},
+  updateBotBrain: () => {},
+  updateBotKeywords: () => {},
   forceInventorySync: async () => {},
   stats: { revenue: 0, netProfit: 0, totalOrders: 0, totalItemsSold: 0, totalCustomers: 0, lowStock: 0 },
   isSyncing: false,
@@ -87,6 +97,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [settings, setSettings] = useState<LandingPageSettings>(DEFAULT_SETTINGS);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS);
   const [smtpSettings, setSMTPSettings] = useState<SMTPSettings>(DEFAULT_SMTP_SETTINGS);
+  const [botBrain, setBotBrain] = useState<BotBrainEntry[]>([]);
+  const [botKeywords, setBotKeywords] = useState<BotKeywordTrigger[]>([]);
   
   const [syncCount, setSyncCount] = useState(0);
   const isSyncing = syncCount > 0;
@@ -117,6 +129,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (data.settings) setSettings(data.settings);
         if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
         if (data.smtpSettings) setSMTPSettings(data.smtpSettings);
+        setBotBrain(data.botBrain || DEFAULT_BOT_BRAIN);
+        setBotKeywords(data.botKeywords || DEFAULT_BOT_KEYWORDS);
       } else {
         console.warn("Background fetch failed. Preserving existing state.");
         if (products.length === 0) {
@@ -125,6 +139,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
            setOrders(RECENT_ORDERS);
            setAffiliates([DEMO_AFFILIATE]);
            setPayouts([]);
+           setBotBrain(DEFAULT_BOT_BRAIN);
+           setBotKeywords(DEFAULT_BOT_KEYWORDS);
         }
       }
     } catch (err) {
@@ -360,6 +376,18 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     SheetsService.saveSMTPSettings(newSettings).finally(() => setSyncCount(c => c - 1));
   };
 
+  const updateBotBrain = (entries: BotBrainEntry[]) => {
+    setBotBrain(entries);
+    setSyncCount(c => c + 1);
+    SheetsService.syncBotBrain(entries).finally(() => setSyncCount(c => c - 1));
+  };
+
+  const updateBotKeywords = (triggers: BotKeywordTrigger[]) => {
+    setBotKeywords(triggers);
+    setSyncCount(c => c + 1);
+    SheetsService.syncBotKeywords(triggers).finally(() => setSyncCount(c => c - 1));
+  };
+
   const calculateNetProfit = () => {
     let totalRevenue = 0;
     let totalCOGS = 0;
@@ -396,12 +424,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <StoreContext.Provider value={{
       products, orders, customers, affiliates, payouts, settings, paymentSettings, smtpSettings,
+      botBrain, botKeywords,
       addProduct, updateProduct, deleteProduct,
       addOrder, updateOrderStatus, deleteOrder,
       deleteCustomer, registerCustomer,
       registerAffiliate, updateAffiliate, trackAffiliateClick,
       requestPayout, updatePayoutStatus,
       updateSettings, updatePaymentSettings, updateSMTPSettings,
+      updateBotBrain, updateBotKeywords,
       forceInventorySync,
       stats,
       isSyncing, isLoading, isRefreshing, refreshData: () => loadData(true)

@@ -1,7 +1,9 @@
 
 
-import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData } from '../types';
-import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS } from '../constants';
+
+
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData, BotBrainEntry, BotKeywordTrigger } from '../types';
+import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS, DEFAULT_BOT_BRAIN, DEFAULT_BOT_KEYWORDS } from '../constants';
 
 // Updated URL
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNTTB_z9qMoE93XgJTGC11s-rbRvVV_ErfU_9CpzKFxnVsZhcDtE_lCHdKofO8tQ0LRg/exec"; 
@@ -20,6 +22,8 @@ interface DashboardData {
   settings: LandingPageSettings;
   paymentSettings: PaymentSettings;
   smtpSettings: SMTPSettings;
+  botBrain: BotBrainEntry[];
+  botKeywords: BotKeywordTrigger[];
 }
 
 export const DEMO_AFFILIATE: Affiliate = {
@@ -238,12 +242,29 @@ export const SheetsService = {
       if (!landingSettings.shipping) landingSettings.shipping = DEFAULT_SETTINGS.shipping;
       if (!landingSettings.seo) landingSettings.seo = DEFAULT_SETTINGS.seo;
 
+      // 7. Parse Bot Brain
+      const botBrain: BotBrainEntry[] = (data.BotBrain || []).map((b: any) => ({
+        id: String(b.id),
+        topic: String(b.topic),
+        response: String(b.response),
+      }));
+
+      // 8. Parse Bot Keywords
+      const botKeywords: BotKeywordTrigger[] = (data.BotKeywords || []).map((k: any) => ({
+        id: String(k.id),
+        keywords: String(k.keywords),
+        category: String(k.category),
+        response: String(k.response),
+      }));
+
 
       return { 
         products, orders, customers, affiliates, payouts,
         settings: landingSettings as LandingPageSettings, 
         paymentSettings: payment as PaymentSettings, 
-        smtpSettings: smtp as SMTPSettings
+        smtpSettings: smtp as SMTPSettings,
+        botBrain: botBrain.length > 0 ? botBrain : DEFAULT_BOT_BRAIN,
+        botKeywords: botKeywords.length > 0 ? botKeywords : DEFAULT_BOT_KEYWORDS,
       };
 
     } catch (error) {
@@ -396,5 +417,13 @@ export const SheetsService = {
     return SheetsService.sendData('SYNC_CUSTOMERS', payload);
   },
 
-  syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PAYOUTS', payouts)
+  syncPayouts: async (payouts: PayoutRequest[]): Promise<ApiResponse> => SheetsService.sendData('SYNC_PAYOUTS', payouts),
+
+  syncBotBrain: async (entries: BotBrainEntry[]): Promise<ApiResponse> => {
+    return SheetsService.sendData('SYNC_BOT_BRAIN', entries);
+  },
+
+  syncBotKeywords: async (triggers: BotKeywordTrigger[]): Promise<ApiResponse> => {
+    return SheetsService.sendData('SYNC_BOT_KEYWORDS', triggers);
+  },
 };

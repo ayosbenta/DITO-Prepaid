@@ -1,5 +1,6 @@
 
-import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings } from './types';
+
+import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings, BotBrainEntry, BotKeywordTrigger } from './types';
 
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
@@ -228,3 +229,15 @@ export const DEFAULT_SMTP_SETTINGS: SMTPSettings = {
     }
   }
 };
+
+export const DEFAULT_BOT_BRAIN: BotBrainEntry[] = [
+  { id: 'brain-1', topic: 'Product Price', response: 'The DITO Home WoWFi Pro is available for a one-time payment of ₱1,990.' },
+  { id: 'brain-2', topic: 'Coverage Inquiry', response: 'You can check if your area is covered by our 5G network by visiting the official DITO website and using our coverage map tool.' },
+  { id: 'brain-3', topic: 'What is DITO Home WoWFi?', response: 'It\'s our prepaid 5G/4G home internet solution. You get a modem, plug it in, and enjoy high-speed internet without monthly bills. You just load it up whenever you need to.' },
+];
+
+export const DEFAULT_BOT_KEYWORDS: BotKeywordTrigger[] = [
+  { id: 'key-1', keywords: 'hello,hi,good day,hey', category: 'Greetings', response: 'Hello! I am the DITO AI Assistant. How can I help you today?' },
+  { id: 'key-2', keywords: 'support,help,assistance,problem', category: 'Support', response: 'For support, you can reach our 24/7 customer service through the DITO app or by calling our hotline.' },
+  { id: 'key-3', keywords: 'thank you,thanks', category: 'Closing', response: 'You\'re welcome! Is there anything else I can assist you with?' },
+];

@@ -2,13 +2,15 @@
 
 
 
+
+
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy, PenLine, Code, Share2
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy, PenLine, Code, Share2, Bot, BrainCircuit, Key
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -18,7 +20,7 @@ import {
 import { Badge, Button } from '../components/UI';
 import { Link } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User, PageSeoData, SeoData } from '../types';
+import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User, PageSeoData, SeoData, BotBrainEntry, BotKeywordTrigger } from '../types';
 
 const AdminDashboard: React.FC = () => {
   // --- Authentication State ---
@@ -34,10 +36,12 @@ const AdminDashboard: React.FC = () => {
   
   const { 
     products, orders, customers, affiliates, stats, settings, paymentSettings, smtpSettings, payouts,
+    botBrain, botKeywords,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
     deleteCustomer, updateSettings, updatePaymentSettings, updateSMTPSettings, isSyncing, isLoading, isRefreshing, refreshData,
-    updateAffiliate, updatePayoutStatus, forceInventorySync
+    updateAffiliate, updatePayoutStatus, forceInventorySync,
+    updateBotBrain, updateBotKeywords,
   } = useContext(StoreContext);
 
   // --- Auto-refresh logic for Dashboard only ---
@@ -87,6 +91,15 @@ const AdminDashboard: React.FC = () => {
   const [editingSeoProduct, setEditingSeoProduct] = useState<Product | null>(null);
   const [seoForm, setSeoForm] = useState<Partial<SeoData>>({});
   const [pageSeoForm, setPageSeoForm] = useState<Partial<PageSeoData>>(settings.seo || {});
+
+  // --- AI Chatbot State ---
+  const [activeAiTab, setActiveAiTab] = useState<'brain' | 'keywords'>('brain');
+  const [isBrainModalOpen, setIsBrainModalOpen] = useState(false);
+  const [editingBrainEntry, setEditingBrainEntry] = useState<BotBrainEntry | null>(null);
+  const [brainForm, setBrainForm] = useState<Partial<BotBrainEntry>>({});
+  const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [editingKeyword, setEditingKeyword] = useState<BotKeywordTrigger | null>(null);
+  const [keywordForm, setKeywordForm] = useState<Partial<BotKeywordTrigger>>({});
 
 
   // --- Settings Forms ---
@@ -254,6 +267,55 @@ const AdminDashboard: React.FC = () => {
       }
     };
     return JSON.stringify(schema, null, 2);
+  };
+
+  // --- AI Chatbot Logic ---
+  const handleNewBrainEntry = () => {
+    setEditingBrainEntry(null);
+    setBrainForm({ id: `brain-${Date.now()}` });
+    setIsBrainModalOpen(true);
+  };
+  const handleEditBrainEntry = (entry: BotBrainEntry) => {
+    setEditingBrainEntry(entry);
+    setBrainForm({ ...entry });
+    setIsBrainModalOpen(true);
+  };
+  const saveBrainEntry = () => {
+    if (editingBrainEntry) {
+      updateBotBrain(botBrain.map(b => b.id === editingBrainEntry.id ? brainForm as BotBrainEntry : b));
+    } else {
+      updateBotBrain([...botBrain, brainForm as BotBrainEntry]);
+    }
+    setIsBrainModalOpen(false);
+  };
+  const deleteBrainEntry = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this brain entry?')) {
+      updateBotBrain(botBrain.filter(b => b.id !== id));
+    }
+  };
+
+  const handleNewKeyword = () => {
+    setEditingKeyword(null);
+    setKeywordForm({ id: `key-${Date.now()}` });
+    setIsKeywordModalOpen(true);
+  };
+  const handleEditKeyword = (keyword: BotKeywordTrigger) => {
+    setEditingKeyword(keyword);
+    setKeywordForm({ ...keyword });
+    setIsKeywordModalOpen(true);
+  };
+  const saveKeyword = () => {
+    if (editingKeyword) {
+      updateBotKeywords(botKeywords.map(k => k.id === editingKeyword.id ? keywordForm as BotKeywordTrigger : k));
+    } else {
+      updateBotKeywords([...botKeywords, keywordForm as BotKeywordTrigger]);
+    }
+    setIsKeywordModalOpen(false);
+  };
+  const deleteKeyword = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this keyword trigger?')) {
+      updateBotKeywords(botKeywords.filter(k => k.id !== id));
+    }
   };
 
 
@@ -481,6 +543,7 @@ const AdminDashboard: React.FC = () => {
     { icon: Briefcase, label: 'Affiliates' },
     { icon: DollarSign, label: 'Payouts' },
     { icon: Users, label: 'Customers' },
+    { icon: Bot, label: 'AI Chatbot' },
     { icon: Globe, label: 'SEO' },
     { icon: Settings, label: 'Settings' },
   ];
@@ -1066,6 +1129,96 @@ const AdminDashboard: React.FC = () => {
           </div>
       );
 
+      case 'AI Chatbot':
+        return (
+          <div className="space-y-6">
+            <div className="flex border-b bg-white rounded-t-2xl px-6 shadow-sm border-gray-100">
+              <button onClick={() => setActiveAiTab('brain')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeAiTab === 'brain' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                <BrainCircuit size={16} /> Bot Brain
+              </button>
+              <button onClick={() => setActiveAiTab('keywords')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeAiTab === 'keywords' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                <Key size={16} /> Keyword Manager
+              </button>
+            </div>
+            {activeAiTab === 'brain' && (
+              <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="font-bold text-gray-900">Bot Brain Configuration</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage the chatbot's core knowledge base for answering user questions.</p>
+                  </div>
+                  <Button onClick={handleNewBrainEntry} className="py-2 text-sm"><Plus size={16}/> Add Entry</Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="p-4 w-1/3">Topic / Question</th>
+                        <th className="p-4">Response / Information</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {botBrain.map(entry => (
+                        <tr key={entry.id} className="hover:bg-gray-50">
+                          <td className="p-4 font-bold text-gray-900 align-top">{entry.topic}</td>
+                          <td className="p-4 text-gray-600 align-top"><p className="line-clamp-3">{entry.response}</p></td>
+                          <td className="p-4 text-right align-top">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => handleEditBrainEntry(entry)} className="p-2 hover:bg-gray-200 rounded-full text-gray-600"><Edit2 size={16}/></button>
+                              <button onClick={() => deleteBrainEntry(entry.id)} className="p-2 hover:bg-red-100 rounded-full text-red-500"><Trash2 size={16}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {activeAiTab === 'keywords' && (
+              <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="font-bold text-gray-900">Keyword Manager</h2>
+                    <p className="text-sm text-gray-500 mt-1">Define trigger words and phrases for custom bot responses.</p>
+                  </div>
+                  <Button onClick={handleNewKeyword} className="py-2 text-sm"><Plus size={16}/> Add Keyword</Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="p-4">Keywords / Triggers</th>
+                        <th className="p-4">Category</th>
+                        <th className="p-4">Custom Response</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {botKeywords.map(kw => (
+                        <tr key={kw.id} className="hover:bg-gray-50">
+                          <td className="p-4 max-w-xs align-top">
+                            {kw.keywords.split(',').map(k => <span key={k} className="inline-block bg-gray-100 text-gray-700 text-xs font-medium mr-2 mb-1 px-2.5 py-1 rounded-full">{k.trim()}</span>)}
+                          </td>
+                          <td className="p-4 align-top"><Badge color="blue">{kw.category}</Badge></td>
+                          <td className="p-4 text-gray-600 align-top"><p className="line-clamp-3">{kw.response}</p></td>
+                           <td className="p-4 text-right align-top">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => handleEditKeyword(kw)} className="p-2 hover:bg-gray-200 rounded-full text-gray-600"><Edit2 size={16}/></button>
+                              <button onClick={() => deleteKeyword(kw.id)} className="p-2 hover:bg-red-100 rounded-full text-red-500"><Trash2 size={16}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
       case 'SEO':
         return (
           <div className="space-y-6">
@@ -1383,6 +1536,59 @@ const AdminDashboard: React.FC = () => {
 
         {/* --- Modals --- */}
         
+        {/* AI Chatbot Modals */}
+        {isBrainModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fade-in-up">
+              <div className="p-6 border-b">
+                <h3 className="text-xl font-bold text-gray-900">{editingBrainEntry ? 'Edit' : 'Add'} Brain Entry</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Topic / Question</label>
+                  <input className="w-full border rounded-lg p-2" value={brainForm.topic || ''} onChange={e => setBrainForm({...brainForm, topic: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Response / Information</label>
+                  <textarea className="w-full border rounded-lg p-2 h-32" value={brainForm.response || ''} onChange={e => setBrainForm({...brainForm, response: e.target.value})} />
+                </div>
+              </div>
+              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                <Button variant="ghost" onClick={() => setIsBrainModalOpen(false)}>Cancel</Button>
+                <Button onClick={saveBrainEntry} disabled={isSyncing}><Save size={16}/> Save Entry</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {isKeywordModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fade-in-up">
+              <div className="p-6 border-b">
+                <h3 className="text-xl font-bold text-gray-900">{editingKeyword ? 'Edit' : 'Add'} Keyword Trigger</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Keywords</label>
+                  <input className="w-full border rounded-lg p-2" placeholder="e.g. hello, hi, hey" value={keywordForm.keywords || ''} onChange={e => setKeywordForm({...keywordForm, keywords: e.target.value})} />
+                  <p className="text-xs text-gray-400 mt-1">Comma-separated words or phrases.</p>
+                </div>
+                 <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                  <input className="w-full border rounded-lg p-2" placeholder="e.g. Greetings" value={keywordForm.category || ''} onChange={e => setKeywordForm({...keywordForm, category: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Custom Response</label>
+                  <textarea className="w-full border rounded-lg p-2 h-24" value={keywordForm.response || ''} onChange={e => setKeywordForm({...keywordForm, response: e.target.value})} />
+                </div>
+              </div>
+              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                <Button variant="ghost" onClick={() => setIsKeywordModalOpen(false)}>Cancel</Button>
+                <Button onClick={saveKeyword} disabled={isSyncing}><Save size={16}/> Save Keyword</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SEO Modal */}
         {isSeoModalOpen && editingSeoProduct && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
