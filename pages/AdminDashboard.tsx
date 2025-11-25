@@ -416,7 +416,8 @@ const AdminDashboard: React.FC = () => {
      alert("Printing waybill for " + order.id);
   };
 
-  const pendingPayoutsCount = payouts.filter(p => p.status === 'Pending').length;
+  const pendingPayoutTotal = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
+  const totalPaidOut = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
 
   if (!isAuthenticated) {
     return (
@@ -497,65 +498,111 @@ const AdminDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard': 
-        const pendingPayoutTotal = payouts.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0);
-        const totalPaidOut = payouts.filter(p => p.status === 'Approved').reduce((acc, p) => acc + p.amount, 0);
         return (
           <div className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full relative overflow-hidden">
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
-                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">₱{stats.revenue.toLocaleString()}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">(Excl. Shipping)</p>
-                      </div>
-                      <div className="p-3 bg-red-50 text-primary rounded-2xl">
-                        <TrendingUp size={24} />
-                      </div>
-                   </div>
+             {/* Header Section */}
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-2">
+                <div>
+                   <h1 className="text-3xl font-black text-gray-900">Dashboard</h1>
+                   <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-gray-500 text-sm font-medium">Net Profit (Est.)</h3>
-                        <p className="text-2xl font-bold text-green-600 mt-2 tracking-tight">₱{stats.netProfit.toLocaleString()}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">Rev - (COGS + Comm)</p>
-                      </div>
-                      <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
-                        <Coins size={24} />
-                      </div>
+                <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <CheckCircle size={14} className="text-green-500" />
+                      <span className="text-xs font-bold text-gray-600">Saved</span>
                    </div>
+                   <button onClick={refreshData} disabled={isSyncing} className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 shadow-sm transition-all disabled:opacity-50">
+                      <RefreshCw size={18} className={isSyncing ? "animate-spin" : ""} />
+                   </button>
+                   <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md ring-2 ring-white">AD</div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-gray-500 text-sm font-medium">Total Orders</h3>
-                        <p className="text-2xl font-bold text-gray-900 mt-2 tracking-tight">{stats.totalOrders}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{stats.totalItemsSold} Items Sold</p>
-                      </div>
-                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                        <ShoppingBag size={24} />
-                      </div>
+             </div>
+
+             {/* 8-Card Grid Layout */}
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Row 1 */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-red-50 text-primary rounded-xl"><TrendingUp size={24}/></div>
                    </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Revenue</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">₱{stats.revenue.toLocaleString()}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Excl. Shipping</p>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-gray-500 text-sm font-medium">Pending Payouts</h3>
-                        <p className="text-2xl font-bold text-orange-600 mt-2 tracking-tight">₱{pendingPayoutTotal.toLocaleString()}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{pendingPayoutsCount} Requests</p>
-                      </div>
-                      <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-                        <AlertCircle size={24} />
-                      </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-green-50 text-green-600 rounded-xl"><DollarSign size={24}/></div>
                    </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Net Profit</h3>
+                   <p className="text-2xl font-black text-green-600 mt-1">₱{stats.netProfit.toLocaleString()}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Est. Earnings</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><Box size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Items Sold</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">{stats.totalItemsSold}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Units moved</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><ShoppingBag size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Orders</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">{stats.totalOrders}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Transactions</p>
+                </div>
+
+                {/* Row 2 */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl"><Briefcase size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Affiliates</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">{affiliates.length}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Active Partners</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Users size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Customers</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">{customers.length}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Registered Users</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl"><Clock size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Pending Payout</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">₱{pendingPayoutTotal.toLocaleString()}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Requests</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                   <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle size={24}/></div>
+                   </div>
+                   <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Total Paid Out</h3>
+                   <p className="text-2xl font-black text-gray-900 mt-1">₱{totalPaidOut.toLocaleString()}</p>
+                   <p className="text-[10px] text-gray-400 mt-1">Completed</p>
                 </div>
              </div>
              
-             <div className="grid lg:grid-cols-2 gap-6">
-                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="font-bold text-gray-900 mb-6">Sales Trend (7 Days)</h3>
-                    <div className="h-64 w-full">
+             {/* Charts & Activity Grid */}
+             <div className="grid lg:grid-cols-3 gap-6">
+                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                       <h3 className="font-bold text-gray-900">Revenue Analytics</h3>
+                       <p className="text-xs text-gray-400">Sales performance trends</p>
+                    </div>
+                    <div className="h-72 w-full">
                        <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={SALES_DATA}>
                            <defs>
@@ -574,26 +621,28 @@ const AdminDashboard: React.FC = () => {
                     </div>
                  </div>
                  
-                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                 <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                       <h3 className="font-bold text-gray-900">Recent Orders</h3>
-                       <Link to="#" onClick={() => setActiveTab('Orders')} className="text-sm text-primary font-bold hover:underline">View All</Link>
+                       <h3 className="font-bold text-gray-900">Recent Activity</h3>
+                       <Link to="#" onClick={() => setActiveTab('Orders')} className="text-xs font-bold text-primary hover:underline">View All</Link>
                     </div>
                     <div className="space-y-4">
                        {orders.slice(0, 5).map(order => (
-                          <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => setViewingOrder(order)}>
+                          <div key={order.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-gray-100" onClick={() => setViewingOrder(order)}>
                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs ${order.status === 'Delivered' ? 'bg-green-500' : 'bg-blue-500'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs ${['bg-orange-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500'][Math.floor(Math.random()*4)]}`}>
                                    {order.customer.charAt(0)}
                                 </div>
                                 <div>
                                    <p className="font-bold text-gray-900 text-sm">{order.customer}</p>
-                                   <p className="text-xs text-gray-500">{order.items} items • {order.paymentMethod}</p>
+                                   <p className="text-[10px] text-gray-400">{new Date(order.date).toLocaleDateString()}</p>
                                 </div>
                              </div>
                              <div className="text-right">
-                                <p className="font-bold text-gray-900">₱{order.total.toLocaleString()}</p>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-200 text-gray-600'}`}>{order.status}</span>
+                                <p className="font-bold text-gray-900 text-sm">₱{order.total.toLocaleString()}</p>
+                                <span className={`text-[10px] font-bold uppercase ${order.status === 'Delivered' ? 'text-green-600' : order.status === 'Shipped' ? 'text-blue-600' : 'text-orange-600'}`}>
+                                   {order.status}
+                                </span>
                              </div>
                           </div>
                        ))}
@@ -645,7 +694,7 @@ const AdminDashboard: React.FC = () => {
                                <div className="flex justify-end gap-2">
                                   <button onClick={() => handleEditProduct(product)} className="p-2 hover:bg-gray-200 rounded-full text-gray-600"><Edit2 size={16}/></button>
                                   <button onClick={() => deleteProduct(product.id)} className="p-2 hover:bg-red-100 rounded-full text-red-500"><Trash2 size={16}/></button>
-                               </div>
+                                </div>
                             </td>
                          </tr>
                       ))}
