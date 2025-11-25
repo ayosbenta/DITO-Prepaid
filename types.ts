@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export interface SeoData {
   metaTitle: string;
   metaDescription: string;
@@ -169,6 +164,18 @@ export interface PageSeoData {
   ogImage: string;
 }
 
+export interface FeatureItem {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface TestimonialItem {
+  name: string;
+  role: string;
+  quote: string;
+}
+
 export interface LandingPageSettings {
   hero: {
     titlePrefix: string;
@@ -182,10 +189,12 @@ export interface LandingPageSettings {
   features: {
     title: string;
     subtitle: string;
+    items: FeatureItem[];
   };
   testimonials: {
     title: string;
     subtitle: string;
+    items: TestimonialItem[];
   };
   cta: {
     title: string;

@@ -1,6 +1,4 @@
 
-
-
 import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings, BotBrainEntry, BotKeywordTrigger, BotPreset } from './types';
 
 export const HERO_PRODUCT: Product = {
@@ -138,11 +136,22 @@ export const DEFAULT_SETTINGS: LandingPageSettings = {
   },
   features: {
     title: 'Experience the Advantage',
-    subtitle: 'Why thousands of Filipino households are switching to DITO Home.'
+    subtitle: 'Why thousands of Filipino households are switching to DITO Home.',
+    items: [
+      { icon: 'Zap', title: 'Fast 4G/5G Speeds', description: 'Ultra-low latency for gaming and streaming up to 500Mbps.' },
+      { icon: 'CreditCard', title: 'No Hidden Fees', description: 'Transparent pricing. What you see is exactly what you pay.' },
+      { icon: 'Wifi', title: 'Reliable Connectivity', description: 'Consistent signal strength covering every corner of your home.' },
+      { icon: 'Shield', title: 'Secure Network', description: 'Enterprise-grade security features to keep your family safe.' },
+    ]
   },
   testimonials: {
     title: 'Customer Stories',
-    subtitle: 'See what our community has to say.'
+    subtitle: 'See what our community has to say.',
+    items: [
+      { name: 'Sarah G.', role: 'Freelancer', quote: "Finally, an internet connection that keeps up with my work. The 5G speed is real!" },
+      { name: 'Mark D.', role: 'Gamer', quote: "Low ping and stable connection. Best upgrade for my gaming setup this year." },
+      { name: 'Jenny L.', role: 'Mom of 3', quote: "Easy to set up and connects all our devices without lagging. Highly recommended!" }
+    ]
   },
   cta: {
     title: 'Ready to upgrade your home internet?',

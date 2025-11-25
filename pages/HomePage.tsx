@@ -1,10 +1,14 @@
 
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Zap, Shield, Wifi, CreditCard, Star, ArrowRight, Check, Loader2, AlertTriangle, Box, Truck } from 'lucide-react';
 import { StoreContext } from '../contexts/StoreContext';
 import { CartContext } from '../contexts/CartContext';
 import { Button } from '../components/UI';
+
+const iconMap: Record<string, React.ElementType> = {
+  Zap, Shield, Wifi, CreditCard, Star, Check, Box, Truck
+};
 
 const HomePage: React.FC = () => {
   const { addToCart, setIsCartOpen } = useContext(CartContext);
@@ -148,20 +152,18 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: Zap, title: 'Fast 4G/5G Speeds', desc: 'Ultra-low latency for gaming and streaming up to 500Mbps.' },
-              { icon: CreditCard, title: 'No Hidden Fees', desc: 'Transparent pricing. What you see is exactly what you pay.' },
-              { icon: Wifi, title: 'Reliable Connectivity', desc: 'Consistent signal strength covering every corner of your home.' },
-              { icon: Shield, title: 'Secure Network', desc: 'Enterprise-grade security features to keep your family safe.' },
-            ].map((feature, idx) => (
-              <div key={idx} className="p-8 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:border-red-100 transition-all group">
-                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <feature.icon className="text-primary" size={24} />
+            {settings.features.items.map((feature, idx) => {
+              const IconComponent = iconMap[feature.icon] || Zap;
+              return (
+                <div key={idx} className="p-8 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:border-red-100 transition-all group">
+                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <IconComponent className="text-primary" size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -181,11 +183,7 @@ const HomePage: React.FC = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Sarah G.', role: 'Freelancer', quote: "Finally, an internet connection that keeps up with my work. The 5G speed is real!" },
-              { name: 'Mark D.', role: 'Gamer', quote: "Low ping and stable connection. Best upgrade for my gaming setup this year." },
-              { name: 'Jenny L.', role: 'Mom of 3', quote: "Easy to set up and connects all our devices without lagging. Highly recommended!" }
-            ].map((t, i) => (
+            {settings.testimonials.items.map((t, i) => (
               <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex gap-1 text-primary mb-6">
                   {[...Array(5)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}

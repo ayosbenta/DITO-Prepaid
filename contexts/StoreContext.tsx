@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Product, Order, User, LandingPageSettings, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, BotBrainEntry, BotKeywordTrigger, BotPreset } from '../types';
 import { DEFAULT_SETTINGS, DEFAULT_PAYMENT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_SMTP_SETTINGS, DEFAULT_BOT_BRAIN, DEFAULT_BOT_KEYWORDS, DEFAULT_BOT_PRESETS } from '../constants';
@@ -133,7 +128,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setCustomers(data.customers || []);
         setAffiliates(data.affiliates || []);
         setPayouts(data.payouts || []);
-        if (data.settings) setSettings(data.settings);
+        
+        let fetchedSettings = data.settings || DEFAULT_SETTINGS;
+        // Ensure structure integrity for possibly missing fields in older data
+        if (!fetchedSettings.shipping) fetchedSettings.shipping = DEFAULT_SETTINGS.shipping;
+        if (!fetchedSettings.seo) fetchedSettings.seo = DEFAULT_SETTINGS.seo;
+        if (!fetchedSettings.features) fetchedSettings.features = DEFAULT_SETTINGS.features;
+        if (!fetchedSettings.features.items) fetchedSettings.features.items = DEFAULT_SETTINGS.features.items;
+        if (!fetchedSettings.testimonials) fetchedSettings.testimonials = DEFAULT_SETTINGS.testimonials;
+        if (!fetchedSettings.testimonials.items) fetchedSettings.testimonials.items = DEFAULT_SETTINGS.testimonials.items;
+        if (!fetchedSettings.cta) fetchedSettings.cta = DEFAULT_SETTINGS.cta;
+
+        setSettings(fetchedSettings);
+
         if (data.paymentSettings) setPaymentSettings(data.paymentSettings);
         if (data.smtpSettings) setSMTPSettings(data.smtpSettings);
         setBotBrain(data.botBrain || DEFAULT_BOT_BRAIN);
