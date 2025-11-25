@@ -1,3 +1,4 @@
+
 // --- DITO Home WoWFi Pro Store - Google Apps Script Backend ---
 // This script acts as a simple database using Google Sheets.
 // It handles reading all store data and writing updates back to the respective sheets.
@@ -23,6 +24,7 @@ function doGet(e) {
         Settings: getSettingsData(SPREADSHEET),
         BotBrain: getSheetData(SPREADSHEET, "BotBrain"),
         BotKeywords: getSheetData(SPREADSHEET, "BotKeywords"),
+        BotPresets: getSheetData(SPREADSHEET, "BotPresets"),
       };
       
       // Post-process settings from a key-value pair sheet into structured objects
@@ -67,6 +69,7 @@ function doPost(e) {
     if (action === 'SAVE_SMTP_SETTINGS') return handleSaveSmtpSettings(payload);
     if (action === 'SYNC_BOT_BRAIN') return handleSyncBotBrain(payload);
     if (action === 'SYNC_BOT_KEYWORDS') return handleSyncBotKeywords(payload);
+    if (action === 'SYNC_BOT_PRESETS') return handleSyncBotPresets(payload);
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Invalid action specified in POST request.' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -331,4 +334,9 @@ function handleSyncBotBrain(data) {
 function handleSyncBotKeywords(data) {
   const headers = ["id", "keywords", "category", "response"];
   return handleSync(data, "BotKeywords", headers);
+}
+
+function handleSyncBotPresets(data) {
+  const headers = ["id", "question", "response"];
+  return handleSync(data, "BotPresets", headers);
 }

@@ -3,6 +3,7 @@
 
 
 
+
 export interface SeoData {
   metaTitle: string;
   metaDescription: string;
@@ -269,5 +270,11 @@ export interface BotKeywordTrigger {
   id: string;
   keywords: string; // Comma-separated
   category: string;
+  response: string;
+}
+
+export interface BotPreset {
+  id: string;
+  question: string;
   response: string;
 }

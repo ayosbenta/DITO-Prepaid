@@ -9,8 +9,8 @@
 // --- End Developer Note ---
 
 
-import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData, BotBrainEntry, BotKeywordTrigger } from '../types';
-import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS, DEFAULT_BOT_BRAIN, DEFAULT_BOT_KEYWORDS } from '../constants';
+import { LandingPageSettings, Product, Order, User, Affiliate, PaymentSettings, PayoutRequest, SMTPSettings, PageSeoData, BotBrainEntry, BotKeywordTrigger, BotPreset } from '../types';
+import { DEFAULT_SETTINGS, HERO_PRODUCT, RELATED_PRODUCTS, RECENT_ORDERS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SMTP_SETTINGS, DEFAULT_BOT_BRAIN, DEFAULT_BOT_KEYWORDS, DEFAULT_BOT_PRESETS } from '../constants';
 
 // Updated URL
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNTTB_z9qMoE93XgJTGC11s-rbRvVV_ErfU_9CpzKFxnVsZhcDtE_lCHdKofO8tQ0LRg/exec"; 
@@ -31,6 +31,7 @@ interface DashboardData {
   smtpSettings: SMTPSettings;
   botBrain: BotBrainEntry[];
   botKeywords: BotKeywordTrigger[];
+  botPresets: BotPreset[];
 }
 
 export const DEMO_AFFILIATE: Affiliate = {
@@ -245,6 +246,13 @@ export const SheetsService = {
         response: String(k.response),
       }));
 
+      // 9. Parse Bot Presets
+      const botPresets: BotPreset[] = (data.BotPresets || []).map((p: any) => ({
+        id: String(p.id),
+        question: String(p.question),
+        response: String(p.response),
+      }));
+
 
       return { 
         products, orders, customers, affiliates, payouts,
@@ -253,6 +261,7 @@ export const SheetsService = {
         smtpSettings: smtpSettings as SMTPSettings,
         botBrain: botBrain.length > 0 ? botBrain : DEFAULT_BOT_BRAIN,
         botKeywords: botKeywords.length > 0 ? botKeywords : DEFAULT_BOT_KEYWORDS,
+        botPresets: botPresets.length > 0 ? botPresets : DEFAULT_BOT_PRESETS,
       };
 
     } catch (error) {
@@ -413,5 +422,9 @@ export const SheetsService = {
 
   syncBotKeywords: async (triggers: BotKeywordTrigger[]): Promise<ApiResponse> => {
     return SheetsService.sendData('SYNC_BOT_KEYWORDS', triggers);
+  },
+
+  syncBotPresets: async (presets: BotPreset[]): Promise<ApiResponse> => {
+    return SheetsService.sendData('SYNC_BOT_PRESETS', presets);
   },
 };

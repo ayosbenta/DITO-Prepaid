@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { MessageCircle, X, Send, Bot, Loader2 } from 'lucide-react';
 import { generateChatResponse } from '../services/geminiService';
@@ -18,7 +19,7 @@ const AIChatBot: React.FC = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { botBrain, botKeywords } = useContext(StoreContext);
+  const { botBrain, botKeywords, botPresets } = useContext(StoreContext);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -27,6 +28,12 @@ const AIChatBot: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isOpen]);
+
+  const handlePresetClick = (question: string, response: string) => {
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', text: question };
+    const modelMessage: Message = { id: (Date.now() + 1).toString(), role: 'model', text: response };
+    setMessages(prev => [...prev, userMessage, modelMessage]);
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -121,6 +128,25 @@ const AIChatBot: React.FC = () => {
                 </div>
               </div>
             )}
+            
+            {/* Preset Buttons - shows only at the start of a conversation */}
+            {messages.length === 1 && botPresets.length > 0 && (
+                <div className="pt-2 animate-fade-in">
+                <p className="text-xs font-bold text-gray-400 uppercase text-center mb-3">Quick Questions</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                    {botPresets.slice(0, 3).map(preset => ( // Show max 3 for clean UI
+                    <button 
+                        key={preset.id}
+                        onClick={() => handlePresetClick(preset.question, preset.response)}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
+                    >
+                        {preset.question}
+                    </button>
+                    ))}
+                </div>
+                </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 

@@ -1,16 +1,11 @@
 
-
-
-
-
-
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, Settings, 
   TrendingUp, AlertCircle, Search, Bell, Cloud,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, Filter, LogOut, Menu, X, Plus, Trash2, Edit2, Save, Loader2, Briefcase, Ban, CheckCircle, RotateCcw, CreditCard, ExternalLink, Image as ImageIcon, DollarSign, XCircle, RefreshCw,
   Clock, MousePointer, Lock, Shield, Printer, Boxes, AlertTriangle, Percent, FileSpreadsheet, List, AlignLeft, Box, Coins,
-  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy, PenLine, Code, Share2, Bot, BrainCircuit, Key
+  ChevronDown, Check, Truck, Smartphone, Landmark, Map, MapPin, Mail, User as UserIcon, FileText, MessageSquare, Eye, Globe, Trophy, PenLine, Code, Share2, Bot, BrainCircuit, Key, Zap, Wifi
 } from 'lucide-react';
 import { SALES_DATA } from '../constants';
 import { 
@@ -20,7 +15,7 @@ import {
 import { Badge, Button } from '../components/UI';
 import { Link } from 'react-router-dom';
 import { StoreContext } from '../contexts/StoreContext';
-import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User, PageSeoData, SeoData, BotBrainEntry, BotKeywordTrigger } from '../types';
+import { Product, Order, Affiliate, ShippingZone, Courier, EmailTemplate, LandingPageSettings, PaymentSettings, User, PageSeoData, SeoData, BotBrainEntry, BotKeywordTrigger, BotPreset } from '../types';
 
 const AdminDashboard: React.FC = () => {
   // --- Authentication State ---
@@ -36,12 +31,12 @@ const AdminDashboard: React.FC = () => {
   
   const { 
     products, orders, customers, affiliates, stats, settings, paymentSettings, smtpSettings, payouts,
-    botBrain, botKeywords,
+    botBrain, botKeywords, botPresets,
     addProduct, updateProduct, deleteProduct,
     updateOrderStatus, deleteOrder,
     deleteCustomer, updateSettings, updatePaymentSettings, updateSMTPSettings, isSyncing, isLoading, isRefreshing, refreshData,
     updateAffiliate, updatePayoutStatus, forceInventorySync,
-    updateBotBrain, updateBotKeywords,
+    updateBotBrain, updateBotKeywords, updateBotPresets,
   } = useContext(StoreContext);
 
   // --- Auto-refresh logic for Dashboard only ---
@@ -93,13 +88,16 @@ const AdminDashboard: React.FC = () => {
   const [pageSeoForm, setPageSeoForm] = useState<Partial<PageSeoData>>(settings.seo || {});
 
   // --- AI Chatbot State ---
-  const [activeAiTab, setActiveAiTab] = useState<'brain' | 'keywords'>('brain');
+  const [activeAiTab, setActiveAiTab] = useState<'brain' | 'keywords' | 'presets'>('brain');
   const [isBrainModalOpen, setIsBrainModalOpen] = useState(false);
   const [editingBrainEntry, setEditingBrainEntry] = useState<BotBrainEntry | null>(null);
   const [brainForm, setBrainForm] = useState<Partial<BotBrainEntry>>({});
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [editingKeyword, setEditingKeyword] = useState<BotKeywordTrigger | null>(null);
   const [keywordForm, setKeywordForm] = useState<Partial<BotKeywordTrigger>>({});
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<BotPreset | null>(null);
+  const [presetForm, setPresetForm] = useState<Partial<BotPreset>>({});
 
 
   // --- Settings Forms ---
@@ -242,33 +240,6 @@ const AdminDashboard: React.FC = () => {
     alert('Homepage SEO settings saved!');
   };
 
-  const generateSchemaMarkup = (product: Product | null, form: Partial<SeoData>) => {
-    if (!product) return '';
-    const schema = {
-      "@context": "https://schema.org/",
-      "@type": "Product",
-      "name": form.metaTitle || product.name,
-      "image": form.ogImage || product.image,
-      "description": form.metaDescription || product.description,
-      "sku": product.sku,
-      "brand": { "@type": "Brand", "name": "DITO Home" },
-      "offers": {
-        "@type": "Offer",
-        "url": `${window.location.origin}/#/product/${form.slug || product.id}`,
-        "priceCurrency": "PHP",
-        "price": product.price,
-        "availability": (product.stock || 0) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "itemCondition": "https://schema.org/NewCondition"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": product.rating,
-        "reviewCount": product.reviews
-      }
-    };
-    return JSON.stringify(schema, null, 2);
-  };
-
   // --- AI Chatbot Logic ---
   const handleNewBrainEntry = () => {
     setEditingBrainEntry(null);
@@ -315,6 +286,30 @@ const AdminDashboard: React.FC = () => {
   const deleteKeyword = (id: string) => {
     if (window.confirm('Are you sure you want to delete this keyword trigger?')) {
       updateBotKeywords(botKeywords.filter(k => k.id !== id));
+    }
+  };
+
+  const handleNewPreset = () => {
+    setEditingPreset(null);
+    setPresetForm({ id: `preset-${Date.now()}` });
+    setIsPresetModalOpen(true);
+  };
+  const handleEditPreset = (preset: BotPreset) => {
+    setEditingPreset(preset);
+    setPresetForm({ ...preset });
+    setIsPresetModalOpen(true);
+  };
+  const savePreset = () => {
+    if (editingPreset) {
+      updateBotPresets(botPresets.map(p => p.id === editingPreset.id ? presetForm as BotPreset : p));
+    } else {
+      updateBotPresets([...botPresets, presetForm as BotPreset]);
+    }
+    setIsPresetModalOpen(false);
+  };
+  const deletePreset = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this preset button?')) {
+      updateBotPresets(botPresets.filter(p => p.id !== id));
     }
   };
 
@@ -474,7 +469,6 @@ const AdminDashboard: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        {/* ... Login UI same as before ... */}
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100 animate-fade-in-up">
            <div className="text-center mb-8">
              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-primary shadow-inner">
@@ -1139,6 +1133,9 @@ const AdminDashboard: React.FC = () => {
               <button onClick={() => setActiveAiTab('keywords')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeAiTab === 'keywords' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
                 <Key size={16} /> Keyword Manager
               </button>
+              <button onClick={() => setActiveAiTab('presets')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeAiTab === 'presets' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                <Zap size={16} /> Preset Buttons
+              </button>
             </div>
             {activeAiTab === 'brain' && (
               <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100 overflow-hidden">
@@ -1207,6 +1204,42 @@ const AdminDashboard: React.FC = () => {
                             <div className="flex justify-end gap-2">
                               <button onClick={() => handleEditKeyword(kw)} className="p-2 hover:bg-gray-200 rounded-full text-gray-600"><Edit2 size={16}/></button>
                               <button onClick={() => deleteKeyword(kw.id)} className="p-2 hover:bg-red-100 rounded-full text-red-500"><Trash2 size={16}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {activeAiTab === 'presets' && (
+              <div className="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="font-bold text-gray-900">Preset Buttons Manager</h2>
+                    <p className="text-sm text-gray-500 mt-1">Configure quick-reply buttons for common user questions.</p>
+                  </div>
+                  <Button onClick={handleNewPreset} className="py-2 text-sm"><Plus size={16}/> Add Preset</Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="p-4 w-1/3">Button Text (Question)</th>
+                        <th className="p-4">Bot Response</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {botPresets.map(preset => (
+                        <tr key={preset.id} className="hover:bg-gray-50">
+                          <td className="p-4 font-bold text-gray-900 align-top">{preset.question}</td>
+                          <td className="p-4 text-gray-600 align-top"><p className="line-clamp-3">{preset.response}</p></td>
+                          <td className="p-4 text-right align-top">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => handleEditPreset(preset)} className="p-2 hover:bg-gray-200 rounded-full text-gray-600"><Edit2 size={16}/></button>
+                              <button onClick={() => deletePreset(preset.id)} className="p-2 hover:bg-red-100 rounded-full text-red-500"><Trash2 size={16}/></button>
                             </div>
                           </td>
                         </tr>
@@ -1444,493 +1477,516 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 
                 <div className="flex border-b bg-gray-50 px-6">
-                   <button onClick={() => setActiveSMTPTab('server')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeSMTPTab === 'server' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Server Config</button>
-                   <button onClick={() => setActiveSMTPTab('templates')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeSMTPTab === 'templates' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Templates</button>
+                   <button onClick={() => setActiveSMTPTab('server')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeSMTPTab === 'server' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                     Server
+                   </button>
+                   <button onClick={() => setActiveSMTPTab('templates')} className={`px-4 py-3 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${activeSMTPTab === 'templates' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>
+                     Templates
+                   </button>
                 </div>
-
+                
                 <div className="p-6">
-                   {activeSMTPTab === 'server' && (
-                      <div className="space-y-4 max-w-lg">
-                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-6">
-                            <span className="font-bold text-gray-900">Enable Email Notifications</span>
-                            <input type="checkbox" checked={smtpSettingsForm.enabled} onChange={e => handleSmtpSettingsChange('enabled', e.target.checked)} className="w-5 h-5 accent-primary" />
-                         </div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">SMTP Host</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.host} onChange={e => handleSmtpSettingsChange('host', e.target.value)} placeholder="smtp.gmail.com" /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Port</label><input type="number" className="w-full border rounded-lg p-2" value={smtpSettingsForm.port} onChange={e => handleSmtpSettingsChange('port', Number(e.target.value))} placeholder="587" /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Username / Email</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.username} onChange={e => handleSmtpSettingsChange('username', e.target.value)} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password / App Key</label><input type="password" className="w-full border rounded-lg p-2" value={smtpSettingsForm.password} onChange={e => handleSmtpSettingsChange('password', e.target.value)} /></div>
-                         <div className="flex items-center gap-2 mt-2"><input type="checkbox" checked={smtpSettingsForm.secure} onChange={e => handleSmtpSettingsChange('secure', e.target.checked)} /><span className="text-sm text-gray-600">Use Secure Connection (SSL/TLS)</span></div>
-                      </div>
-                   )}
-                   {activeSMTPTab === 'templates' && (
-                      <div className="space-y-6">
-                         {Object.entries(smtpSettingsForm.templates).map(([key, tpl]) => {
-                            const template = tpl as EmailTemplate;
-                            return (
-                            <div key={key} className="p-4 border rounded-xl bg-gray-50">
-                               <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-bold text-gray-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h4>
-                                  <input type="checkbox" checked={template.enabled} onChange={e => handleTemplateChange(key, 'enabled', e.target.checked)} />
-                               </div>
-                               <div className="space-y-3">
-                                  <div><label className="text-xs font-bold text-gray-400">Subject</label><input className="w-full border rounded p-2 text-sm" value={template.subject} onChange={e => handleTemplateChange(key, 'subject', e.target.value)} /></div>
-                                  <div><label className="text-xs font-bold text-gray-400">Body</label><textarea className="w-full border rounded p-2 text-sm h-24" value={template.body} onChange={e => handleTemplateChange(key, 'body', e.target.value)} /></div>
-                               </div>
-                            </div>
-                         )})}
-                      </div>
-                   )}
+                  {activeSMTPTab === 'server' && (
+                    <div className="max-w-md space-y-4">
+                       <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl mb-4">
+                          <div>
+                            <span className="font-bold text-gray-900 block">Enable Email Sending</span>
+                            <span className="text-xs text-gray-500">System will send emails for orders</span>
+                          </div>
+                          <input type="checkbox" checked={smtpSettingsForm.enabled} onChange={e => handleSmtpSettingsChange('enabled', e.target.checked)} className="w-5 h-5 accent-primary" />
+                       </div>
+                       
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">SMTP Host</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.host} onChange={e => handleSmtpSettingsChange('host', e.target.value)} /></div>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Port</label><input type="number" className="w-full border rounded-lg p-2" value={smtpSettingsForm.port} onChange={e => handleSmtpSettingsChange('port', Number(e.target.value))} /></div>
+                          <div className="flex items-center mt-5"><label className="flex items-center gap-2"><input type="checkbox" checked={smtpSettingsForm.secure} onChange={e => handleSmtpSettingsChange('secure', e.target.checked)} /> <span className="text-sm font-bold text-gray-700">Use SSL/TLS</span></label></div>
+                       </div>
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Username</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.username} onChange={e => handleSmtpSettingsChange('username', e.target.value)} /></div>
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label><input type="password" className="w-full border rounded-lg p-2" value={smtpSettingsForm.password} onChange={e => handleSmtpSettingsChange('password', e.target.value)} /></div>
+                       
+                       <div className="pt-4 border-t border-gray-100">
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">From Name</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.fromName} onChange={e => handleSmtpSettingsChange('fromName', e.target.value)} /></div>
+                          <div className="mt-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">From Email</label><input className="w-full border rounded-lg p-2" value={smtpSettingsForm.fromEmail} onChange={e => handleSmtpSettingsChange('fromEmail', e.target.value)} /></div>
+                       </div>
+                    </div>
+                  )}
+
+                  {activeSMTPTab === 'templates' && (
+                    <div className="space-y-8">
+                       {Object.entries(smtpSettingsForm.templates).map(([key, tpl]) => {
+                         const template = tpl as EmailTemplate;
+                         return (
+                           <div key={key} className="border rounded-xl bg-gray-50 p-4">
+                              <div className="flex justify-between items-center mb-4">
+                                 <h3 className="font-bold capitalize text-gray-900">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
+                                 <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase"><input type="checkbox" checked={template.enabled} onChange={e => handleTemplateChange(key, 'enabled', e.target.checked)} /> Enabled</label>
+                              </div>
+                              <div className="space-y-2">
+                                 <input className="w-full border rounded-lg p-2 text-sm font-bold" value={template.subject} onChange={e => handleTemplateChange(key, 'subject', e.target.value)} placeholder="Subject Line" />
+                                 <textarea className="w-full border rounded-lg p-2 text-sm h-32 font-mono" value={template.body} onChange={e => handleTemplateChange(key, 'body', e.target.value)} placeholder="Email Body" />
+                              </div>
+                           </div>
+                         );
+                       })}
+                    </div>
+                  )}
                 </div>
              </div>
           </div>
         );
-
-      default: return <div className="p-10 text-center text-gray-500">Module {activeTab} loaded.</div>;
+      default:
+        return null;
     }
   };
 
-  const CharCounter: React.FC<{ value: string; limit: number }> = ({ value, limit }) => (
-    <span className={`text-xs ${value.length > limit ? 'text-red-500' : 'text-gray-400'}`}>
-      {value.length}/{limit}
-    </span>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar ... */}
-      <aside className="hidden md:flex w-64 bg-white border-r flex-col fixed h-full z-10">
-        <div className="p-6 border-b">
-           <Link to="/" className="flex items-center gap-2 text-primary font-black text-xl tracking-tighter">
-             <div className="bg-primary text-white p-1 rounded-lg"><Cloud size={16} strokeWidth={3} /></div> DITO Admin
-           </Link>
+    <div className="flex h-screen bg-gray-50 text-gray-800">
+      <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col hidden md:flex">
+        <div className="p-6 flex items-center gap-2 text-primary font-black text-xl tracking-tighter">
+          <Wifi size={24} /> DITO Admin
         </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {menuItems.map(item => (
-            <button key={item.label} onClick={() => setActiveTab(item.label)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === item.label ? 'bg-primary text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-gray-50'}`}>
-              <div className="flex items-center gap-3"><item.icon size={18} />{item.label}</div>
-              {item.label === 'Payouts' && pendingPayoutsCount > 0 && (<span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm ring-1 ring-white/20">{pendingPayoutsCount}</span>)}
+        <nav className="flex-1 overflow-y-auto px-4 space-y-1 pb-4">
+          {menuItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => setActiveTab(item.label)}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
+                activeTab === item.label
+                  ? 'bg-red-50 text-primary shadow-sm ring-1 ring-red-100'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <item.icon size={18} className={activeTab === item.label ? 'text-primary' : 'text-gray-400'} />
+              {item.label}
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t space-y-1">
-           <Link to="/" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium"><LogOut size={18} /> Exit to Store</Link>
-           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium"><Lock size={18} /> Logout</button>
+        <div className="p-4 border-t border-gray-100">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all">
+            <LogOut size={18} /> Logout
+          </button>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8">
-        {/* Top Bar ... */}
-        <div className="flex justify-between items-center mb-8">
-           <div><h1 className="text-2xl font-bold text-gray-900">{activeTab}</h1><p className="text-sm text-gray-500">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p></div>
-           <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200">
-                 {isSyncing ? <><Loader2 className="animate-spin text-primary" size={16} /><span className="text-xs font-medium text-gray-500">Syncing...</span></> : <><Cloud size={16} className="text-green-500" /><span className="text-xs font-medium text-gray-500">Saved</span></>}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center md:hidden">
+          <div className="flex items-center gap-2 text-primary font-black text-lg">
+             <Wifi size={20} /> DITO Admin
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-gray-100 rounded-lg">
+             {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+          </button>
+        </header>
+
+        {isMobileMenuOpen && (
+           <div className="md:hidden bg-white border-b border-gray-200 p-4 absolute top-16 left-0 w-full z-50 shadow-xl">
+              <nav className="space-y-1">
+                {menuItems.map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => { setActiveTab(item.label); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl ${
+                      activeTab === item.label ? 'bg-red-50 text-primary' : 'text-gray-500'
+                    }`}
+                  >
+                    <item.icon size={18} /> {item.label}
+                  </button>
+                ))}
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600">
+                   <LogOut size={18} /> Logout
+                </button>
+              </nav>
+           </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+             {renderContent()}
+          </div>
+        </main>
+      </div>
+
+      {/* --- MODALS --- */}
+
+      {/* Product Modal */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                 <h3 className="font-bold text-xl text-gray-900">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+                 <button onClick={() => setIsProductModalOpen(false)}><X size={24} className="text-gray-400 hover:text-gray-600"/></button>
               </div>
-              <button onClick={() => refreshData()} className="p-2 bg-white border rounded-full text-gray-500 hover:bg-gray-50"><RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} /></button>
-              <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm"><img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="Admin" /></div>
+              <div className="p-6">
+                 <div className="flex gap-4 border-b mb-6">
+                    {['general', 'inventory', 'images', 'advanced'].map(tab => (
+                       <button 
+                         key={tab} 
+                         onClick={() => setActiveProductTab(tab as any)}
+                         className={`pb-2 px-4 text-sm font-bold capitalize border-b-2 transition-colors ${activeProductTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}
+                       >
+                         {tab}
+                       </button>
+                    ))}
+                 </div>
+
+                 {activeProductTab === 'general' && (
+                    <div className="grid md:grid-cols-2 gap-6">
+                       <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Product Name</label><input className="w-full border rounded-lg p-3" value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} /></div>
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                          <select className="w-full border rounded-lg p-3" value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value})}>
+                             <option>Modems</option><option>Pocket WiFi</option><option>SIM Cards</option><option>Accessories</option>
+                          </select>
+                       </div>
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price (₱)</label><input type="number" className="w-full border rounded-lg p-3" value={newProductForm.price} onChange={e => setNewProductForm({...newProductForm, price: Number(e.target.value)})} /></div>
+                       <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subtitle</label><input className="w-full border rounded-lg p-3" value={newProductForm.subtitle} onChange={e => setNewProductForm({...newProductForm, subtitle: e.target.value})} /></div>
+                       <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label><textarea className="w-full border rounded-lg p-3 h-32" value={newProductForm.description} onChange={e => setNewProductForm({...newProductForm, description: e.target.value})} /></div>
+                    </div>
+                 )}
+
+                 {activeProductTab === 'inventory' && (
+                    <div className="space-y-6">
+                       <div className="grid md:grid-cols-3 gap-6">
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">SKU</label><input className="w-full border rounded-lg p-3" value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} /></div>
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Stock Level</label><input type="number" className="w-full border rounded-lg p-3" value={newProductForm.stock} onChange={e => setNewProductForm({...newProductForm, stock: Number(e.target.value)})} /></div>
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Min. Stock Alert</label><input type="number" className="w-full border rounded-lg p-3" value={newProductForm.minStockLevel} onChange={e => setNewProductForm({...newProductForm, minStockLevel: Number(e.target.value)})} /></div>
+                       </div>
+                       <div className="pt-6 border-t">
+                          <h4 className="font-bold text-gray-900 mb-4">Bulk Discounts</h4>
+                          <div className="flex gap-2 mb-4 items-end">
+                             <div><label className="text-xs">Min Qty</label><input type="number" className="border rounded p-2 w-24" value={bulkDiscountInput.minQty} onChange={e => setBulkDiscountInput({...bulkDiscountInput, minQty: Number(e.target.value)})} /></div>
+                             <div><label className="text-xs">Discount %</label><input type="number" className="border rounded p-2 w-24" value={bulkDiscountInput.percentage} onChange={e => setBulkDiscountInput({...bulkDiscountInput, percentage: Number(e.target.value)})} /></div>
+                             <Button onClick={addBulkDiscount} className="py-2 text-sm">Add</Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                             {newProductForm.bulkDiscounts?.map((d, i) => (
+                                <div key={i} className="bg-green-50 text-green-700 px-3 py-1 rounded-lg border border-green-200 text-sm flex items-center gap-2">
+                                   Buy {d.minQty}+ Get {d.percentage}% Off <button onClick={() => removeBulkDiscount(i)} className="hover:text-red-500"><X size={14}/></button>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 )}
+
+                 {activeProductTab === 'images' && (
+                    <div className="space-y-6">
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Main Image URL</label><input className="w-full border rounded-lg p-3" value={newProductForm.image} onChange={e => setNewProductForm({...newProductForm, image: e.target.value})} /></div>
+                       {newProductForm.image && <img src={newProductForm.image} className="w-32 h-32 object-contain border rounded-lg p-2 bg-gray-50" />}
+                       
+                       <div className="pt-6 border-t">
+                          <h4 className="font-bold text-gray-900 mb-4">Gallery Images</h4>
+                          <div className="flex gap-2 mb-4">
+                             <input className="flex-1 border rounded-lg p-2" placeholder="Image URL" value={galleryInput} onChange={e => setGalleryInput(e.target.value)} />
+                             <Button onClick={addGalleryImage} className="py-2 text-sm">Add</Button>
+                          </div>
+                          <div className="grid grid-cols-4 gap-4">
+                             {newProductForm.gallery?.map((img, i) => (
+                                <div key={i} className="relative group border rounded-lg p-2 bg-gray-50 h-24">
+                                   <img src={img} className="w-full h-full object-contain" />
+                                   <button onClick={() => removeGalleryImage(i)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 )}
+
+                 {activeProductTab === 'advanced' && (
+                    <div className="space-y-6">
+                       <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cost Price (For Profit Calc)</label><input type="number" className="w-full border rounded-lg p-3" value={newProductForm.costPrice} onChange={e => setNewProductForm({...newProductForm, costPrice: Number(e.target.value)})} /></div>
+                       
+                       <div className="pt-6 border-t">
+                          <h4 className="font-bold text-gray-900 mb-4">Specifications</h4>
+                          <div className="flex gap-2 mb-4">
+                             <input className="flex-1 border rounded-lg p-2" placeholder="Spec Name (e.g. Battery)" value={specInput.key} onChange={e => setSpecInput({...specInput, key: e.target.value})} />
+                             <input className="flex-1 border rounded-lg p-2" placeholder="Value (e.g. 5000mAh)" value={specInput.value} onChange={e => setSpecInput({...specInput, value: e.target.value})} />
+                             <Button onClick={addSpec} className="py-2 text-sm">Add</Button>
+                          </div>
+                          <div className="space-y-2">
+                             {Object.entries(newProductForm.specs || {}).map(([k, v]) => (
+                                <div key={k} className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                                   <span className="font-bold">{k}:</span> <span>{v}</span> <button onClick={() => removeSpec(k)} className="text-red-500"><X size={14}/></button>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       
+                       <div className="pt-6 border-t">
+                          <h4 className="font-bold text-gray-900 mb-4">Inclusions (Box Contents)</h4>
+                          <div className="flex gap-2 mb-4">
+                             <input className="flex-1 border rounded-lg p-2" placeholder="Item Name" value={inclusionInput} onChange={e => setInclusionInput(e.target.value)} />
+                             <Button onClick={addInclusion} className="py-2 text-sm">Add</Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                             {newProductForm.inclusions?.map((inc, i) => (
+                                <div key={i} className="bg-gray-100 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                                   {inc} <button onClick={() => removeInclusion(i)} className="hover:text-red-500"><X size={14}/></button>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 )}
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+                 <Button variant="ghost" onClick={() => setIsProductModalOpen(false)}>Cancel</Button>
+                 <Button onClick={saveProduct} disabled={isSyncing}>{isSyncing ? 'Saving...' : 'Save Product'}</Button>
+              </div>
            </div>
         </div>
+      )}
 
-        {renderContent()}
-
-        {/* --- Modals --- */}
-        
-        {/* AI Chatbot Modals */}
-        {isBrainModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fade-in-up">
-              <div className="p-6 border-b">
-                <h3 className="text-xl font-bold text-gray-900">{editingBrainEntry ? 'Edit' : 'Add'} Brain Entry</h3>
+      {/* Affiliate Edit Modal */}
+      {isAffiliateModalOpen && editingAffiliate && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+              <h3 className="font-bold text-xl mb-4">Edit Affiliate: {editingAffiliate.name}</h3>
+              <div className="mb-4">
+                 <div className="flex border-b mb-4">
+                    <button onClick={() => setActiveAffiliateTab('wallet')} className={`px-4 py-2 border-b-2 font-bold ${activeAffiliateTab === 'wallet' ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}>Wallet & Status</button>
+                    <button onClick={() => setActiveAffiliateTab('profile')} className={`px-4 py-2 border-b-2 font-bold ${activeAffiliateTab === 'profile' ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}>Profile Details</button>
+                 </div>
+                 
+                 {activeAffiliateTab === 'wallet' && (
+                    <div className="space-y-4">
+                       <div className="p-4 bg-gray-50 rounded-xl">
+                          <p className="text-sm font-bold text-gray-500">Current Wallet Balance</p>
+                          <p className="text-2xl font-black text-gray-900">₱{editingAffiliate.walletBalance.toLocaleString()}</p>
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Adjust Wallet (+/- Amount)</label>
+                          <input type="number" className="w-full border rounded-lg p-2" value={walletAdjustment} onChange={e => setWalletAdjustment(Number(e.target.value))} />
+                          <p className="text-xs text-gray-400 mt-1">Use negative values to deduct.</p>
+                       </div>
+                       <div className="flex items-center justify-between p-4 border rounded-xl">
+                          <span className="font-bold">Account Status</span>
+                          <button 
+                             onClick={() => toggleAffiliateStatus(editingAffiliate.id, editingAffiliate.status || 'active')}
+                             className={`px-3 py-1 rounded-full text-xs font-bold ${editingAffiliate.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                          >
+                             {editingAffiliate.status === 'active' ? 'Active' : 'Banned'}
+                          </button>
+                       </div>
+                    </div>
+                 )}
+                 {activeAffiliateTab === 'profile' && (
+                    <div className="space-y-4 max-h-80 overflow-y-auto">
+                        <div className="grid grid-cols-2 gap-4">
+                           <div><label className="text-xs font-bold">First Name</label><input className="w-full border rounded p-2" value={editingAffiliate.firstName} onChange={e => setEditingAffiliate({...editingAffiliate, firstName: e.target.value})} /></div>
+                           <div><label className="text-xs font-bold">Last Name</label><input className="w-full border rounded p-2" value={editingAffiliate.lastName} onChange={e => setEditingAffiliate({...editingAffiliate, lastName: e.target.value})} /></div>
+                           <div className="col-span-2"><label className="text-xs font-bold">Email</label><input className="w-full border rounded p-2" value={editingAffiliate.email} onChange={e => setEditingAffiliate({...editingAffiliate, email: e.target.value})} /></div>
+                           <div className="col-span-2"><label className="text-xs font-bold">Mobile</label><input className="w-full border rounded p-2" value={editingAffiliate.mobile} onChange={e => setEditingAffiliate({...editingAffiliate, mobile: e.target.value})} /></div>
+                        </div>
+                    </div>
+                 )}
               </div>
-              <div className="p-6 space-y-4">
+              <div className="flex justify-end gap-2">
+                 <Button variant="ghost" onClick={() => setIsAffiliateModalOpen(false)}>Cancel</Button>
+                 <Button onClick={saveAffiliate}>Save Changes</Button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* SEO Modal */}
+      {isSeoModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+              <h3 className="font-bold text-xl mb-4">Edit Product SEO</h3>
+              <div className="space-y-4">
+                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Meta Title</label><input className="w-full border rounded-lg p-2" value={seoForm.metaTitle} onChange={e => setSeoForm({...seoForm, metaTitle: e.target.value})} /></div>
+                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Meta Description</label><textarea className="w-full border rounded-lg p-2 h-24" value={seoForm.metaDescription} onChange={e => setSeoForm({...seoForm, metaDescription: e.target.value})} /></div>
+                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">OG Image URL</label><input className="w-full border rounded-lg p-2" value={seoForm.ogImage} onChange={e => setSeoForm({...seoForm, ogImage: e.target.value})} /></div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                 <Button variant="ghost" onClick={() => setIsSeoModalOpen(false)}>Cancel</Button>
+                 <Button onClick={saveProductSeo}>Save SEO</Button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Bot Brain Modal */}
+      {isBrainModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+             <h3 className="font-bold text-lg mb-4">{editingBrainEntry ? 'Edit Brain Entry' : 'New Brain Entry'}</h3>
+             <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Topic / Question</label>
-                  <input className="w-full border rounded-lg p-2" value={brainForm.topic || ''} onChange={e => setBrainForm({...brainForm, topic: e.target.value})} />
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Topic / User Intent</label>
+                  <input className="w-full border rounded-lg p-2" value={brainForm.topic || ''} onChange={e => setBrainForm({...brainForm, topic: e.target.value})} placeholder="e.g., Return Policy" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Response / Information</label>
-                  <textarea className="w-full border rounded-lg p-2 h-32" value={brainForm.response || ''} onChange={e => setBrainForm({...brainForm, response: e.target.value})} />
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bot Response</label>
+                  <textarea className="w-full border rounded-lg p-2 h-32" value={brainForm.response || ''} onChange={e => setBrainForm({...brainForm, response: e.target.value})} placeholder="Full detail response..." />
                 </div>
-              </div>
-              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
+             </div>
+             <div className="flex justify-end gap-2 mt-6">
                 <Button variant="ghost" onClick={() => setIsBrainModalOpen(false)}>Cancel</Button>
-                <Button onClick={saveBrainEntry} disabled={isSyncing}><Save size={16}/> Save Entry</Button>
-              </div>
-            </div>
+                <Button onClick={saveBrainEntry}>Save</Button>
+             </div>
           </div>
-        )}
-        {isKeywordModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-fade-in-up">
-              <div className="p-6 border-b">
-                <h3 className="text-xl font-bold text-gray-900">{editingKeyword ? 'Edit' : 'Add'} Keyword Trigger</h3>
-              </div>
-              <div className="p-6 space-y-4">
+        </div>
+      )}
+
+      {/* Bot Keyword Modal */}
+      {isKeywordModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+             <h3 className="font-bold text-lg mb-4">{editingKeyword ? 'Edit Keywords' : 'New Keyword Trigger'}</h3>
+             <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Keywords</label>
-                  <input className="w-full border rounded-lg p-2" placeholder="e.g. hello, hi, hey" value={keywordForm.keywords || ''} onChange={e => setKeywordForm({...keywordForm, keywords: e.target.value})} />
-                  <p className="text-xs text-gray-400 mt-1">Comma-separated words or phrases.</p>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Keywords (Comma separated)</label>
+                  <input className="w-full border rounded-lg p-2" value={keywordForm.keywords || ''} onChange={e => setKeywordForm({...keywordForm, keywords: e.target.value})} placeholder="hello, hi, hey" />
                 </div>
-                 <div>
+                <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
-                  <input className="w-full border rounded-lg p-2" placeholder="e.g. Greetings" value={keywordForm.category || ''} onChange={e => setKeywordForm({...keywordForm, category: e.target.value})} />
+                  <input className="w-full border rounded-lg p-2" value={keywordForm.category || ''} onChange={e => setKeywordForm({...keywordForm, category: e.target.value})} placeholder="e.g., Greetings" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Custom Response</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Response</label>
                   <textarea className="w-full border rounded-lg p-2 h-24" value={keywordForm.response || ''} onChange={e => setKeywordForm({...keywordForm, response: e.target.value})} />
                 </div>
-              </div>
-              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
+             </div>
+             <div className="flex justify-end gap-2 mt-6">
                 <Button variant="ghost" onClick={() => setIsKeywordModalOpen(false)}>Cancel</Button>
-                <Button onClick={saveKeyword} disabled={isSyncing}><Save size={16}/> Save Keyword</Button>
-              </div>
-            </div>
+                <Button onClick={saveKeyword}>Save</Button>
+             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* SEO Modal */}
-        {isSeoModalOpen && editingSeoProduct && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl animate-fade-in-up max-h-[90vh] flex flex-col">
-              <div className="p-6 border-b flex justify-between items-center">
+      {/* Bot Preset Modal */}
+      {isPresetModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+             <h3 className="font-bold text-lg mb-4">{editingPreset ? 'Edit Preset' : 'New Preset'}</h3>
+             <div className="space-y-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Edit SEO for: {editingSeoProduct.name}</h3>
-                  <p className="text-sm text-gray-500">Optimize how this product appears on search engines.</p>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Button Question</label>
+                  <input className="w-full border rounded-lg p-2" value={presetForm.question || ''} onChange={e => setPresetForm({...presetForm, question: e.target.value})} placeholder="e.g., How much is it?" />
                 </div>
-                <button onClick={() => setIsSeoModalOpen(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column: Forms */}
-                <div className="space-y-6">
-                  {/* Meta Tags */}
-                  <div className="p-4 border rounded-xl bg-gray-50/50">
-                    <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><PenLine size={16}/> Meta Tags</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">Meta Title <CharCounter value={seoForm.metaTitle || ''} limit={60} /></label>
-                        <input className="form-input" value={seoForm.metaTitle} onChange={e => setSeoForm({...seoForm, metaTitle: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">Meta Description <CharCounter value={seoForm.metaDescription || ''} limit={160} /></label>
-                        <textarea className="form-input h-24" value={seoForm.metaDescription} onChange={e => setSeoForm({...seoForm, metaDescription: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Keywords</label>
-                        <input className="form-input" placeholder="e.g. DITO, Home WiFi, 5G" value={seoForm.keywords} onChange={e => setSeoForm({...seoForm, keywords: e.target.value})} />
-                        <p className="text-xs text-gray-400 mt-1">Comma-separated tags.</p>
-                      </div>
-                       <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">URL Slug</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">.../product/</span>
-                          <input className="form-input pl-[85px]" value={seoForm.slug} onChange={e => setSeoForm({...seoForm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Open Graph */}
-                  <div className="p-4 border rounded-xl bg-gray-50/50">
-                    <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><Share2 size={16}/> Open Graph (Social Sharing)</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">OG Title <CharCounter value={seoForm.ogTitle || ''} limit={90} /></label>
-                        <input className="form-input" value={seoForm.ogTitle} onChange={e => setSeoForm({...seoForm, ogTitle: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase mb-1">OG Description <CharCounter value={seoForm.ogDescription || ''} limit={200} /></label>
-                        <textarea className="form-input h-20" value={seoForm.ogDescription} onChange={e => setSeoForm({...seoForm, ogDescription: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">OG Image URL</label>
-                        <input className="form-input" value={seoForm.ogImage} onChange={e => setSeoForm({...seoForm, ogImage: e.target.value})} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Previews */}
-                <div className="space-y-6">
-                   {/* Google Preview */}
-                   <div className="p-4 border rounded-xl">
-                      <h4 className="font-bold text-gray-900 mb-3 text-sm">Google Search Preview</h4>
-                      <div className="p-3 bg-white rounded-lg">
-                          <p className="text-sm text-gray-600 truncate">https://ditohome.ph/#/product/{seoForm.slug || editingSeoProduct.id}</p>
-                          <h3 className="text-blue-800 text-xl font-medium truncate hover:underline cursor-pointer">{seoForm.metaTitle || editingSeoProduct.name}</h3>
-                          <p className="text-sm text-gray-700 mt-1 line-clamp-2">{seoForm.metaDescription || editingSeoProduct.description}</p>
-                      </div>
-                   </div>
-                   {/* Schema Markup */}
-                   <div className="p-4 border rounded-xl">
-                      <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm"><Code size={16}/> Schema Markup (JSON-LD)</h4>
-                      <p className="text-xs text-gray-500 mb-3">This structured data is auto-generated to help Google understand your product information.</p>
-                      <pre className="bg-gray-900 text-white p-4 rounded-lg text-xs overflow-auto h-64 font-mono">
-                        <code>{generateSchemaMarkup(editingSeoProduct, seoForm)}</code>
-                      </pre>
-                   </div>
-                </div>
-              </div>
-
-              <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
-                 <Button variant="ghost" onClick={() => setIsSeoModalOpen(false)}>Cancel</Button>
-                 <Button onClick={saveProductSeo} disabled={isSyncing}>
-                   <Save size={16}/> {isSyncing ? 'Saving...' : 'Save SEO Changes'}
-                 </Button>
-              </div>
-            </div>
-            <style>{`.form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; }`}</style>
-          </div>
-        )}
-
-        {/* Product Modal (Existing) */}
-        {isProductModalOpen && (
-           /* ... Product Modal Code ... */
-           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-              <div className="bg-white rounded-2xl w-full max-w-4xl p-0 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-hidden flex flex-col">
-                {/* ... content ... */}
-                <div className="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-10">
-                   <h3 className="text-xl font-bold text-gray-900">{editingProduct ? 'Edit Product' : 'New Product'}</h3>
-                   <button onClick={() => setIsProductModalOpen(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
-                </div>
-                <div className="flex border-b bg-gray-50 px-6">
-                   {['general', 'inventory', 'images', 'advanced'].map(tab => (
-                      <button key={tab} onClick={() => setActiveProductTab(tab as any)} className={`px-6 py-3 text-sm font-bold capitalize border-b-2 transition-colors ${activeProductTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                         {tab}
-                      </button>
-                   ))}
-                </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                   {/* ... fields ... */}
-                   {activeProductTab === 'general' && (
-                      <div className="grid md:grid-cols-2 gap-6">
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Product Name</label><input className="w-full border rounded-lg p-2" value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label><select className="w-full border rounded-lg p-2 bg-white" value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value})}><option value="Modems">Modems</option><option value="Pocket WiFi">Pocket WiFi</option><option value="SIM Cards">SIM Cards</option><option value="Accessories">Accessories</option></select></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Selling Price (₱)</label><input type="number" className="w-full border rounded-lg p-2" value={newProductForm.price} onChange={e => setNewProductForm({...newProductForm, price: Number(e.target.value)})} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cost Price (₱) <span className="text-gray-400 font-normal lowercase">(for profit calc)</span></label><input type="number" className="w-full border rounded-lg p-2" value={newProductForm.costPrice} onChange={e => setNewProductForm({...newProductForm, costPrice: Number(e.target.value)})} /></div>
-                         <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label><textarea className="w-full border rounded-lg p-2 h-32" value={newProductForm.description} onChange={e => setNewProductForm({...newProductForm, description: e.target.value})} /></div>
-                      </div>
-                   )}
-                   {activeProductTab === 'inventory' && (
-                      <div className="grid md:grid-cols-3 gap-6">
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">SKU Code</label><input className="w-full border rounded-lg p-2" value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Stock</label><input type="number" className="w-full border rounded-lg p-2" value={newProductForm.stock} onChange={e => setNewProductForm({...newProductForm, stock: Number(e.target.value)})} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Low Stock Alert Level</label><input type="number" className="w-full border rounded-lg p-2" value={newProductForm.minStockLevel} onChange={e => setNewProductForm({...newProductForm, minStockLevel: Number(e.target.value)})} /></div>
-                      </div>
-                   )}
-                   {activeProductTab === 'images' && (
-                      <div className="space-y-6">
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Main Image URL</label><input className="w-full border rounded-lg p-2" value={newProductForm.image} onChange={e => setNewProductForm({...newProductForm, image: e.target.value})} /></div>
-                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Image Gallery</label>
-                            <div className="flex gap-2 mb-3"><input className="flex-1 border rounded-lg p-2 text-sm" placeholder="https://..." value={galleryInput} onChange={e => setGalleryInput(e.target.value)} /><button onClick={addGalleryImage} className="bg-primary text-white p-2 rounded-lg"><Plus size={16}/></button></div>
-                            <div className="grid grid-cols-5 gap-2">{newProductForm.gallery && newProductForm.gallery.map((img, i) => (<div key={i} className="relative aspect-square bg-white rounded border overflow-hidden group"><img src={img} alt="" className="w-full h-full object-cover" /><button onClick={() => removeGalleryImage(i)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button></div>))}</div>
-                         </div>
-                      </div>
-                   )}
-                   {activeProductTab === 'advanced' && (
-                      <div className="space-y-6">
-                         <div className="grid md:grid-cols-2 gap-6 p-4 border rounded-xl bg-blue-50 border-blue-100">
-                            <div><label className="block text-xs font-bold text-blue-800 uppercase mb-1">Commission Type</label><select className="w-full border rounded-lg p-2 bg-white" value={newProductForm.commissionType} onChange={e => setNewProductForm({...newProductForm, commissionType: e.target.value as any})}><option value="percentage">Percentage (%)</option><option value="fixed">Fixed Amount (₱)</option></select></div>
-                            <div><label className="block text-xs font-bold text-blue-800 uppercase mb-1">Commission Value</label><input type="number" className="w-full border rounded-lg p-2" value={newProductForm.commissionValue} onChange={e => setNewProductForm({...newProductForm, commissionValue: Number(e.target.value)})} /></div>
-                         </div>
-                         <div className="p-4 border rounded-xl bg-green-50 border-green-100">
-                            <label className="block text-xs font-bold text-green-800 uppercase mb-2">Bulk Discounts</label>
-                            <div className="flex gap-2 mb-2"><input type="number" className="w-24 border rounded-lg p-2 text-sm" placeholder="Min Qty" value={bulkDiscountInput.minQty || ''} onChange={e => setBulkDiscountInput({...bulkDiscountInput, minQty: Number(e.target.value)})} /><input type="number" className="flex-1 border rounded-lg p-2 text-sm" placeholder="Discount %" value={bulkDiscountInput.percentage || ''} onChange={e => setBulkDiscountInput({...bulkDiscountInput, percentage: Number(e.target.value)})} /><button onClick={addBulkDiscount} className="bg-green-600 text-white p-2 rounded-lg"><Plus size={16}/></button></div>
-                            <div className="space-y-1">{newProductForm.bulkDiscounts?.map((d, i) => (<div key={i} className="flex justify-between text-xs bg-white px-3 py-1.5 rounded border border-green-200 text-green-800"><span className="font-bold">Buy {d.minQty}+ items</span><span>Get {d.percentage}% Off</span><button onClick={() => removeBulkDiscount(i)} className="text-red-400"><X size={12}/></button></div>))}</div>
-                         </div>
-                         <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                               <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Specifications</label>
-                               <div className="flex gap-2 mb-2"><input className="w-1/3 border rounded-lg p-2 text-xs" placeholder="Key" value={specInput.key} onChange={e => setSpecInput({...specInput, key: e.target.value})} /><input className="flex-1 border rounded-lg p-2 text-xs" placeholder="Value" value={specInput.value} onChange={e => setSpecInput({...specInput, value: e.target.value})} /><button onClick={addSpec} className="bg-gray-200 p-2 rounded text-gray-600"><Plus size={14}/></button></div>
-                               <div className="space-y-1 h-32 overflow-y-auto">{newProductForm.specs && Object.entries(newProductForm.specs).map(([k, v]) => (<div key={k} className="flex justify-between text-xs bg-gray-50 px-2 py-1 rounded border border-gray-100"><span><span className="font-bold">{k}:</span> {v}</span><button onClick={() => removeSpec(k)} className="text-red-400"><X size={12}/></button></div>))}</div>
-                            </div>
-                            <div>
-                               <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Inclusions</label>
-                               <div className="flex gap-2 mb-2"><input className="flex-1 border rounded-lg p-2 text-xs" placeholder="Item Name" value={inclusionInput} onChange={e => setInclusionInput(e.target.value)} /><button onClick={addInclusion} className="bg-gray-200 p-2 rounded text-gray-600"><Plus size={14}/></button></div>
-                               <div className="space-y-1 h-32 overflow-y-auto">{newProductForm.inclusions && newProductForm.inclusions.map((inc, i) => (<div key={i} className="flex justify-between text-xs bg-gray-50 px-2 py-1 rounded border border-gray-100"><span>{inc}</span><button onClick={() => removeInclusion(i)} className="text-red-400"><X size={12}/></button></div>))}</div>
-                            </div>
-                         </div>
-                      </div>
-                   )}
-                </div>
-                <div className="p-4 border-t flex justify-end gap-3 bg-gray-50">
-                   <Button variant="ghost" onClick={() => setIsProductModalOpen(false)}>Cancel</Button>
-                   <Button onClick={saveProduct}>Save Product</Button>
-                </div>
-              </div>
-           </div>
-        )}
-
-        {/* NEW: Customer View Modal */}
-        {viewingCustomer && (
-           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up">
-                <div className="flex justify-between items-start mb-6">
-                   <div>
-                      <h3 className="text-xl font-bold text-gray-900">Customer Details</h3>
-                      <p className="text-xs text-gray-500">Registered User Info</p>
-                   </div>
-                   <button onClick={() => setViewingCustomer(null)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
-                </div>
-
-                <div className="space-y-6">
-                   <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold">
-                         {(viewingCustomer.firstName || viewingCustomer.name || 'U')[0]}
-                      </div>
-                      <div>
-                         <p className="font-bold text-gray-900 text-lg">{viewingCustomer.name}</p>
-                         <p className="text-sm text-gray-500">@{viewingCustomer.username || 'guest'}</p>
-                      </div>
-                   </div>
-
-                   <div className="space-y-3 text-sm">
-                      <div className="flex justify-between border-b border-gray-100 pb-2">
-                         <span className="text-gray-500">Email</span>
-                         <span className="font-medium">{viewingCustomer.email}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-gray-100 pb-2">
-                         <span className="text-gray-500">Mobile</span>
-                         <span className="font-medium">{viewingCustomer.mobile}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-gray-100 pb-2">
-                         <span className="text-gray-500">Join Date</span>
-                         <span className="font-medium">{viewingCustomer.joinDate ? new Date(viewingCustomer.joinDate).toLocaleDateString() : 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-gray-100 pb-2">
-                         <span className="text-gray-500">First Name</span>
-                         <span className="font-medium">{viewingCustomer.firstName || '-'}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-gray-100 pb-2">
-                         <span className="text-gray-500">Last Name</span>
-                         <span className="font-medium">{viewingCustomer.lastName || '-'}</span>
-                      </div>
-                   </div>
-                   
-                   <Button fullWidth onClick={() => setViewingCustomer(null)}>Close</Button>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bot Response</label>
+                  <textarea className="w-full border rounded-lg p-2 h-24" value={presetForm.response || ''} onChange={e => setPresetForm({...presetForm, response: e.target.value})} placeholder="The price is..." />
                 </div>
              </div>
-           </div>
-        )}
-
-        {/* ... Other Modals (Order, Affiliate) ... */}
-        {viewingOrder && (
-           /* ... Order Modal ... */
-           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-              <div className="bg-white rounded-2xl w-full max-w-3xl p-8 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto relative">
-                  <button onClick={() => setViewingOrder(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"><XCircle size={24}/></button>
-                  {/* ... content ... */}
-                  <div className="flex items-center gap-4 mb-6 pb-6 border-b">
-                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><ShoppingBag size={24}/></div>
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-900">Order {viewingOrder.id}</h3>
-                        <p className="text-gray-500">{new Date(viewingOrder.date).toLocaleDateString()} • {viewingOrder.status}</p>
-                     </div>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-8 mb-8">
-                     <div className="space-y-4">
-                        <h4 className="font-bold text-gray-900 border-b pb-2">Customer Details</h4>
-                        <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
-                           <span className="text-gray-500">Name:</span> <span className="font-medium">{viewingOrder.customer}</span>
-                           <span className="text-gray-500">Mobile:</span> <span className="font-medium">{viewingOrder.shippingDetails?.mobile || 'N/A'}</span>
-                        </div>
-                        <h4 className="font-bold text-gray-900 border-b pb-2 mt-6">Shipping Address</h4>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                           {viewingOrder.shippingDetails?.street}, {viewingOrder.shippingDetails?.barangay}<br/>
-                           {viewingOrder.shippingDetails?.city}, {viewingOrder.shippingDetails?.province}<br/>
-                           {viewingOrder.shippingDetails?.zipCode}
-                        </p>
-                     </div>
-                     <div className="space-y-4">
-                        <h4 className="font-bold text-gray-900 border-b pb-2">Payment Info</h4>
-                        <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
-                           <span className="text-gray-500">Method:</span> <Badge color="blue">{viewingOrder.paymentMethod}</Badge>
-                           <span className="text-gray-500">Status:</span> <Badge color={viewingOrder.status === 'Delivered' ? 'green' : 'yellow'}>{viewingOrder.status}</Badge>
-                        </div>
-                        {viewingOrder.proofOfPayment && (
-                           <div className="mt-4">
-                              <span className="text-xs font-bold text-gray-500 uppercase">Payment Proof</span>
-                              <a href={viewingOrder.proofOfPayment} target="_blank" rel="noreferrer" className="block mt-2 relative group rounded-lg overflow-hidden border hover:border-primary">
-                                 <img src={viewingOrder.proofOfPayment} alt="Proof" className="w-full h-32 object-cover" />
-                                 <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold text-xs">View Full</div>
-                              </a>
-                           </div>
-                        )}
-                     </div>
-                  </div>
-                  <h4 className="font-bold text-gray-900 border-b pb-2 mb-4">Order Items</h4>
-                  <table className="w-full text-sm text-left mb-6">
-                     <thead className="bg-gray-50 text-gray-500"><tr><th className="p-3 rounded-l-lg">Item</th><th className="p-3">Qty</th><th className="p-3 text-right rounded-r-lg">Price</th></tr></thead>
-                     <tbody>
-                        {viewingOrder.orderItems?.map((item, i) => (
-                           <tr key={i} className="border-b last:border-0">
-                              <td className="p-3 font-medium text-gray-900">{item.name}</td>
-                              <td className="p-3">{item.quantity}</td>
-                              <td className="p-3 text-right">₱{(item.price * item.quantity).toLocaleString()}</td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
-                  <div className="bg-gray-50 p-4 rounded-xl space-y-2 text-sm">
-                     <div className="flex justify-between"><span>Subtotal</span><span>₱{(viewingOrder.total - (viewingOrder.shippingFee || 0)).toLocaleString()}</span></div>
-                     <div className="flex justify-between"><span>Shipping Fee</span><span>₱{(viewingOrder.shippingFee || 0).toLocaleString()}</span></div>
-                     <div className="flex justify-between pt-2 border-t border-gray-200 font-bold text-lg"><span>Total</span><span className="text-primary">₱{viewingOrder.total.toLocaleString()}</span></div>
-                  </div>
-              </div>
-           </div>
-        )}
-
-        {/* ... Affiliate Modal (Existing) ... */}
-        {isAffiliateModalOpen && editingAffiliate && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-             <div className="bg-white rounded-2xl w-full max-w-2xl p-8 shadow-2xl animate-fade-in-up">
-                {/* ... content ... */}
-                <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-gray-900">Manage Partner</h3>
-                   <button onClick={() => setIsAffiliateModalOpen(false)} className="text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
-                </div>
-                <div className="flex gap-4 mb-6 border-b">
-                   <button onClick={() => setActiveAffiliateTab('wallet')} className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${activeAffiliateTab === 'wallet' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Wallet & Status</button>
-                   <button onClick={() => setActiveAffiliateTab('profile')} className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${activeAffiliateTab === 'profile' ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}>Profile & Verification</button>
-                </div>
-                {activeAffiliateTab === 'wallet' && (
-                   <div className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Partner Name</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50" value={editingAffiliate.name} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Wallet</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50 font-bold text-primary" value={`₱${editingAffiliate.walletBalance.toLocaleString()}`} /></div>
-                      </div>
-                      <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                         <label className="block text-xs font-bold text-yellow-700 uppercase mb-2">Manual Wallet Adjustment</label>
-                         <div className="flex gap-2 items-center"><button onClick={() => setWalletAdjustment(prev => prev - 100)} className="p-2 bg-white border rounded-lg hover:bg-gray-50">-</button><input type="number" className="flex-1 border rounded-lg p-2 text-center font-bold" value={walletAdjustment} onChange={e => setWalletAdjustment(Number(e.target.value))} /><button onClick={() => setWalletAdjustment(prev => prev + 100)} className="p-2 bg-white border rounded-lg hover:bg-gray-50">+</button></div>
-                         <p className="text-xs text-yellow-600 mt-2 text-center">New Balance: ₱{(editingAffiliate.walletBalance + walletAdjustment).toLocaleString()}</p>
-                      </div>
-                      <Button fullWidth onClick={saveAffiliate} disabled={walletAdjustment === 0}>Apply Adjustment</Button>
-                   </div>
-                )}
-                {activeAffiliateTab === 'profile' && (
-                   <div className="space-y-6 max-h-[60vh] overflow-y-auto">
-                      <div className="grid md:grid-cols-2 gap-4">
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mobile</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50" value={editingAffiliate.mobile || 'N/A'} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Address</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50" value={editingAffiliate.address || 'N/A'} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Username</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50" value={editingAffiliate.username || 'N/A'} /></div>
-                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">GCash Name</label><input disabled className="w-full border rounded-lg p-2 bg-gray-50" value={editingAffiliate.gcashName || 'N/A'} /></div>
-                      </div>
-                      <div>
-                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Government ID</label>
-                         {editingAffiliate.govtId ? (
-                            <img src={editingAffiliate.govtId} alt="ID" className="w-full h-48 object-contain bg-gray-100 rounded-lg border" />
-                         ) : (
-                            <div className="w-full h-32 bg-gray-50 rounded-lg border border-dashed flex items-center justify-center text-gray-400 text-sm">No ID Uploaded</div>
-                         )}
-                      </div>
-                   </div>
-                )}
+             <div className="flex justify-end gap-2 mt-6">
+                <Button variant="ghost" onClick={() => setIsPresetModalOpen(false)}>Cancel</Button>
+                <Button onClick={savePreset}>Save</Button>
              </div>
           </div>
-        )}
+        </div>
+      )}
 
-      </main>
+      {/* Order View Modal */}
+      {viewingOrder && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-bold text-xl">Order #{viewingOrder.id}</h3>
+                 <button onClick={() => setViewingOrder(null)}><X size={24}/></button>
+              </div>
+              <div className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-xl">
+                    <div><p className="font-bold text-gray-500">Date</p><p>{new Date(viewingOrder.date).toLocaleDateString()}</p></div>
+                    <div><p className="font-bold text-gray-500">Status</p><Badge color={viewingOrder.status === 'Delivered' ? 'green' : 'blue'}>{viewingOrder.status}</Badge></div>
+                    <div><p className="font-bold text-gray-500">Payment</p><p>{viewingOrder.paymentMethod}</p></div>
+                    <div><p className="font-bold text-gray-500">Total</p><p className="font-bold text-lg text-primary">₱{viewingOrder.total.toLocaleString()}</p></div>
+                 </div>
+
+                 {/* Order Items */}
+                 <div>
+                    <h4 className="font-bold mb-2">Items</h4>
+                    <div className="border rounded-xl overflow-hidden">
+                       {viewingOrder.orderItems?.map((item, i) => (
+                          <div key={i} className="flex justify-between p-3 border-b last:border-0 hover:bg-gray-50">
+                             <span>{item.quantity}x {item.name}</span>
+                             <span>₱{(item.price * item.quantity).toLocaleString()}</span>
+                          </div>
+                       ))}
+                       {!viewingOrder.orderItems && <div className="p-3">Item details not available for legacy orders.</div>}
+                    </div>
+                 </div>
+
+                 {/* Shipping Details */}
+                 <div>
+                    <h4 className="font-bold mb-2">Shipping Address</h4>
+                    <div className="p-4 border rounded-xl bg-gray-50 text-sm">
+                       <p className="font-bold">{viewingOrder.shippingDetails?.firstName} {viewingOrder.shippingDetails?.lastName}</p>
+                       <p>{viewingOrder.shippingDetails?.street}</p>
+                       <p>{viewingOrder.shippingDetails?.barangay}, {viewingOrder.shippingDetails?.city}</p>
+                       <p>{viewingOrder.shippingDetails?.province} {viewingOrder.shippingDetails?.zipCode}</p>
+                       <p className="mt-2 font-mono">{viewingOrder.shippingDetails?.mobile}</p>
+                    </div>
+                 </div>
+
+                 {/* Proof of Payment */}
+                 {viewingOrder.proofOfPayment && (
+                    <div>
+                       <h4 className="font-bold mb-2">Proof of Payment</h4>
+                       <div className="border rounded-xl p-2 bg-gray-50">
+                          <img src={viewingOrder.proofOfPayment} className="max-w-full h-auto rounded-lg max-h-64 object-contain mx-auto" />
+                          <div className="text-center mt-2">
+                             <a href={viewingOrder.proofOfPayment} target="_blank" className="text-sm text-blue-600 hover:underline">View Full Size</a>
+                          </div>
+                       </div>
+                    </div>
+                 )}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Customer View Modal */}
+      {viewingCustomer && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-bold text-xl">Customer Details</h3>
+                 <button onClick={() => setViewingCustomer(null)}><X size={24}/></button>
+              </div>
+              <div className="space-y-4">
+                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
+                       {viewingCustomer.name.charAt(0)}
+                    </div>
+                    <div>
+                       <h4 className="font-bold text-lg">{viewingCustomer.name}</h4>
+                       <p className="text-sm text-gray-500">@{viewingCustomer.username}</p>
+                    </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="p-3 border rounded-lg">
+                       <p className="text-xs text-gray-400 font-bold uppercase">Email</p>
+                       <p>{viewingCustomer.email}</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                       <p className="text-xs text-gray-400 font-bold uppercase">Phone</p>
+                       <p>{viewingCustomer.mobile}</p>
+                    </div>
+                    <div className="col-span-2 p-3 border rounded-lg">
+                       <p className="text-xs text-gray-400 font-bold uppercase">Joined</p>
+                       <p>{new Date(viewingCustomer.joinDate || '').toLocaleDateString()}</p>
+                    </div>
+                 </div>
+
+                 {viewingCustomer.shippingDetails && (
+                    <div>
+                       <h4 className="font-bold text-sm mb-2 mt-4">Default Shipping Address</h4>
+                       <div className="p-3 bg-gray-50 border rounded-lg text-sm">
+                          <p>{viewingCustomer.shippingDetails.street}</p>
+                          <p>{viewingCustomer.shippingDetails.barangay}, {viewingCustomer.shippingDetails.city}</p>
+                          <p>{viewingCustomer.shippingDetails.province} {viewingCustomer.shippingDetails.zipCode}</p>
+                       </div>
+                    </div>
+                 )}
+              </div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 };

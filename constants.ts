@@ -1,6 +1,7 @@
 
 
-import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings, BotBrainEntry, BotKeywordTrigger } from './types';
+
+import { Product, Order, LandingPageSettings, PaymentSettings, SMTPSettings, BotBrainEntry, BotKeywordTrigger, BotPreset } from './types';
 
 export const HERO_PRODUCT: Product = {
   id: 'dito-wowfi-pro',
@@ -240,4 +241,10 @@ export const DEFAULT_BOT_KEYWORDS: BotKeywordTrigger[] = [
   { id: 'key-1', keywords: 'hello,hi,good day,hey', category: 'Greetings', response: 'Hello! I am the DITO AI Assistant. How can I help you today?' },
   { id: 'key-2', keywords: 'support,help,assistance,problem', category: 'Support', response: 'For support, you can reach our 24/7 customer service through the DITO app or by calling our hotline.' },
   { id: 'key-3', keywords: 'thank you,thanks', category: 'Closing', response: 'You\'re welcome! Is there anything else I can assist you with?' },
+];
+
+export const DEFAULT_BOT_PRESETS: BotPreset[] = [
+  { id: 'preset-1', question: 'How much is the modem?', response: 'The DITO Home WoWFi Pro is available for a one-time payment of ₱1,990.' },
+  { id: 'preset-2', question: 'What is the speed?', response: 'You can experience ultra-fast 4G/5G speeds up to 500+ Mbps, depending on your area\'s coverage.' },
+  { id: 'preset-3', question: 'How to check coverage?', response: 'You can check if your area is covered by our 5G network by visiting the official DITO website and using our coverage map tool.' },
 ];
